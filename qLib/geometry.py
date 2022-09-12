@@ -54,6 +54,17 @@ def gMultiply(bases: list[int], names: list[str], e1: str, e2: str) -> str:
     sign_ = "-" if acc == -1 else ""
     return f"{sign_}{name}"
 
+def gAntiCommutative_(bases: list[int], names: list[str], e1: str, e2: str) -> bool:
+    a = gMultiply(bases, names, e1, e2)
+    b = gMultiply(bases, names, e2, e1)
+    return a.startswith("-") ^ b.startswith("-")
+
+def gInner(bases: list[int], names: list[str], e1: str, e2: str) -> str:
+    return gMultiply(bases, names, e1, e2) if not gAntiCommutative_(bases, names, e1, e2) else "0"
+
+def gOuter(bases: list[int], names: list[str], e1: str, e2: str) -> str:
+    return gMultiply(bases, names, e1, e2) if gAntiCommutative_(bases, names, e1, e2) else "0"
+
 def galgebra(bases: list[int], names: list[str]):
     assert_equals(len(names), 2**len(bases) - 1)
     for v in names:
@@ -63,8 +74,15 @@ def galgebra(bases: list[int], names: list[str]):
             assert_equals(c.isnumeric(), True)
     masks = [gMask(v[1:]) for v in names]
     print(masks)
+    print("-- v * w")
     for v in ["", *names]:
         print([gMultiply(bases, names, v, w) for w in ["", *names]])
+    print("-- v inner w")
+    for v in ["", *names]:
+        print([gInner(bases, names, v, w) for w in ["", *names]])
+    print("-- v outer w")
+    for v in ["", *names]:
+        print([gOuter(bases, names, v, w) for w in ["", *names]])
 
     class GAlgebra:
         pass
