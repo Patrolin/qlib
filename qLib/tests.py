@@ -5,8 +5,19 @@ from typing import Callable, NamedTuple, cast
 from traceback import print_exc
 from qLib.vtcodes import TextColor
 from inspect import currentframe, getframeinfo
-import inspect
 from os.path import basename
+
+def assert_equals(got, expected):
+    if got != expected:
+        raise AssertionError(f"got: {got}; expected: {expected}")
+
+def assert_less_than_equals(got, expected):
+    if got > expected:
+        raise AssertionError(f"got: {got}; expected: <= {expected}")
+
+def assert_greater_than_equals(got, expected):
+    if got < expected:
+        raise AssertionError(f"got: {got}; expected: >= {expected}")
 
 class Test(NamedTuple):
     f: Callable

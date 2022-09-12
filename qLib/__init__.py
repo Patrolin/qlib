@@ -1,5 +1,6 @@
 from .datetime import *
 from .math_ import *
+from .geometry import *
 from .qoi import *
 from .statistics import *
 from .tests import *

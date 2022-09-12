@@ -16,7 +16,7 @@ def testNormalize():
     tests = [
         NormalizeTest("á", lambda c, a, s: ["a", "a\u0301"][a]),
         NormalizeTest("B", lambda c, a, s: ["b", "B"][c]),
-        NormalizeTest("Č", lambda c, a, s: ["c", "C", "c\u030c", "C\u030c"][a * 2 + c]),
+        NormalizeTest("Č", lambda c, a, s: ["c", "C", "c\u030c", "C\u030c"][a*2 + c]),
         NormalizeTest("ﬁ", lambda c, a, s: ["fi", "ﬁ"][s]),
     ]
     for i in range(16):
