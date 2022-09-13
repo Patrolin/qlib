@@ -3,11 +3,12 @@ from .math_ import sign
 
 def gMask(e: str) -> int:
     acc = 0
-    for c in e:
+    for c in e[1:]:
         acc |= (1 << int(c))
     return acc
 
 def gMultiply_(bases: list[int], e1: str, e2: str) -> tuple[str, int]:
+    if e1 == "0" or e2 == "0": return "0", 0
     acc_str = ""
     acc = 1
 
@@ -32,22 +33,20 @@ def gMultiply_(bases: list[int], e1: str, e2: str) -> tuple[str, int]:
     for c in e2[1:]:
         acc_str, k = insort(acc_str, c)
         acc *= k
-    return acc_str, acc
+    return acc_str or "1", acc
 
 def gMultiply(bases: list[int], names: list[str], e1: str, e2: str) -> str:
     acc_str, acc = gMultiply_(bases, e1, e2)
     mask = gMask(acc_str)
     i = 0
     for n in names:
-        if gMask(n[1:]) == mask:
+        if gMask(n) == mask:
             break
         i += 1
     else:
         i = -1
-    name_ = names[i] if i >= 0 else ""
-    #print(acc_str, acc, acc * sign(gMultiply_(bases, name_, "")[1]))
-    acc *= sign(gMultiply_(bases, name_, "")[1])
-    name = name_ or "1"
+    name = names[i]
+    acc *= sign(gMultiply_(bases, name, "1")[1])
 
     #print(acc, acc_str)
     if acc == 0: return "0"
@@ -59,34 +58,67 @@ def gAntiCommutative_(bases: list[int], names: list[str], e1: str, e2: str) -> b
     b = gMultiply(bases, names, e2, e1)
     return a.startswith("-") ^ b.startswith("-")
 
-def gInner(bases: list[int], names: list[str], e1: str, e2: str) -> str:
+def gUp(bases: list[int], names: list[str], e1: str, e2: str) -> str:
     return gMultiply(bases, names, e1, e2) if not gAntiCommutative_(bases, names, e1, e2) else "0"
 
-def gOuter(bases: list[int], names: list[str], e1: str, e2: str) -> str:
+def gDown(bases: list[int], names: list[str], e1: str, e2: str) -> str:
     return gMultiply(bases, names, e1, e2) if gAntiCommutative_(bases, names, e1, e2) else "0"
 
+def gDual(names: list[str], e1: str) -> str:
+    return names[len(names) - names.index(e1) - 1]
+
 def galgebra(bases: list[int], names: list[str]):
-    assert_equals(len(names), 2**len(bases) - 1)
-    for v in names:
-        assert_greater_than_equals(len(v), 2)
-        assert_equals(v[0], "e")
-        for c in v[1:]:
-            assert_equals(c.isnumeric(), True)
-    masks = [gMask(v[1:]) for v in names]
-    print(masks)
+    assert_equals(len(names), 2**len(bases))
+    for i, v in enumerate(names):
+        if i == 0:
+            assert_equals(v, "1")
+        else:
+            assert_greater_than_equals(len(v), 2)
+            assert_equals(v[0], "e")
+            for c in v[1:]:
+                assert_equals(c.isnumeric(), True)
+    print([gMask(v) for v in names])
+    print(bases, names)
     print("-- v * w")
-    for v in ["", *names]:
-        print([gMultiply(bases, names, v, w) for w in ["", *names]])
-    print("-- v inner w")
-    for v in ["", *names]:
-        print([gInner(bases, names, v, w) for w in ["", *names]])
-    print("-- v outer w")
-    for v in ["", *names]:
-        print([gOuter(bases, names, v, w) for w in ["", *names]])
+    for v in names:
+        print([gMultiply(bases, names, v, w) for w in names])
+    print("-- v up w")
+    for v in names:
+        print([gUp(bases, names, v, w) for w in names])
+    print("-- v down w")
+    for v in names:
+        print([gDown(bases, names, v, w) for w in names])
+    print("-- !v")
+    print([gDual(names, v) for v in names])
+    print("-- v * !w")
+    for v in names:
+
+        def f(e1, e2):
+            a = gMultiply(bases, names, e1, gDual(names, e2))
+            b = gMultiply(bases, names, gDual(names, e2), e1)
+            isAntiCommutative = a.startswith("-") ^ b.startswith("-")
+            return a if isAntiCommutative else "0"
+
+        print([f(v, w) for w in names])
+    print("-- v sandwich w") # todo: multivector product
+    for v in names:
+
+        def f(e1, e2):
+            acc_sign = 1
+            acc = gMultiply(bases, names, e2, e1)
+            acc_sign *= 1 - 2 * acc.startswith("-")
+            acc = acc.removeprefix("-")
+            acc = gMultiply(bases, names, acc, gDual(names, e2))
+            acc_sign *= 1 - 2 * acc.startswith("-")
+            acc = acc.removeprefix("-")
+            sign = "-" if acc_sign == -1 and acc != "0" else ""
+            return f"{sign}{acc}"
+
+        print([f(v, w) for w in names])
 
     class GAlgebra:
         pass
 
     return GAlgebra
 
-PGA_2D = galgebra([0, 1, 1], ["e0", "e1", "e2", "e01", "e20", "e12", "e012"])
+PGA_2D = galgebra([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"])
