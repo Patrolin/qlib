@@ -123,6 +123,7 @@ def galgebra(bases: list[int], names: list[str]):
 
 PGA_2D = galgebra([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"])
 
-# Todo: PGA_2D.expand("(v1+v2e0) * (v1+v2e0)")
-# PGA_2D.expand("(v1+v2e0) *~ (v1+v2e0)")
-# PGA_2D.expand("(-9.8e20) sandwich (1)")
+# Todo: PGA_2D.table("(v1+v2e0) * (v1+v2e0)")
+# PGA_2D.table("(v1+v2e0) *~ (v1+v2e0)")
+# PGA_2D.table("(ae20) sandwich (b)")
+# PGA_2D.table("(-9.8e20) sandwich (1)")
