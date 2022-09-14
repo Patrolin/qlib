@@ -1,6 +1,49 @@
 from .tests import assert_equals, assert_greater_than_equals
 from .math_ import sign
 
+def GAlgebra(mul_table_str: list[list[str]]):
+    names = mul_table_str[0]
+    assert_equals(names[0], "1")
+    mul_table: list[list["GBlade"]] = []
+
+    class GBlade:
+        def __init__(self, index: int, value: float):
+            self.value = value
+            self.index = index
+
+        def __add__(self, other: "GBlade"):
+            assert_equals(self.index, other.index)
+            return GBlade(self.index, self.value + other.value)
+
+        def __mul__(self, other: "GBlade"):
+            v = mul_table[self.index][other.index]
+            return GBlade(v.index, v.value * self.value * other.value)
+
+        def __repr__(self):
+            return f"{self.value}{names[self.index] if self.index > 0 else ''}"
+
+    class GAlgebra:
+        @staticmethod
+        def parse_blade(s: str, i: int) -> tuple[int, GBlade]:
+            value_sign = 1
+            while i < len(s) and s[i] == "-":
+                value_sign *= -1
+                i += 1
+            j = i
+            while j < len(s) and s[j].isnumeric():
+                j += 1
+            continued = j < len(s) and s[j] == "e"
+            value = int(s[i:j] or 1 if continued else s[i:j]) * value_sign
+            i = j
+            while j < len(s) and s[j] != " ":
+                j += 1
+            index = names.index(s[i:j]) if j != i else 0
+            return j, GBlade(index, value)
+
+    mul_table = [[GAlgebra.parse_blade(v, 0)[1] for v in row] for row in mul_table_str]
+
+    return GAlgebra
+
 def gMask(e: str) -> int:
     acc = 0
     for c in e[1:]:
@@ -67,6 +110,11 @@ def gDown(bases: list[int], names: list[str], e1: str, e2: str) -> str:
 def gDual(names: list[str], e1: str) -> str:
     return names[len(names) - names.index(e1) - 1]
 
+def gReverse(names: list[str], e1: str) -> str:
+    i = names.index(e1)
+    sign = "" if (i == 0) or (i == len(names) - 1) else "-"
+    return f"{sign}{names[i]}"
+
 def galgebra(bases: list[int], names: list[str]):
     assert_equals(len(names), 2**len(bases))
     for i, v in enumerate(names):
@@ -90,7 +138,9 @@ def galgebra(bases: list[int], names: list[str]):
         print([gDown(bases, names, v, w) for w in names])
     print("-- !v")
     print([gDual(names, v) for v in names])
-    print("-- v * !w")
+    print("-- ~v")
+    print([gReverse(names, v) for v in names])
+    print("-- v * !w (down)")
     for v in names:
 
         def f(e1, e2):
@@ -98,6 +148,28 @@ def galgebra(bases: list[int], names: list[str]):
             b = gMultiply(bases, names, gDual(names, e2), e1)
             isAntiCommutative = a.startswith("-") ^ b.startswith("-")
             return a if isAntiCommutative else "0"
+
+        print([f(v, w) for w in names])
+    print("-- v * ~w (up)")
+    for v in names:
+
+        def f(e1, e2):
+            def ff(l, r):
+                acc_sign = 1
+                acc_sign *= 1 - 2 * l.startswith("-")
+                l = l.removeprefix("-")
+                acc_sign *= 1 - 2 * r.startswith("-")
+                r = r.removeprefix("-")
+                acc = gMultiply(bases, names, l, r)
+                acc_sign *= 1 - 2 * acc.startswith("-")
+                acc = acc.removeprefix("-")
+                sign = "-" if acc_sign == -1 and acc != "0" else ""
+                return f"{sign}{acc}"
+
+            a = ff(e1, gReverse(names, e2))
+            b = ff(e2, gReverse(names, e1))
+            isAntiCommutative = a.startswith("-") ^ b.startswith("-")
+            return a if not isAntiCommutative else "0"
 
         print([f(v, w) for w in names])
     print("-- v sandwich w") # todo: multivector product
@@ -115,11 +187,6 @@ def galgebra(bases: list[int], names: list[str]):
             return f"{sign}{acc}"
 
         print([f(v, w) for w in names])
-
-    class GAlgebra:
-        pass
-
-    return GAlgebra
 
 PGA_2D = galgebra([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"])
 
