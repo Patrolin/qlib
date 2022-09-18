@@ -1,6 +1,6 @@
 from math import isqrt, log, log2, log10, sin, hypot as L2
 from math import remainder as rem, modf, floor, ceil
-from typing import Callable, overload
+from typing import Callable, Iterable, TypeVar, overload
 
 # units
 e = 2.718281828459045
@@ -25,7 +25,7 @@ def lerp(t: float, x: float, y: float) -> float:
     ...
 
 def lerp(t: bool | float, x: int | float, y: int | float) -> int | float:
-    return x * (1 - t) + y * t
+    return x * (1-t) + y*t
 
 def abs(x: float) -> float:
     return lerp((x < 0), x, -x)
@@ -43,17 +43,25 @@ def ilog10(n: int) -> int:
 
 def _sin(x: float, half_interval: float = tauOver2) -> float:
     '''return sin(x * half_tau/half_interval) on [0, 1] for x on [-half_interval, half_interval]'''
-    y = 4 / half_interval * x - 4 / half_interval**2 * x * abs(x)
+    y = 4/half_interval*x - 4 / half_interval**2 * x * abs(x)
     return y
     #return 0.775 * y + 0.225 * (y * abs(y))
 
 def sin(x: float) -> float:
     '''return sin(x) on [0, 1] for x on (-inf, inf)'''
-    return _sin(tauOver2 - (x % tau))
+    return _sin(tauOver2 - (x%tau))
 
 def cos(x: float) -> float:
     '''return cos(x) on [0, 1] for x on (-inf, inf)'''
     return sin(x + tauOver4)
+
+A = TypeVar("A")
+B = TypeVar("B")
+
+def reduce(arr: Iterable[A], f: Callable[[B, A], B], acc: B):
+    for v in arr:
+        acc = f(acc, v)
+    return acc
 
 # functions
 # a + b
@@ -67,7 +75,7 @@ def cos(x: float) -> float:
 
 def Gamma(x: int | float) -> float:
     '''return Gamma(x) in O(log n)'''
-    y = (2 * x + 1 / 3)**.5 * tauOver2**.5 * x**x * e**(-x)
+    y = (2*x + 1/3)**.5 * tauOver2**.5 * x**x * e**(-x)
     if x < 0:
         return tauOver2 / (sin(tauOver2 * x) * y)
     else:
@@ -80,7 +88,7 @@ def bisection_solve(a: float, b: float, f: Callable[[float], float]) -> float:
         raise ValueError("sign(f(a)) == sign(f(b))")
     while True:
         # shrink the interval towards some root
-        x = (a + b) / 2
+        x = (a+b) / 2
         if x == a or x == b: return x
         sx = sign(f(x))
         if sx == sa:
@@ -101,9 +109,9 @@ def nelder_mead_1D(f: Callable, x1: float, x2: float) -> float:
     if abs(best_x - worst_x) > epsilon:
         for i in range(100):
             centroid = worst_x
-            reflection_x = 2 * best_x - centroid
-            expansion_x = 3 * best_x - 2 * centroid
-            contraction_shrink_x = 0.5 * best_x + 0.5 * worst_x
+            reflection_x = 2*best_x - centroid
+            expansion_x = 3*best_x - 2*centroid
+            contraction_shrink_x = 0.5*best_x + 0.5*worst_x
             reflection_y = f(reflection_x)
             if reflection_y < best_y:
                 expansion_y = f(expansion_x)
@@ -134,7 +142,7 @@ phi3 = bisection_solve(1.0, 2.0, lambda x: x**4 - x - 1)
 phi4 = bisection_solve(1.0, 2.0, lambda x: x**5 - x - 1)
 
 f = lambda x: x**2 - x - 1
-phi1_mead = nelder_mead_1D(lambda x: (f(x) if x >= 1 else x - 2)**2, 1.0, 1 + 2 * epsilon)
+phi1_mead = nelder_mead_1D(lambda x: (f(x) if x >= 1 else x - 2)**2, 1.0, 1 + 2*epsilon)
 
 def wegsteins_fixed_point(x1: float, g: Callable[[float], float]) -> float:
     # find a root x of f(x)
