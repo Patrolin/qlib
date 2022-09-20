@@ -71,6 +71,22 @@ def GAlgebra(str_mul_table: list[list[str]]):
             assert_equals(self.index, other.index)
             return GBlade(self.index, self.value - other.value)
 
+        # A^\dagger = reverse = ~A
+        def __invert__(self):
+            acc = 1
+            for i in range(2, len(str_blades[self.index]), 2):
+                acc *= -1
+            return GBlade(self.index, self.value * acc)
+
+        def involute(self):
+            str_blade = str_blades[self.index]
+            sign = (-1)**(len(str_blade) - 1)
+            return self * sign
+
+        # \overline{A} = A.conjugate()
+        def conjugate(self):
+            return (~self).involute()
+
         # hodge dual = I/A = A.dual()
         def dual(self):
             str_blade = str_blades[self.index]
@@ -79,16 +95,6 @@ def GAlgebra(str_mul_table: list[list[str]]):
             str_dual = str_mul_table[0][dual_index]
             sign = -1 if gMultiply(dummy_bases, str_blades, str_dual, str_blade).startswith("-") else 1
             return GBlade(dual_index, self.value * sign)
-
-        def conjugate(self):
-            return
-
-        # reverse = ~A
-        def __invert__(self):
-            acc = 1
-            for i in range(2, len(str_blades[self.index]), 2):
-                acc *= -1
-            return GBlade(self.index, self.value * acc)
 
         # grade selection
         def grade(self):
