@@ -54,10 +54,9 @@ def GAlgebra(str_mul_table: list[list[str]]):
     mul_table: list[list["GBlade"]] = []
 
     class GBlade:
-        def __init__(self, index_: int, value: Union[int, float]):
-            index = index_ if value != 0.0 else 0
+        def __init__(self, index: int, value: Union[int, float]):
             self.value = int(value) if isinstance(value, float) and value.is_integer() else value
-            self.index = index
+            self.index = index if value != 0.0 else 0
 
         def __repr__(self):
             return f"{self.value}{str_blades[self.index] if self.index > 0 else ''}"
@@ -70,38 +69,6 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def __sub__(self, other: "GBlade"):
             assert_equals(self.index, other.index)
             return GBlade(self.index, self.value - other.value)
-
-        # A^\dagger = reverse = ~A
-        def __invert__(self):
-            acc = 1
-            for i in range(2, len(str_blades[self.index]), 2):
-                acc *= -1
-            return GBlade(self.index, self.value * acc)
-
-        def involute(self):
-            str_blade = str_blades[self.index]
-            sign = (-1)**(len(str_blade) - 1)
-            return self * sign
-
-        # \overline{A} = A.conjugate()
-        def conjugate(self):
-            return (~self).involute()
-
-        # hodge dual = I/A = A.dual()
-        def dual(self):
-            str_blade = str_blades[self.index]
-            dual_mask = gMask(str_pseudoscalar) ^ gMask(str_blade)
-            dual_index = findIndex(str_mul_table[0], lambda v: gMask(v) == dual_mask)
-            str_dual = str_mul_table[0][dual_index]
-            sign = -1 if gMultiply(dummy_bases, str_blades, str_dual, str_blade).startswith("-") else 1
-            return GBlade(dual_index, self.value * sign)
-
-        # grade selection
-        def grade(self):
-            return len(str_blades[self.index]) - 1
-
-        def gradeSelect(self, n: int):
-            return GBlade(self.index, self.value) if self.grade() == n else GBlade(0, 0)
 
         # geometric product = A*B
         def __mul__(self, other: Union["GBlade", int, float]):
@@ -117,8 +84,37 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def __truediv__(self, other: Union[int, float]):
             return self * (1/other)
 
+        # grade
+        def grade(self):
+            return len(str_blades[self.index]) - 1
+
+        def gradeSelect(self, n: int):
+            return self * (self.grade() == n)
+
+        # A^\dagger = A.reverse() = ~A
+        def __invert__(self):
+            sign = 1 - 2 * ((self.grade() // 2) % 2)
+            return self * sign
+
+        # \overline{A}^\dagger = A.involute()
+        def involute(self):
+            return self * (-1)**self.grade()
+
+        # \overline{A} = A.conjugate()
+        def conjugate(self):
+            return ~self.involute()
+
+        # hodge dual = I/A = A.dual()
+        def dual(self):
+            str_blade = str_blades[self.index]
+            dual_mask = gMask(str_pseudoscalar) ^ gMask(str_blade)
+            dual_index = findIndex(str_mul_table[0], lambda v: gMask(v) == dual_mask)
+            str_dual = str_mul_table[0][dual_index]
+            sign = 1 - 2 * gMultiply(dummy_bases, str_blades, str_dual, str_blade).startswith("-")
+            return GBlade(dual_index, self.value * sign)
+
         # dot product = A@B
-        def __matmul__(self, other: "GBlade") -> float:
+        def __matmul__(self, other: "GBlade"):
             return (self * other).gradeSelect(0).value
 
         # wedge product = A&B = (A.dual() | B.dual()).dual()
@@ -135,8 +131,6 @@ def GAlgebra(str_mul_table: list[list[str]]):
                 return (self*other - other*self) / 2
             else:
                 return self ^ GBlade(0, other)
-
-        # todo: wedge, antiwedge
 
     class GMultivector:
         pass
@@ -162,7 +156,7 @@ def GAlgebra(str_mul_table: list[list[str]]):
             return GBlade(index, value), j
 
         @staticmethod
-        def parse_multivector(s: str, i: int) -> tuple[GMultivector, int]:
+        def parse_expression(s: str, i: int) -> tuple[GMultivector, int]:
             pass
 
     mul_table = [[GAlgebra.parse_blade(v, 0)[0] for v in row] for row in str_mul_table]
@@ -170,7 +164,7 @@ def GAlgebra(str_mul_table: list[list[str]]):
     assert_equals(len(str_blades), len(unique_blades))
     assert_equals(len(str_blades), len(mul_table))
 
-    GAlgebra.blades = [GAlgebra.parse_blade(v, 0)[0] for v in str_blades]
+    GAlgebra.blades = mul_table[0]
 
     return GAlgebra
 
@@ -179,6 +173,7 @@ def mul_table(bases: list[int], blades: list[str]):
 
 PGA_2D = GAlgebra(mul_table([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"]))
 
+# Todo: PGA_2D.table("A*~A")
 # Todo: PGA_2D.expand("(v1+v2e0) * (v1+v2e0)") # left and right must already be expanded
 # PGA_2D.expand("(v1+v2e0) *~ (v1+v2e0)")
 # PGA_2D.expand("ae20 sandwich b") == PGA_2D.expand(f"{PGA_2D.expand("b * ae20")} *~ b")
