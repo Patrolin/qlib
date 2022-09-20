@@ -1,7 +1,7 @@
 __all__ = ["test", "run_tests", "assert_", "assert_equals", "assert_less_than_equals", "assert_greater_than_equals"]
 
 from types import FrameType
-from typing import Callable, NamedTuple, cast
+from typing import Callable, NamedTuple, TypeGuard, Union, cast
 from traceback import print_exc
 from qLib.vtcodes import TextColor
 from inspect import currentframe, getframeinfo
@@ -14,6 +14,10 @@ def assert_(*conditions: bool):
 def assert_equals(got, expected):
     if got != expected:
         raise AssertionError(f"got: {got}; expected: {expected}")
+
+def assert_not_equals(got, expected):
+    if got == expected:
+        raise AssertionError(f"got: {got}; expected: not {expected}")
 
 def assert_less_than_equals(got, expected):
     if got > expected:
