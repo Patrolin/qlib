@@ -1,56 +1,67 @@
 from typing import Union
 
-from qLib.collections_ import findIndex
+from qLib.collections_ import find, findIndex
 from .tests import assert_equals, assert_, assert_not_equals
-from .math_ import sign, reduce
+from .math_ import reduce
 
 def gMask(e: str) -> int:
     return reduce(e[1:], lambda acc, v: acc | (1 << int(v)), 0)
 
-def gMultiply(bases: list[int], blades: list[str], a: str, b: str) -> str:
+def parse_blade_normal_form(bases: list[int], str_blade: str) -> tuple[int, int]:
+    # parse blade, sorting and combining bases in increasing order
     for base in bases:
         assert_((base == 1) or (base == 0) or (base == -1))
-    assert_(not a.startswith("-"))
-    assert_(not a.startswith("-"))
+    assert_(not str_blade.startswith("-"))
+    if str_blade == "0": return 0, 0
+    acc_str = ""
+    acc = 1
+    for v in str_blade[1:]:
+        acc_str += v
+        i = len(acc_str) - 1
+        while i > 0:
+            if acc_str[i - 1] <= acc_str[i]: break
+            acc *= -1
+            tmp = acc_str[i] + acc_str[i - 1]
+            acc_str = acc_str[:i - 1] + tmp + acc_str[i + 1:]
+            i -= 1
+        if i - 1 >= 0 and acc_str[i] == acc_str[i - 1]:
+            acc *= bases[int(acc_str[i])]
+            acc_str = acc_str[:i - 1] + acc_str[i + 1:]
+    return gMask(f"e{acc_str}"), acc
 
-    def gMultiply_(bases: list[int], a: str, b: str) -> tuple[str, int]:
-        if a == "0" or b == "0": return "0", 0
-        acc_str = ""
-        acc = 1
-
-        for blade in (a, b):
-            for v in blade[1:]:
-                acc_str += v
-                i = len(acc_str) - 1
-                while i > 0:
-                    if acc_str[i - 1] <= acc_str[i]: break
-                    acc *= -1
-                    tmp = acc_str[i] + acc_str[i - 1]
-                    acc_str = acc_str[:i - 1] + tmp + acc_str[i + 1:]
-                    i -= 1
-                if i - 1 >= 0 and acc_str[i] == acc_str[i - 1]:
-                    acc *= bases[int(acc_str[i])]
-                    acc_str = acc_str[:i - 1] + acc_str[i + 1:]
-        return f"e{acc_str}" if acc_str else "1", acc
-
-    acc_str, acc = gMultiply_(bases, a, b)
-    mask = gMask(acc_str)
-    i = findIndex(blades, lambda v: gMask(v) == mask)
-    blade = blades[i]
-    acc *= sign(gMultiply_(bases, blade, "1")[1])
-
+def serialize_blade(acc: int, str_blade: str) -> str:
+    assert_((acc == 1) or (acc == 0) or (acc == -1))
     if acc == 0: return "0"
-    sign_ = "-" if acc == -1 else ""
-    return f"{sign_}{blade}"
+    the_sign = "-" if acc == -1 else ""
+    return f"{the_sign}{str_blade}"
+
+def gGenMultiply(bases: list[int], blades: list[str], a: str, b: str) -> str:
+    if a == "0" or b == "0": return "0"
+    mask, acc = parse_blade_normal_form(bases, f"e{a[1:]}{b[1:]}")
+    blade = find(blades, lambda v: gMask(v) == mask)
+    acc *= parse_blade_normal_form(bases, blade)[1]
+    return serialize_blade(acc, blade)
+
+def gMultiply(str_mul_table: list[list[str]], a: str, b: str) -> str:
+    negate = a.startswith("-") ^ b.startswith("-")
+    i = findIndex(str_mul_table[0], lambda v: v == a.removeprefix("-"))
+    j = findIndex(str_mul_table[0], lambda v: v == b.removeprefix("-"))
+    return f"{'-' if negate else ''}{str_mul_table[i][j]}".removeprefix("--")
+
+def gDivide(str_mul_table: list[list[str]], a: str, b: str) -> tuple[int, str]:
+    str_blades = str_mul_table[0]
+    mask = gMask(a) ^ gMask(b)
+    blade = find(str_blades, lambda v: gMask(v) == mask)
+    negate = gMultiply(str_mul_table, a, "1").startswith("-") ^ gMultiply(str_mul_table, blade, b).startswith("-")
+    return 1 - 2*negate, blade
 
 def GAlgebra(str_mul_table: list[list[str]]):
     str_blades = str_mul_table[0]
     assert_equals(str_blades[0], "1")
     for v in str_blades:
         assert_not_equals(v[0], "-")
-    str_vector = [v for v in str_blades if len(v) == 2]
-    dummy_bases = [1 for v in str_vector]
-    str_pseudoscalar = "e" + "".join(v[1] for v in str_vector)
+    str_vector_blades = [v for v in str_blades if len(v) == 2]
+    str_pseudoscalar = "e" + "".join(v[1] for v in str_vector_blades)
     mul_table: list[list["GBlade"]] = []
 
     class GBlade:
@@ -106,12 +117,9 @@ def GAlgebra(str_mul_table: list[list[str]]):
 
         # hodge dual = I/A = A.dual()
         def dual(self):
-            str_blade = str_blades[self.index]
-            dual_mask = gMask(str_pseudoscalar) ^ gMask(str_blade)
-            dual_index = findIndex(str_mul_table[0], lambda v: gMask(v) == dual_mask)
-            str_dual = str_mul_table[0][dual_index]
-            sign = 1 - 2 * gMultiply(dummy_bases, str_blades, str_dual, str_blade).startswith("-")
-            return GBlade(dual_index, self.value * sign)
+            acc, str_blade = gDivide(str_mul_table, str_pseudoscalar, str_blades[self.index])
+            index = findIndex(str_blades, lambda v: v == str_blade)
+            return GBlade(index, self.value * acc)
 
         # dot product = A@B
         def __matmul__(self, other: "GBlade"):
@@ -169,7 +177,7 @@ def GAlgebra(str_mul_table: list[list[str]]):
     return GAlgebra
 
 def mul_table(bases: list[int], blades: list[str]):
-    return [[gMultiply(bases, blades, v, w) for w in blades] for v in blades]
+    return [[gGenMultiply(bases, blades, v, w) for w in blades] for v in blades]
 
 PGA_2D = GAlgebra(mul_table([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"]))
 
