@@ -35,13 +35,6 @@ def serialize_blade(acc: int, str_blade: str) -> str:
     the_sign = "-" if acc == -1 else ""
     return f"{the_sign}{str_blade}"
 
-def gGenMultiply(bases: list[int], blades: list[str], a: str, b: str) -> str:
-    if a == "0" or b == "0": return "0"
-    mask, acc = parse_blade_normal_form(bases, f"e{a[1:]}{b[1:]}")
-    blade = find(blades, lambda v: gMask(v) == mask)
-    acc *= parse_blade_normal_form(bases, blade)[1]
-    return serialize_blade(acc, blade)
-
 def gMultiply(str_mul_table: list[list[str]], a: str, b: str) -> str:
     negate = a.startswith("-") ^ b.startswith("-")
     i = findIndex(str_mul_table[0], lambda v: v == a.removeprefix("-"))
@@ -177,6 +170,13 @@ def GAlgebra(str_mul_table: list[list[str]]):
     return GAlgebra
 
 def mul_table(bases: list[int], blades: list[str]):
+    def gGenMultiply(bases: list[int], blades: list[str], a: str, b: str) -> str:
+        if a == "0" or b == "0": return "0"
+        mask, acc = parse_blade_normal_form(bases, f"e{a[1:]}{b[1:]}")
+        blade = find(blades, lambda v: gMask(v) == mask)
+        acc *= parse_blade_normal_form(bases, blade)[1]
+        return serialize_blade(acc, blade)
+
     return [[gGenMultiply(bases, blades, v, w) for w in blades] for v in blades]
 
 PGA_2D = GAlgebra(mul_table([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"]))
