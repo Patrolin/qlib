@@ -7,7 +7,7 @@ from .math_ import reduce
 def gMask(e: str) -> int:
     return reduce(e[1:], lambda acc, v: acc | (1 << int(v)), 0)
 
-def parse_blade_normal_form(bases: list[int], str_blade: str) -> tuple[int, int]:
+def parse_blade_normal_form(bases: list[int], min_blade: int, str_blade: str) -> tuple[int, int]:
     # parse blade, sorting and combining bases in increasing order
     for base in bases:
         assert_((base == 1) or (base == 0) or (base == -1))
@@ -25,15 +25,16 @@ def parse_blade_normal_form(bases: list[int], str_blade: str) -> tuple[int, int]
             acc_str = acc_str[:i - 1] + tmp + acc_str[i + 1:]
             i -= 1
         if i - 1 >= 0 and acc_str[i] == acc_str[i - 1]:
-            acc *= bases[int(acc_str[i])]
+            acc *= bases[int(acc_str[i]) - min_blade]
             acc_str = acc_str[:i - 1] + acc_str[i + 1:]
     return gMask(f"e{acc_str}"), acc
 
-def serialize_blade(acc: int, str_blade: str) -> str:
-    assert_((acc == 1) or (acc == 0) or (acc == -1))
+def serialize_blade(acc: Union[int, float], str_blade: str) -> str:
+    if str_blade.removeprefix("-") == "1": return f"{acc}"
     if acc == 0: return "0"
-    the_sign = "-" if acc == -1 else ""
-    return f"{the_sign}{str_blade}"
+    if acc == 1: return str_blade
+    if acc == -1: return f"-{str_blade}"
+    return f"{acc}{str_blade}"
 
 def gMultiply(str_mul_table: list[list[str]], a: str, b: str) -> str:
     negate = a.startswith("-") ^ b.startswith("-")
@@ -63,7 +64,7 @@ def GAlgebra(str_mul_table: list[list[str]]):
             self.index = index if value != 0.0 else 0
 
         def __repr__(self):
-            return f"{self.value}{str_blades[self.index] if self.index > 0 else ''}"
+            return serialize_blade(self.value, str_blades[self.index])
 
         # sum = A+B, A-B
         def __add__(self, other: "GBlade"):
@@ -112,17 +113,30 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def dual(self):
             acc, str_blade = gDivide(str_mul_table, str_pseudoscalar, str_blades[self.index])
             index = findIndex(str_blades, lambda v: v == str_blade)
+            if len(str_blades) == 4: acc *= 1 - 2 * (index <= 2) # TODO: wtf?
+            return GBlade(index, self.value * acc)
+
+        def undual(self):
+            acc, str_blade = gDivide(str_mul_table, str_pseudoscalar, str_blades[self.index])
+            index = findIndex(str_blades, lambda v: v == str_blade)
+            if len(str_blades) == 4: acc *= 1 - 2 * (index > 2)
             return GBlade(index, self.value * acc)
 
         # dot product = A@B
         def __matmul__(self, other: "GBlade"):
             return (self * other).gradeSelect(0).value
 
-        # wedge product = A&B = (A.dual() | B.dual()).dual()
+        # inner product = (A outer B.dual()).undual() # if you don't use abs()
+        def inner(self, other: "GBlade"):
+            #return (self * other).gradeSelect(other.grade() - self.grade())
+            return (self * other).gradeSelect(abs(self.grade() - other.grade()))
+
+        # outer product = (A inner B.dual()).undual() # if you don't use abs(other-self)
+        # = wedge product = A&B = (A.dual() | B.dual()).undual()
         def __and__(self, other: "GBlade"):
             return (self * other).gradeSelect(self.grade() + other.grade())
 
-        # antiwedge (regressive) product = A|B = (A.dual() & B.dual()).dual()
+        # antiwedge (regressive) product = A|B = (A.dual() & B.dual()).undual()
         def __or__(self, other: "GBlade"):
             return (self.dual() & other.dual()).dual()
 
@@ -170,16 +184,19 @@ def GAlgebra(str_mul_table: list[list[str]]):
     return GAlgebra
 
 def mul_table(bases: list[int], blades: list[str]):
-    def gGenMultiply(bases: list[int], blades: list[str], a: str, b: str) -> str:
+    min_blade = int(blades[1][1:])
+
+    def gGenMultiply(a: str, b: str) -> str:
         if a == "0" or b == "0": return "0"
-        mask, acc = parse_blade_normal_form(bases, f"e{a[1:]}{b[1:]}")
+        mask, acc = parse_blade_normal_form(bases, min_blade, f"e{a[1:]}{b[1:]}")
         blade = find(blades, lambda v: gMask(v) == mask)
-        acc *= parse_blade_normal_form(bases, blade)[1]
+        acc *= parse_blade_normal_form(bases, min_blade, blade)[1]
         return serialize_blade(acc, blade)
 
-    return [[gGenMultiply(bases, blades, v, w) for w in blades] for v in blades]
+    return [[gGenMultiply(v, w) for w in blades] for v in blades]
 
 PGA_2D = GAlgebra(mul_table([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"]))
+VGA_2D = GAlgebra(mul_table([1, 1], ["1", "e1", "e2", "e12"]))
 
 # Todo: PGA_2D.table("A*~A")
 # Todo: PGA_2D.expand("(v1+v2e0) * (v1+v2e0)") # left and right must already be expanded

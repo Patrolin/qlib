@@ -17,17 +17,37 @@ def testPGA_2D():
     print("A.dual()")
     print_row(v.dual() for v in PGA_2D.blades)
     print("A*B")
-    for b in PGA_2D.blades:
-        print_row(b * v for v in PGA_2D.blades)
+    for a in PGA_2D.blades:
+        print_row(a * b for b in PGA_2D.blades)
+    print("A inner B")
+    for a in PGA_2D.blades:
+        print_row(a.inner(b) for b in PGA_2D.blades)
     print("A^B")
-    for b in PGA_2D.blades:
-        print_row(b ^ v for v in PGA_2D.blades)
+    for a in PGA_2D.blades:
+        print_row(a ^ b for b in PGA_2D.blades)
+    if True:
+        print("A.dual()")
+        print_row(v.dual() for v in VGA_2D.blades)
+        print("A.undual()")
+        print_row(v.undual() for v in VGA_2D.blades)
+        print("A inner B")
+        for a in VGA_2D.blades:
+            print_row([(a.inner(b)) for b in VGA_2D.blades])
+        print("(A & B.dual()).undual()")
+        for a in VGA_2D.blades:
+            print_row([(a & b.dual()).undual() for b in VGA_2D.blades])
+        print("A & B")
+        for a in VGA_2D.blades:
+            print_row([(a & b) for b in VGA_2D.blades])
+        print("(A inner B.dual()).undual()")
+        for a in VGA_2D.blades:
+            print_row([(a.inner(b.dual())).undual() for b in VGA_2D.blades])
     print("A&B")
-    for b in PGA_2D.blades:
-        print_row(b & v for v in PGA_2D.blades)
+    for a in PGA_2D.blades:
+        print_row(a & b for b in PGA_2D.blades)
     print("A|B")
-    for b in PGA_2D.blades:
-        print_row(b | v for v in PGA_2D.blades)
+    for a in PGA_2D.blades:
+        print_row(a | b for b in PGA_2D.blades)
 
 if __name__ == "__main__":
     run_tests()
