@@ -2,7 +2,7 @@ from typing import Union
 
 from qLib.collections_ import find, findIndex
 from .tests import assert_equals, assert_, assert_not_equals
-from .math_ import reduce
+from .math_ import reduce, sign
 
 def gMask(e: str) -> int:
     return reduce(e[1:], lambda acc, v: acc | (1 << int(v)), 0)
@@ -46,7 +46,7 @@ def gDivide(str_mul_table: list[list[str]], a: str, b: str) -> tuple[int, str]:
     str_blades = str_mul_table[0]
     mask = gMask(a) ^ gMask(b)
     blade = find(str_blades, lambda v: gMask(v) == mask)
-    negate = gMultiply(str_mul_table, a, "1").startswith("-") ^ gMultiply(str_mul_table, blade, b).startswith("-")
+    negate = gMultiply(str_mul_table, a, "1").startswith("-") ^ gMultiply(str_mul_table, b, blade).startswith("-")
     return 1 - 2*negate, blade
 
 def GAlgebra(str_mul_table: list[list[str]]):
@@ -109,18 +109,17 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def conjugate(self):
             return ~self.involute()
 
-        # hodge dual = I/A = A.dual()
+        # hodge dual ?= I/A = A.dual()
         def dual(self):
             acc, str_blade = gDivide(str_mul_table, str_pseudoscalar, str_blades[self.index])
             index = findIndex(str_blades, lambda v: v == str_blade)
-            if len(str_blades) == 4: acc *= 1 - 2 * (index <= 2) # TODO: wtf?
+            #if len(str_blades) == 4: acc *= 1 - 2 * (index <= 1) # TODO: wtf?
             return GBlade(index, self.value * acc)
 
         def undual(self):
-            acc, str_blade = gDivide(str_mul_table, str_pseudoscalar, str_blades[self.index])
-            index = findIndex(str_blades, lambda v: v == str_blade)
-            if len(str_blades) == 4: acc *= 1 - 2 * (index > 2)
-            return GBlade(index, self.value * acc)
+            dual = self.dual()
+            acc = sign(dual.dual().value * self.value)
+            return acc * dual
 
         # dot product = A@B
         def __matmul__(self, other: "GBlade"):
@@ -197,6 +196,7 @@ def mul_table(bases: list[int], blades: list[str]):
 
 PGA_2D = GAlgebra(mul_table([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"]))
 VGA_2D = GAlgebra(mul_table([1, 1], ["1", "e1", "e2", "e12"]))
+VGA_3D = GAlgebra(mul_table([1, 1, 1], ["1", "e1", "e2", "e3", "e12", "e13", "e23", "e123"]))
 
 # Todo: PGA_2D.table("A*~A")
 # Todo: PGA_2D.expand("(v1+v2e0) * (v1+v2e0)") # left and right must already be expanded
