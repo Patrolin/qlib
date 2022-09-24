@@ -5,7 +5,7 @@ from .tests import assert_equals, assert_, assert_not_equals
 from .math_ import reduce, sign
 
 def gMask(e: str) -> int:
-    return reduce(e[1:], lambda acc, v: acc | (1 << int(v)), 0)
+    return reduce(e[1:], lambda acc, v: acc ^ (1 << int(v)), 0)
 
 def parse_blade_normal_form(bases: list[int], min_blade: int, str_blade: str) -> tuple[int, int]:
     # parse blade, sorting and combining bases in increasing order
@@ -109,29 +109,32 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def conjugate(self):
             return ~self.involute()
 
-        # hodge dual ?= I/A = A.dual()
+        # hodge dual ?= sign(A concat (I xor A))*sign(?)*(I xor A) ?= I/A = A.dual()
         def dual(self):
             acc, str_blade = gDivide(str_mul_table, str_pseudoscalar, str_blades[self.index])
             index = findIndex(str_blades, lambda v: v == str_blade)
-            #if len(str_blades) == 4: acc *= 1 - 2 * (index <= 1) # TODO: wtf?
             return GBlade(index, self.value * acc)
+            #return GBlade(index, self.value)
 
         def undual(self):
             dual = self.dual()
             acc = sign(dual.dual().value * self.value)
             return acc * dual
 
-        # dot product = A@B
-        def __matmul__(self, other: "GBlade"):
+        # dot product
+        def dot(self, other: "GBlade"):
             return (self * other).gradeSelect(0).value
 
-        # inner product = (A outer B.dual()).undual() # if you don't use abs()
+        # inner product
         def inner(self, other: "GBlade"):
-            #return (self * other).gradeSelect(other.grade() - self.grade())
             return (self * other).gradeSelect(abs(self.grade() - other.grade()))
 
-        # outer product = (A inner B.dual()).undual() # if you don't use abs(other-self)
-        # = wedge product = A&B = (A.dual() | B.dual()).undual()
+        # left_contraction = (A outer B.dual()).undual()
+        def left_contraction(self, other: "GBlade"):
+            return (self * other).gradeSelect(other.grade() - self.grade())
+
+        # wedge product = (A left_contraction B.dual()).undual()
+        # = A&B = (A.dual() | B.dual()).undual()
         def __and__(self, other: "GBlade"):
             return (self * other).gradeSelect(self.grade() + other.grade())
 
@@ -139,12 +142,12 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def __or__(self, other: "GBlade"):
             return (self.dual() & other.dual()).dual()
 
-        # commutator product = A^B
-        def __xor__(self, other: Union["GBlade", int, float]):
+        # commutator product
+        def commutator(self, other: Union["GBlade", int, float]):
             if isinstance(other, GBlade):
                 return (self*other - other*self) / 2
             else:
-                return self ^ GBlade(0, other)
+                return self.commutator(GBlade(0, other))
 
     class GMultivector:
         pass
