@@ -143,7 +143,7 @@ def GAlgebra(str_mul_table: list[list[str]]):
 
         # antiwedge (regressive) product = A|B = (A.dual() & B.dual()).undual()
         def __or__(self, other: "GBlade"):
-            return (self.dual() & other.dual()).dual()
+            return (self.dual() & other.dual()).undual()
 
         # commutator product
         def commutator(self, other: Union["GBlade", int, float]):
