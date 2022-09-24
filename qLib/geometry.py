@@ -86,6 +86,9 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def __rmul__(self, other: Union[int, float]):
             return self * other
 
+        def __neg__(self):
+            return self * -1
+
         def __truediv__(self, other: Union[int, float]):
             return self * (1/other)
 

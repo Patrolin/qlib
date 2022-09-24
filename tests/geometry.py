@@ -31,6 +31,9 @@ def testPGA_2D():
     print("A commutator B")
     for a in PGA_2D.blades:
         print_row(a.commutator(b) for b in PGA_2D.blades)
+    print("-(A.dual() commutator B).undual()")
+    for a in PGA_2D.blades:
+        print_row(-a.dual().commutator(b).undual() for b in PGA_2D.blades)
     if True:
         for G in (VGA_2D, VGA_3D, PGA_2D):
             print("A.dual()")
