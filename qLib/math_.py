@@ -1,4 +1,4 @@
-from math import isqrt, log, log2, log10, sin, hypot as L2
+from math import isqrt, log, log2, log10, hypot as L2
 from math import remainder as rem, modf, floor, ceil
 from typing import Callable, Iterable, TypeVar, overload
 

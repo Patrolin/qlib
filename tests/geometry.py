@@ -16,6 +16,8 @@ def testPGA_2D():
     print_row(v.conjugate() for v in PGA_2D.blades)
     print("A.dual()")
     print_row(v.dual() for v in PGA_2D.blades)
+    print("A.right_complement()")
+    print_row(v.right_complement() for v in PGA_2D.blades)
     print("A*B")
     for a in PGA_2D.blades:
         print_row(a * b for b in PGA_2D.blades)
@@ -28,11 +30,13 @@ def testPGA_2D():
     print("A|B")
     for a in PGA_2D.blades:
         print_row(a | b for b in PGA_2D.blades)
-    if False:
+    if True:
         print("A commutator B")
         for a in PGA_2D.blades:
             print_row(a.commutator(b) for b in PGA_2D.blades)
-        print("-(A.dual() commutator B).undual()")
+        # M = -0.5*M*B ?
+        # B = -(A.dual() commutator B).undual()
+        print("-(A.dual() commutator B).undual()") # -m[3]m[4]e01 + m[2]m[4]e20 ?????
         for a in PGA_2D.blades:
             print_row(-a.dual().commutator(b).undual() for b in PGA_2D.blades)
     if False:
@@ -43,6 +47,18 @@ def testPGA_2D():
             print_row(v.undual() for v in G.blades)
             print("A^!A")
             print_row(v * v.dual() for v in G.blades)
+    print("A.dual()")
+    print_row(v.dual() for v in VGA_2D.blades)
+    print("A.right_complement()")
+    print_row(v.right_complement() for v in VGA_2D.blades)
+    print("A.dual()")
+    print_row(v.dual() for v in VGA_3D.blades)
+    print("A.right_complement()")
+    print_row(v.right_complement() for v in VGA_3D.blades)
+    print("A.dual()")
+    print_row(v.dual() for v in CGA_2D.blades)
+    print("A.right_complement()")
+    print_row(v.right_complement() for v in CGA_2D.blades)
 
 if __name__ == "__main__":
     run_tests()

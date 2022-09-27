@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 from qLib.collections_ import find, findIndex
 from .tests import assert_equals, assert_, assert_not_equals
@@ -57,6 +57,7 @@ def GAlgebra(str_mul_table: list[list[str]]):
     str_vector_blades = [v for v in str_blades if len(v) == 2]
     str_pseudoscalar = "e" + "".join(v[1] for v in str_vector_blades)
     mul_table: list[list["GBlade"]] = []
+    nondegenerate_map: list["GBlade"] = []
 
     class GBlade:
         def __init__(self, index: int, value: Union[int, float]):
@@ -65,6 +66,12 @@ def GAlgebra(str_mul_table: list[list[str]]):
 
         def __repr__(self):
             return serialize_blade(self.value, str_blades[self.index])
+
+        def __eq__(self, other: Union["GBlade", int, float]):
+            if isinstance(other, GBlade):
+                return (self.index == other.index) & (self.value == other.value)
+            else:
+                return (self.index == 0) & (self.value == other)
 
         # sum = A+B, A-B
         def __add__(self, other: "GBlade"):
@@ -109,20 +116,34 @@ def GAlgebra(str_mul_table: list[list[str]]):
             return self * (-1)**self.grade()
 
         # \overline{A} = A.conjugate()
+        # A.norm() = A*A.conjugate() # if A is homogeneous?
         def conjugate(self):
-            return ~self.involute()
+            return ~self.involute() # = (-1)**(self.grade()*(self.grade()+1)/2)
 
-        # hodge dual ?= sign(A concat (I xor A))*sign(?)*(I xor A) ?= I/A = A.dual()
-        def dual(self):
+        ## poincare dualities
+        def right_complement(self):
             acc, str_blade = gDivide(str_mul_table, str_pseudoscalar, str_blades[self.index])
             index = findIndex(str_blades, lambda v: v == str_blade)
-            return GBlade(index, self.value * acc)
-            #return GBlade(index, self.value)
+            #assert_equals() A^A.right_complement() = pseudoscalar
+            the_complement = GBlade(index, self.value * acc)
+            assert_equals(self * the_complement, mul_table[0][-1] * abs(self.value))
+            return the_complement
+
+        def nondegenerate(self):
+            return nondegenerate_map[self.index] * self.value
+
+        # hodge dual = A.dual()
+        def dual(self):
+            nondegenerate = self.nondegenerate()
+            acc = sign((nondegenerate * ~nondegenerate).value)
+            the_dual = self.right_complement() * acc
+            assert_equals(self * the_dual, acc * mul_table[0][-1] * abs(self.value))
+            return the_dual
 
         def undual(self):
-            dual = self.dual()
-            acc = sign(dual.dual().value * self.value)
-            return acc * dual
+            the_dual = self.dual()
+            acc = sign(the_dual.dual().value * self.value)
+            return acc * the_dual
 
         # dot product
         def dot(self, other: "GBlade"):
@@ -179,17 +200,46 @@ def GAlgebra(str_mul_table: list[list[str]]):
         def parse_expression(s: str, i: int) -> tuple[GMultivector, int]:
             pass
 
+    def genNondegenerate(str_blade: str) -> GBlade:
+        acc = 1
+
+        def is_degenerate(blade: GBlade):
+            return (blade * blade) == 0
+
+        str_nondegenerate_bases = ""
+        for (i, basis) in enumerate(str_blade[1:]):
+            if is_degenerate(GAlgebra.parse_blade(f"e{basis}", 0)[0]):
+                acc *= (-1)**i
+            else:
+                str_nondegenerate_bases += basis
+        str_nondegenerate_blade = f"e{str_nondegenerate_bases}" if len(str_nondegenerate_bases) > 0 else "1"
+        return GAlgebra.parse_blade(str_nondegenerate_blade, 0)[0] * acc
+
     mul_table = [[GAlgebra.parse_blade(v, 0)[0] for v in row] for row in str_mul_table]
+    nondegenerate_map = [genNondegenerate(v) for v in str_mul_table[0]]
     unique_blades = set(v.index for v in mul_table[0])
     assert_equals(len(str_blades), len(unique_blades))
     assert_equals(len(str_blades), len(mul_table))
+    assert_(all(v.nondegenerate() * v.nondegenerate() != 0 for v in mul_table[0]))
 
     GAlgebra.blades = mul_table[0]
 
     return GAlgebra
 
-def mul_table(bases: list[int], blades: list[str]):
-    min_blade = int(blades[1][1:])
+def mul_table(bases: list[int], blades: Optional[list[str]] = None, min_blade=1):
+    def gGenBlades():
+        acc: list[str] = []
+        for i in range(0, 2**len(bases)):
+            str_bases = "".join(f"{j+min_blade}" for (j, v) in enumerate(bases) if (1 << j) & i)
+            str_blade = f"e{str_bases}" if len(str_bases) > 0 else "1"
+            acc.append(str_blade)
+        return sorted(acc, key=lambda v: (len(v), v))
+
+    if blades != None:
+        min_blade = int(blades[1][1:])
+    else:
+        blades = gGenBlades()
+    #print(blades)
 
     def gGenMultiply(a: str, b: str) -> str:
         if a == "0" or b == "0": return "0"
@@ -198,11 +248,15 @@ def mul_table(bases: list[int], blades: list[str]):
         acc *= parse_blade_normal_form(bases, min_blade, blade)[1]
         return serialize_blade(acc, blade)
 
+    # todo: this is O((2**len(bases))**2)...
     return [[gGenMultiply(v, w) for w in blades] for v in blades]
 
 PGA_2D = GAlgebra(mul_table([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"]))
 VGA_2D = GAlgebra(mul_table([1, 1], ["1", "e1", "e2", "e12"]))
 VGA_3D = GAlgebra(mul_table([1, 1, 1], ["1", "e1", "e2", "e3", "e12", "e13", "e23", "e123"]))
+CGA_2D = GAlgebra(mul_table([1, 1, 1, -1], min_blade=1))
+#CONIC_GA_2D = GAlgebra(mul_table([1, 1, 1, 1, 1, -1, -1, -1], min_blade=1))
+#QUADRIC_GA_3D = GAlgebra(mul_table([1, 1, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1], min_blade=1))
 
 # Todo: PGA_2D.table("A*~A")
 # Todo: PGA_2D.expand("(v1+v2e0) * (v1+v2e0)") # left and right must already be expanded
