@@ -1,6 +1,7 @@
 from typing import Iterable
 from qLib.tests import test, run_tests
 from qLib.geometry import *
+from qLib.geometry2 import *
 
 def print_row(arr: Iterable):
     print("".join(str(v).rjust(9, " ") for v in arr))
@@ -59,6 +60,15 @@ def testPGA_2D():
     print_row(v.dual() for v in CGA_2D.blades)
     print("A.right_complement()")
     print_row(v.right_complement() for v in CGA_2D.blades)
+    print("A.dual()")
+    print_row(v.dual() for v in PGA_3D.blades)
+    if False:
+        print("A.right_complement()")
+        print_row(v.right_complement() for v in PGA_3D.blades)
+    print("A...")
+    print(PGA2D_.blades)
+    print_row(v.right_complement() for v in PGA2D_.blades)
+    print_row(v.left_complement() for v in PGA2D_.blades)
 
 if __name__ == "__main__":
     run_tests()

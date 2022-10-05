@@ -193,7 +193,7 @@ def GAlgebra(str_mul_table: list[list[str]]):
             i = j
             while j < len(s) and s[j] != " ":
                 j += 1
-            index = str_blades.index(s[i:j]) if j != i else 0
+            index = str_blades.index(s[i:j]) if j != i else 0 # todo: allow parsing reversed blades
             return GBlade(index, value), j
 
         @staticmethod
@@ -252,6 +252,9 @@ def mul_table(bases: list[int], blades: Optional[list[str]] = None, min_blade=1)
     return [[gGenMultiply(v, w) for w in blades] for v in blades]
 
 PGA_2D = GAlgebra(mul_table([0, 1, 1], ["1", "e0", "e1", "e2", "e01", "e20", "e12", "e012"]))
+PGA_3D = GAlgebra(
+    mul_table([0, 1, 1, 1],
+              ['1', 'e1', 'e2', 'e3', 'e4', 'e12', 'e13', 'e14', 'e23', 'e24', 'e34', 'e123', 'e124', 'e134', 'e234', 'e1234']))
 VGA_2D = GAlgebra(mul_table([1, 1], ["1", "e1", "e2", "e12"]))
 VGA_3D = GAlgebra(mul_table([1, 1, 1], ["1", "e1", "e2", "e3", "e12", "e13", "e23", "e123"]))
 CGA_2D = GAlgebra(mul_table([1, 1, 1, -1], min_blade=1))
