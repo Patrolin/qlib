@@ -1,15 +1,14 @@
-__all__ = ["test", "run_tests", "assert_", "assert_equals", "assert_less_than_equals", "assert_greater_than_equals"]
+__all__ = ["test", "run_tests", "assert_never", "assert_equals", "assert_less_than_equals", "assert_greater_than_equals"]
 
 from types import FrameType
-from typing import Callable, NamedTuple, TypeGuard, Union, cast
+from typing import Callable, NamedTuple, cast
 from traceback import print_exc
 from qLib.vtcodes import TextColor
 from inspect import currentframe, getframeinfo
 from os.path import basename
 
-def assert_(*conditions: bool):
-    if not all(conditions):
-        raise AssertionError(f"got: {conditions}")
+def assert_never(error: str):
+    raise AssertionError(error)
 
 def assert_equals(got, expected):
     if got != expected:
