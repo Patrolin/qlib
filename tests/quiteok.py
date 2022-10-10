@@ -1,4 +1,4 @@
-from qLib.qoi import decodeQuiteOK, readQuiteOK, encodeQuiteOK, writeQuiteOK, QoiImage
+from qLib.quiteok import decodeQuiteOK, readQuiteOK, encodeQuiteOK, writeQuiteOK, QoiImage
 from qLib import relative_path, test, run_tests
 
 def encode_u8(u8: int) -> bytes:
@@ -48,16 +48,16 @@ def QOI_OP_RGB(color: int) -> bytes:
 
 def QOI_OP_INDEX(color: int) -> bytes:
     R, G, B, A = RGBA(color)
-    j = (R * 3 + G * 5 + B * 7 + A * 11) & 0x3f
+    j = (R*3 + G*5 + B*7 + A*11) & 0x3f
     return encode_u8((0b00 << 6) + j)
 
 def QOI_OP_DIFF(dR: int, dG: int, dB: int) -> bytes:
     assert (-2 <= dR <= 1) and (-2 <= dG <= 1) and (-2 <= dB <= 1)
-    return encode_u8((0b01 << 6) + ((dR + 2) << 4) + ((dG + 2) << 2) + (dB + 2))
+    return encode_u8((0b01 << 6) + ((dR + 2) << 4) + ((dG + 2) << 2) + (dB+2))
 
 def QOI_OP_LUMA(dG: int, dRdG: int, dBdG: int) -> bytes:
     assert (-32 <= dG <= 31) and (-8 <= dRdG <= 7) and (-8 <= dBdG <= 7)
-    return encode_u8((0b10 << 6) + (dG + 32)) + encode_u8(((dRdG + 8) << 4) + (dBdG + 8))
+    return encode_u8((0b10 << 6) + (dG+32)) + encode_u8(((dRdG + 8) << 4) + (dBdG+8))
 
 def QOI_OP_RUN(n: int) -> bytes:
     assert 0 <= n <= 61

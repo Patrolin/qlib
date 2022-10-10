@@ -1,7 +1,7 @@
 from typing import Callable, Union
+from qLib.collections_ import reduce
 from qLib.serialize.serialize_int import parseInt
 from .tests import assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never
-from .math_ import reduce
 
 _INT_BASE = 16
 MAX_PRINT_BLADES = 2**16
