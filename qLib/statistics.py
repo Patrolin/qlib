@@ -44,10 +44,10 @@ def modeOrZero(X: list[int] | list[float]) -> float:
         a, a_distance = A[0], abs(A[0] - u)
         b, b_distance = A[A.count - 1], abs(A[A.count - 1] - u)
         if a_distance >= b_distance:
-            u -= (a - u) / n
+            u -= (a-u) / n
             A.popLeft()
         else:
-            u -= (b - u) / n
+            u -= (b-u) / n
             A.pop()
     return A[0]
     # d > 1
@@ -59,74 +59,20 @@ def modeOrZero(X: list[int] | list[float]) -> float:
 
 # infinite streams
 class EMA:
-    def __init__(self, a=0.1):
+    def __init__(self, k=0.9):
+        self.k = k
         self.x_old = 0.0
-        self.a = a
 
     def next(self, x: float) -> float:
         '''return the next EMA step in O(1)'''
-        self.x_old = self.a * x + (1 - self.a) * self.x_old
+        self.x_old = (1 - self.k) * x + self.k * self.x_old
         return self.x_old
-
-def _quantile(X: list[float], p: float) -> float:
-    '''return a linearly interpolated quantile of a sorted X in O(1)'''
-    a = p * (len(X) - 1)
-    i = int(a)
-    j = -int(-a // 1)
-    return ((i + 1) - a) * X[i] + (a - i) * X[j]
-
-class PP:
-    def __init__(self, p: float, bins=5):
-        self.p = p
-        self.bins = bins
-        self.q: list[float] = []
-        self.n = [i for i in range(self.bins)]
-
-    def next(self, x: float) -> float:
-        '''return the next P-Squared step in O(1)'''
-        if len(self.q) < self.bins:
-            self.q = sorted(self.q + [x])
-            return _quantile(self.q, self.p)
-        else:
-            # add datapoint
-            if x > self.q[-1]:
-                self.q[-1] = x
-            for i in range(1, self.bins):
-                self.n[i] += (self.q[i] >= x)
-            if x < self.q[0]:
-                self.q[0] = x
-            # interpolate if necessary
-            for i in range(1, self.bins - 1):
-                n_desired = i * self.n[-1] / (self.bins - 1)
-                d = n_desired - self.n[i]
-                if ((d >= 1) and ((self.n[i + 1] - self.n[i]) > 1)) or ((d <= -1) and ((self.n[i - 1] - self.n[i]) < -1)):
-                    d = sign(d)
-                    q_desired = self.q[i] + d / (self.n[i + 1] - self.n[i - 1]) * (
-                        (self.n[i] - self.n[i - 1] + d) * (self.q[i + 1] - self.q[i]) / (self.n[i + 1] - self.n[i]) +
-                        (self.n[i + 1] - self.n[i] - d) * (self.q[i] - self.q[i - 1]) / (self.n[i] - self.n[i - 1]))
-                    if (self.q[i - 1] < q_desired < self.q[i + 1]):
-                        self.q[i] = q_desired
-                    else:
-                        self.q[i] = self.q[i] + d * (self.q[i + d] - self.q[i]) / (self.n[i + d] - self.n[i])
-                    self.n[i] = self.n[i] + d
-            return _quantile(self.q, self.p)
-
-def pQuantile(X: list[float], p: float) -> Optional[float]:
-    '''return an estimated p-quantile of X in O(n) via P-Squared algorithm'''
-    g = PP(p)
-    y = None
-    for x in X:
-        y = g.next(x)
-    return y
 
 if __name__ == '__main__':
     X = sorted([0, .24, .25, 1])
     print(modeOrZero(X), X)
 
     phi = (1 + 5**.5) / 2
-    X = sorted([(0.5 + i * 1 / phi) % 1 for i in range(6)])
+    X = sorted([(0.5 + i*1/phi) % 1 for i in range(6)])
     print(modeOrZero(X), X)
     print(meanOrZero(X), stdevOrZero(X, meanOrZero(X)))
-
-    Z = [0.02, 0.15, 0.74, 0.83, 3.39, 22.37, 10.15, 15.43, 38.62, 15.92, 34.60, 10.28, 1.47, 0.40, 0.05, 11.39, 0.27, 0.42, 0.09, 11.37]
-    print(pQuantile(Z, 0.5)) # correct answer: 6.931, PP answer: 4.440634353260338, population median: 2.43

@@ -1,4 +1,4 @@
-from math import isqrt, log, log2, log10, hypot as L2
+from math import log, log2, log10
 from math import remainder as rem, modf, floor, ceil
 from typing import Callable, Iterable, TypeVar, overload
 
@@ -33,7 +33,7 @@ def abs(x: float) -> float:
 def sign(x: float | int) -> int:
     return (x > 0) - (x < 0)
 
-def ilog10(n: int) -> int:
+def ceilLog10(n: int) -> int:
     '''return ceil(log10(n)) in O(log n)'''
     acc = 0
     while n > 0:
@@ -71,7 +71,6 @@ def reduce(arr: Iterable[A], f: Callable[[B, A], B], acc: B):
 # a ^ b
 # a mod b
 # a rem b
-# log(x) = (x**epsilon - 1) / epsilon
 
 def Gamma(x: int | float) -> float:
     '''return Gamma(x) in O(log n)'''

@@ -21,6 +21,7 @@ class Duration:
         acc.m = m
         acc.s = s
         acc.ms = ms
+        return acc
 
     @staticmethod
     def ofMonths(months, days=0, h=0, m=0, s=0, ms=0):

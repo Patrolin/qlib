@@ -1,6 +1,6 @@
 import struct
 from typing import NamedTuple
-from qLib.math_ import ilog10, log10, ceil, floor
+from qLib.math_ import ceilLog10, log10, ceil, floor
 from qLib.serialize import indexOrMinusOne, DIGITS
 from qLib.serialize.serialize_int import parseInt, printInt
 
@@ -10,7 +10,7 @@ class FloatBits(NamedTuple):
 
 def _bytes_count(floatBits: FloatBits) -> int:
     total_bits = (1 + floatBits.exponent + floatBits.mantissa)
-    return total_bits // 8 + ((total_bits % 8) > 0)
+    return total_bits//8 + ((total_bits % 8) > 0)
 
 def _packFloat(acc: int, floatBits: FloatBits) -> float:
     PACK_FORMAT = "f" if _bytes_count(floatBits) <= 4 else "d"
@@ -72,7 +72,7 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
             break
         i += 1
         if base10_digits < MAX_BASE10_SIGNIFICANT_DIGITS(floatBits):
-            mantissa = mantissa * 10 + j
+            mantissa = mantissa*10 + j
             base10_digits += 1
     exponent_offset = max(mantissa.bit_length() - 1, 0)
     integer_offset = floatBits.mantissa - exponent_offset
@@ -92,9 +92,9 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
                 break
             i += 1
             if base10_digits < MAX_BASE10_SIGNIFICANT_DIGITS(floatBits):
-                fraction = fraction * 10 + j
+                fraction = fraction*10 + j
                 base10_digits += 1
-    divisor = 10**ilog10(fraction)
+    divisor = 10**ceilLog10(fraction)
     #print("fraction:", fraction, divisor)
     while integer_offset > 0 and fraction > 0:
         #print(j, integer_offset, fraction << 1, ((fraction << 1) >= divisor), mantissa)
@@ -165,7 +165,7 @@ def printFloat(float_: float, floatBits: FloatBits, base10_significant_digits=2)
     acc_fraction_string = ""
     nonzero_fraction = False
     for i in range((negative + (int_ == 0) + 1 + base10_significant_digits) - len(acc_string)):
-        acc = (acc * 10) % 10
+        acc = (acc*10) % 10
         acc_fraction_string += DIGITS[int(acc)]
         nonzero_fraction |= int(acc) > 0
     if nonzero_fraction: acc_string += acc_fraction_string

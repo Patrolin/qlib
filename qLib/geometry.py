@@ -23,7 +23,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
     assert_less_than_equals(log_blade_count, _INT_BASE)
 
     def parse_blade_normalized(s: str, i: int) -> tuple["Blade", int]:
-        acc, i = parseInt(s, i)
+        acc, i = parseInt(s, i) # TODO: signed int
         if i <= 0: acc = 1
         # TODO: str_value = parse_op()?
         acc_str = ""
@@ -44,7 +44,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
     def genBlades():
         acc: list[str] = []
         for i in range(0, 2**len(bases)):
-            str_bases = "".join(f"{j+min_basis:x}" for (j, v) in enumerate(bases) if (1 << j) & i)
+            str_bases = "".join(f"{j+min_basis:x}" for (j, v) in enumerate(bases) if (1 << j) & i) # TODO: support higher bases?
             str_blade = f"e{str_bases}" if len(str_bases) > 0 else "1"
             acc.append(str_blade)
         return sorted(acc, key=lambda v: (len(v), v))
@@ -88,6 +88,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def __repr__(self):
             return f"{self.value}{self.str_value}{self.name if self.name != '1' else ''}"
+
+        def __eq__(self, other: "Blade"):
+            return (self.value == other.value) and (self.str_value == other.str_value) and (self.name == other.name)
 
         def grade(self):
             return len(self.name) - 1
@@ -143,11 +146,11 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         def left_contraction(self, other: "Blade"):
             return (self * other).gradeSelect(other.grade() - self.grade())
 
-        def __and__(self, other: "Blade"): # wedge product
+        def __xor__(self, other: "Blade"): # wedge product
             return (self * other).gradeSelect(self.grade() + other.grade())
 
-        def __or__(self, other: "Blade"): # antiwedge (regressive) product
-            return (self.dual() & other.dual()).undual()
+        def __and__(self, other: "Blade"): # antiwedge (regressive) product
+            return (self.dual() ^ other.dual()).undual()
 
         def commutator(self, other: Union["Blade", int, float]):
             if isinstance(other, Blade):
@@ -164,16 +167,36 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
     class Multivector:
         values: list[Blade] = []
-        # TODO
+
+        def add(self, blade: Blade):
+            for v in self.values:
+                if (v.str_value == blade.str_value) and (v.name == blade.name):
+                    v.value += blade.value
+                    return
+            self.values.append(blade)
 
     class GAlgebra:
         name = generic_name = f"G_{positive},{negative},{zero}"
         blades: list[Blade]
 
         @staticmethod
-        def parse_blade(s: str):
-            blade, i = parse_blade_normalized(s, 0)
+        def parse_blade(s: str, i: int) -> tuple[Blade, int]:
+            blade, i = parse_blade_normalized(s, i)
             return denormalize_blade(blade), i
+
+        @staticmethod
+        def parse_multivector(s: str, i: int) -> tuple[Multivector, int]:
+            acc = Multivector()
+            i = (s[0] == "(")
+            while i < len(s):
+                blade, j = parse_blade_normalized(s, i)
+                if j <= i: break
+                acc.add(blade)
+                i = j
+                # TODO: whitespace
+                if i < len(s) and s[i] == "+": i += 1
+                # TODO: whitespace
+            return acc, i
 
         @staticmethod
         def print_generic_name():
@@ -193,6 +216,12 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             assert_less_than_equals(blade_count**2, MAX_PRINT_BLADES)
             for a in blades:
                 GAlgebra.print_row(lambda b: f(a, b))
+
+        @staticmethod
+        def assert_equals(f: Callable[[Blade, Blade], Blade], g: Callable[[Blade, Blade], Blade]):
+            for a in blades:
+                for b in blades:
+                    assert_equals(f(a, b), g(a, b))
 
     GAlgebra.blades = blades
 

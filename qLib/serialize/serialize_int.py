@@ -10,9 +10,11 @@ def parseInt(string: str, base=10) -> tuple[int, int]:
         j = indexOrMinusOne(DIGITS[:base], string[i])
         if j < 0:
             break
-        acc = acc * base + j # TODO: saturate on overflow
+        acc = acc*base + j # TODO: saturate on overflow?
         i += 1
     return acc, i
+
+# TODO: parseSignedInt
 
 def printInt(int_: int, base=10) -> str:
     if int_ == 0: return "0"
