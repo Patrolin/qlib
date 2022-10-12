@@ -54,7 +54,7 @@ def tprint_duration(value: int) -> str:
     acc_str = ""
     if h > 0: acc_str += f"{h} h "
     if m > 0: acc_str += f"{m} m "
-    if s > 0: acc_str += f"{s} s "
+    if s > 0: acc_str += f"{s} s " # TODO: print fraction with underscores
     if ms > 0: acc_str += f"{ms} ms "
     if us > 0: acc_str += f"{us} us "
     if ns > 0: acc_str += f"{ns} ns "
@@ -96,7 +96,7 @@ def _gregorianToUtc(gregorianSecond): # TODO: use ns
     return [yearMinusOne + 1, monthMinusOne + 1, dayMinusOne + 1, hour, minute, second, ms, weekday]
 
 # TODO: https://www.timeanddate.com/time/zones/
-# TODO: Locale
+# TODO: Locale?
 
 # POSIX doesn't define what a second is, so people just slow down/speed up time
 # whenever a leap seconds happens to make computations easier,
