@@ -1,112 +1,119 @@
-__all__ = ["Set", "Map"]
-from typing import Any, NamedTuple
+from typing import Any, Generic, TypeVar, cast
+from qLib.collections_ import reduce
+from qLib.tests import assert_greater_than_equals, assert_less_than_equals, assert_not_equals
 
-class MapSlot(NamedTuple):
-    key: Any
-    value: Any
+def _hash(value: Any) -> int:
+    if isinstance(value, str):
+        return reduce(value, lambda a, v: a ^ _hash(ord(v)), 0)
+    else:
+        return value ^ (value >> 1)
 
-class MapBucket:
-    def __init__(self, slot_count: int):
-        self.count = 0
-        self.slot_count = slot_count
-        self.slots: list[MapSlot] = [MapSlot(None, None)] * slot_count
+K = TypeVar("K")
+V = TypeVar("V")
+class _MapSlotState:
+    Empty = 0
+    Filled = 1
+    Deleted = 2
 
+class _MapItem(Generic[K, V]):
+    def __init__(self, key: K, value: V):
+        self.key = key
+        self.value = value
     def __repr__(self):
-        return "{" + ", ".join(f"{repr(slot.key)}: {slot.value}" for slot in self) + "}"
+        return f"<key={self.key}; value={self.value}>"
+
+class _MapSlot(Generic[K, V]):
+    def __init__(self, item: _MapItem[K, V], state: int):
+        self.item = item
+        self.state = state
+    def __repr__(self):
+        return f"<item={self.item}; state={self.state}>"
+
+_MAP_LOAD_FACTOR_PERCENT = 75
+class BaseMap(Generic[K, V]):
+    def __init__(self, slot_count=4):
+        self.size = 0
+        self.data: list[_MapSlot[K, V]] = [cast(_MapSlot[K, V], _MapSlot(_MapItem(None, None), 0))] * slot_count
+
+    def items(self) -> list[_MapItem[K, V]]:
+        acc: list[_MapItem[K, V]] = []
+        for slot in self.data:
+            if slot.state == _MapSlotState.Filled:
+                acc.append(slot.item)
+        return acc
+
+    def _resizeTo(self, n: int):
+        self.data = [cast(_MapSlot[K, V], _MapSlot(_MapItem(None, None), 0))] * n
+        self.size = 0
+    def _growIfNecessary(self):
+        if (self.size * 100) >= (len(self.data) * _MAP_LOAD_FACTOR_PERCENT):
+            items = self.items()
+            self._resizeTo(len(self.data)*2 + (len(self.data) == 0)*4)
+            for item in items:
+                self._set(item.key, item.value)
+
+    def _indexOf(self, key: K) -> int:
+        assert_greater_than_equals(len(self.data), 0)
+        h = _hash(key)
+        i = h % len(self.data)
+        while 1:
+            if self.data[i].state == _MapSlotState.Empty:
+                return -1
+            elif self.data[i].state == _MapSlotState.Filled:
+                if (self.data[i].item.key == key): return i
+            h >>= 5
+            i = (5*i + 5 + h) % len(self.data) # Note(Patrolin): 5*i + 5 wouldn't repeat, but this can however we want to avoid long blocks of .Filled slots
+        return 0 # make compiler happy
+
+    def has(self, key: K) -> bool:
+        return self._indexOf(key) != -1
+    def remove(self, key: K):
+        i = self._indexOf(key)
+        self.size -= (i != -1)
+        self.data[i].state = _MapSlotState.Deleted
+    def _set(self, key: K, value: V):
+        self._growIfNecessary()
+        h = _hash(key)
+        i = h % len(self.data)
+        while 1:
+            if self.data[i].state == _MapSlotState.Empty:
+                assert_less_than_equals(self.size + 1, len(self.data))
+                self.data[i] = _MapSlot(_MapItem(key, value), _MapSlotState.Filled)
+                self.size += 1
+                return
+            elif self.data[i].state == _MapSlotState.Filled:
+                if self.data[i].item.key == key:
+                    self.data[i].item.value = value
+                    return
+            h >>= 5
+            i = (5*i + 5 + h) % len(self.data)
+    def _get(self, key: K) -> V:
+        assert_greater_than_equals(len(self.data), 1)
+        i = self._indexOf(key)
+        assert_not_equals(i, -1)
+        return self.data[i].item.value
 
     def __iter__(self):
-        for i in range(self.count):
-            yield self[i]
+        for slot in self.data:
+            if slot.state == _MapSlotState.Filled:
+                yield slot.item.key, slot.item.value
 
-    def __getitem__(self, i):
-        return self.slots[i]
+class Map(BaseMap[K, V]):
+    def __getitem__(self, key: K):
+        return self._get(key)
 
-    def __setitem__(self, i, value):
-        self.slots[i] = value
-
-    def index(self, key) -> int:
-        for i in range(self.count):
-            if self[i].key == key:
-                return i
-        return -1
-
-    def has(self, key) -> bool:
-        return self.index(key) != -1
-
-    def set(self, key, value) -> bool:
-        i = self.index(key)
-        if i != -1:
-            self[i] = MapSlot(key, value)
-            return True
-        if self.count >= self.slot_count: return False
-        self[self.count] = MapSlot(key, value)
-        self.count += 1
-        return True
-
-    def remove(self, key):
-        i = self.index(key)
-        if i == -1: return
-        self[i] = self[self.count - 1]
-        self[self.count - 1] = MapSlot(None, None)
-        self.count -= 1
-
-class BaseMap:
-    def __init__(self, bucket_count=10, slots_per_bucket=4):
-        self.bucket_count = bucket_count
-        self.slots_per_bucket = slots_per_bucket
-        self.buckets: list[MapBucket] = [MapBucket(slot_count=slots_per_bucket) for i in range(bucket_count)]
-
-    def _slow_set(self, key, value):
-        new_bucket_count = self.bucket_count * 2
-        while True:
-            new_bucket_count += 1
-            new_map = Map(bucket_count=new_bucket_count, slots_per_bucket=self.slots_per_bucket)
-            if not new_map._fast_set(key, value):
-                continue
-            for k, v in self:
-                if not new_map._fast_set(k, v):
-                    break
-            else:
-                break
-            continue
-        self.bucket_count = new_bucket_count
-        self.buckets = new_map.buckets
-
-    def _fast_set(self, key, value) -> bool:
-        # https://en.wikipedia.org/wiki/List_of_hash_functions#Non-cryptographic_hash_functions
-        return self.buckets[hash(key) % self.bucket_count].set(key, value)
-
-    def remove(self, key):
-        self.buckets[hash(key) % self.bucket_count].remove(key)
-
-    def has(self, key) -> bool:
-        return self.buckets[hash(key) % self.bucket_count].index(key) != -1
-
-    def __iter__(self):
-        for bucket in self.buckets:
-            for slot in bucket:
-                yield slot.key, slot.value
-
-class Map(BaseMap):
-    def __getitem__(self, key):
-        bucket = self.buckets[hash(key) % self.bucket_count]
-        i = bucket.index(key)
-        return bucket[i].value
-
-    def __setitem__(self, key, value):
-        if not self._fast_set(key, value):
-            self._slow_set(key, value)
+    def __setitem__(self, key: K, value: V):
+        self._set(key, value)
 
     def __repr__(self):
         return "{" + ", ".join(f"{repr(key)}: {value}" for key, value in self) + "}"
 
-class Set(BaseMap):
-    def __getitem__(self, key):
+class Set(BaseMap[K, None]):
+    def __getitem__(self, key: K):
         return self.has(key)
 
-    def add(self, key):
-        if not self._fast_set(key, None):
-            self._slow_set(key, None)
+    def add(self, key: K):
+        self._set(key, None)
 
     def __repr__(self):
         return "{" + ", ".join(repr(key) for key, value in self) + "}"

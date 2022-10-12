@@ -1,4 +1,7 @@
-__all__ = ["test", "run_tests", "assert_never", "assert_equals", "assert_less_than_equals", "assert_greater_than_equals"]
+__all__ = [
+    "assert_never", "assert_equals", "assert_not_equals", "assert_less_than_equals", "assert_greater_than_equals", "assert_", "test",
+    "run_tests"
+]
 
 from types import FrameType
 from typing import Callable, NamedTuple, cast
@@ -26,24 +29,28 @@ def assert_greater_than_equals(got, expected):
     if got < expected:
         raise AssertionError(f"got: {got}; expected: >= {expected}")
 
-class Test(NamedTuple):
+def assert_(*conditions: bool):
+    if not all(conditions):
+        raise AssertionError(f"got: {conditions}")
+
+class _Test(NamedTuple):
     f: Callable
     file_name: str
 
-tests: list[Test] = []
+_tests: list[_Test] = []
 
 def test(callback: Callable) -> Callable:
     current_frame = cast(FrameType, currentframe())
     caller_frame = cast(FrameType, current_frame.f_back)
     file_path, *_ = getframeinfo(caller_frame)
     file_name = basename(file_path)
-    tests.append(Test(callback, file_name))
+    _tests.append(_Test(callback, file_name))
     return callback
 
 def run_tests():
     passed = 0
     failed = 0
-    for test in tests:
+    for test in _tests:
         name = f"#{passed + failed + 1} {test.file_name}/{test.f.__name__}"
         try:
             test.f()

@@ -1,9 +1,6 @@
 from typing import Callable, Iterable, TypeVar
 
 from ..tests import assert_never
-from .linked_list import *
-from .map import *
-from .string import *
 
 V = TypeVar("V")
 def find(arr: Iterable[V], matches: Callable[[V], bool]) -> V:
@@ -31,3 +28,7 @@ def reduce(arr: Iterable[V], f: Callable[[A, V], A], acc: A):
     for v in arr:
         acc = f(acc, v)
     return acc
+
+from .linked_list import *
+from .map import *
+from .string import *
