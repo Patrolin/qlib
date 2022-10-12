@@ -1,6 +1,28 @@
-from qLib.tests import assert_equals, test, run_tests
+from qLib.tests import assert_equals, assert_greater_than_equals, test, run_tests
 from qLib.time_ import *
-from typing import NamedTuple
+from typing import Callable, NamedTuple
+
+class DurationTest(NamedTuple):
+    value: int
+    f: Callable[[int], int]
+    expectedValue: int
+
+@test
+def testDuration():
+    for (value, f, expectedValue) in [
+            DurationTest(NS_PER_US, Duration.ofUs, 1_000),
+            DurationTest(NS_PER_MS, Duration.ofMs, 1_000_000),
+            DurationTest(NS_PER_S, Duration.ofSeconds, 1_000_000_000),
+            DurationTest(NS_PER_M, Duration.ofMinutes, 60_000_000_000),
+            DurationTest(NS_PER_H, Duration.ofHours, 3_600_000_000_000)
+    ]:
+        assert_equals(value, expectedValue)
+        for x in [0, 1, 12, 257]:
+            assert_equals(f(x), expectedValue * x)
+    t0 = cpu_time()
+    sleep(Duration.ofUs(100))
+    dt = cpu_time() - t0
+    assert_greater_than_equals(dt, Duration.ofUs(100))
 
 class DateTimeTest(NamedTuple):
     date: list[int]

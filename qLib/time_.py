@@ -1,5 +1,8 @@
-from time import time_ns as _time_ns, perf_counter_ns as _perf_counter_ns, process_time_ns as _process_time_ns
+from time import sleep as _sleep, time_ns as _time, perf_counter_ns as _perf_counter_ns, process_time_ns as _process_time_ns
 from .math_ import floor
+
+def sleep(ns: int):
+    _sleep(ns / NS_PER_S)
 
 def process_time():
     # return time spent executing inside this process
@@ -10,16 +13,16 @@ def cpu_time():
     return _perf_counter_ns()
 
 def posix_time():
-    # return POSIX timestamp
-    return _time_ns()
+    # return POSIX timestamp in seconds
+    return _time()
 
-NS_PER_US = 1_000 # TODO: tests
+NS_PER_US = 1_000
 NS_PER_MS = NS_PER_US * 1_000
 NS_PER_S = NS_PER_MS * 1_000
 NS_PER_M = NS_PER_S * 60
 NS_PER_H = NS_PER_M * 60
 
-class Duration: # TODO: tests
+class Duration:
     @staticmethod
     def ofHours(hours):
         return hours * NS_PER_H
@@ -40,7 +43,7 @@ class Duration: # TODO: tests
     def ofUs(us):
         return us * NS_PER_US
 
-def tprint_time(value: int) -> str:
+def tprint_duration(value: int) -> str:
     acc = value
     acc, ns = divmod(acc, 1_000)
     acc, us = divmod(acc, 1_000)
@@ -48,13 +51,7 @@ def tprint_time(value: int) -> str:
     acc, s = divmod(acc, 60)
     acc, m = divmod(acc, 60)
     acc, h = divmod(acc, 24)
-    acc, days = divmod(acc, 30)
-    acc, months = divmod(acc, 12)
-    years = acc
     acc_str = ""
-    if years > 0: acc_str += f"{years} years "
-    if months > 0: acc_str += f"{months} months "
-    if days > 0: acc_str += f"{days} days "
     if h > 0: acc_str += f"{h} h "
     if m > 0: acc_str += f"{m} m "
     if s > 0: acc_str += f"{s} s "
