@@ -1,16 +1,19 @@
 from time import time_ns as _time_ns, perf_counter_ns as _perf_counter_ns, process_time_ns as _process_time_ns
 from .math_ import floor
 
-def time_spent_executing():
+def process_time():
+    # return time spent executing inside this process
     return _process_time_ns()
 
-def perf_time():
+def cpu_time():
+    # return a monotonic counter quickly
     return _perf_counter_ns()
 
-def time():
+def posix_time():
+    # return POSIX timestamp
     return _time_ns()
 
-NS_PER_US = 1_000
+NS_PER_US = 1_000 # TODO: tests
 NS_PER_MS = NS_PER_US * 1_000
 NS_PER_S = NS_PER_MS * 1_000
 NS_PER_M = NS_PER_S * 60
@@ -84,7 +87,7 @@ def _gregorianToUtc(gregorianSecond): # TODO: use ns
     yearMinusOne = yearMinusOneOrTwo + (_daysBeforeYear(yearMinusOneOrTwo + 1) * 86400 <= gregorianSecond)
     acc_seconds -= _daysBeforeYear(yearMinusOne) * 86400
     days = acc_seconds // 86400
-    monthMinusOne = floor((days + (2 - _isLeapYear(yearMinusOne + 1)) * (days > 40) - 0.5 * (days > 240)) / 30.5)
+    monthMinusOne = floor((days + (days > 40) * (2 - _isLeapYear(yearMinusOne + 1)) - 0.5 * (days > 240)) / 30.5)
     acc_seconds = gregorianSecond - _daysBeforeYearMonth(yearMinusOne, monthMinusOne) * 86400
     dayMinusOne, acc_seconds = divmod(acc_seconds, 86400)
     hour, acc_seconds = divmod(acc_seconds, 3600)
@@ -97,15 +100,16 @@ def _gregorianToUtc(gregorianSecond): # TODO: use ns
 
 # TODO: https://www.timeanddate.com/time/zones/
 # TODO: Locale
+
 # POSIX doesn't define what a second is, so people just slow down/speed up time
 # whenever a leap seconds happens to make computations easier,
 # therefore time is always broken across leap seconds
 #JULIAN_CALENDAR_EPOCH_YEAR = -44 # 1 January AUC 709
 #GREGORIAN_CALENDAR_EPOCH_YEAR = 1583 # October 1582
-TAI_EPOCH_YEAR = 1958 # International Atomic Time
+TAI_EPOCH_YEAR = 1958
 #UTC_V1_EPOCH_YEAR = 1961 # UTC_V1 = TAI + x fractional leap seconds
-POSIX_EPOCH_YEAR = 1970 # same as UTC
-UTC_EPOCH_YEAR = 1972 # UTC = TAI + n integer leap seconds
+POSIX_EPOCH_YEAR = 1970 # POSIX = UTC # 1 January 1970
+UTC_EPOCH_YEAR = 1972 # UTC = TAI + n integer leap seconds # 1 January 1972
 #GPS_EPOCH = 1980 # set to UTC in 1980, updated as atomic
 
 class DateTime:
@@ -115,7 +119,7 @@ class DateTime:
     def toParts(self):
         return _gregorianToUtc(self.gregorianSecond)
 
-    def toUTCTimeStamp(self):
+    def toPosixTimeStamp(self):
         return self.gregorianSecond - _utcToGregorian(POSIX_EPOCH_YEAR)
 
     def __repr__(self):
