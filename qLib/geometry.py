@@ -24,7 +24,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
     def parse_blade_normalized(s: str) -> tuple["Blade", int]:
         i = 0
-        acc, j = parseInt(s[i:], _INT_BASE) # TODO: signed int
+        acc, j = parseInt(s[i:], _INT_BASE) # TODO: float
         if j <= 0:
             acc = 1
         else:
@@ -92,7 +92,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         def __init__(self, value: Union[int, float], str_value: str, name: str):
             if value == -0.0: value = 0
             self.value = value
-            self.str_value = str_value
+            self.str_value = str_value # TODO fraction
             self.name = name if value != 0 else "1"
 
         def __repr__(self):
@@ -107,7 +107,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         def gradeSelect(self, n: int):
             return self * (self.grade() == n)
 
-        def __invert__(self):
+        def __invert__(self): # reverse
             sign = 1 - 2 * ((self.grade() // 2) % 2)
             return self * sign
 
@@ -177,8 +177,8 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
     class Multivector:
         values: list[Blade]
 
-        def __init__(self):
-            self.values = []
+        def __init__(self, values: list[Blade] | None = None):
+            self.values = values or []
 
         def __repr__(self):
             def _print_blade(i: int, blade: Blade):
@@ -210,14 +210,23 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                 acc._add(key(v))
             return acc
 
-        def __invert__(self):
+        def __invert__(self): # reverse
             return self._map(lambda v: ~v)
+
+        def inverse(self):
+            return ~self * Multivector([Blade(1 / self.pnorm()**2, "", "1")])
 
         def dual(self): # right complement
             return self._map(lambda v: v.dual())
 
         def undual(self): # left complement
             return self._map(lambda v: v.undual())
+
+        def dnorm(self) -> float: # point based dnorm
+            return sum(v.value**2 for v in self.values if (v * v).value == 0)**.5
+
+        def pnorm(self) -> float: # point based pnorm
+            return sum(v.value**2 for v in self.values if (v * v).value != 0)**.5
 
         def _starmap(self, other: "Multivector", key: Callable[[Blade, Blade], Blade]):
             acc = Multivector()
@@ -243,6 +252,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def __and__(self, other: "Multivector"): # antiwedge (regressive) product
             return self._starmap(other, lambda a, b: a & b)
+
+        def commutator(self, other: "Multivector"):
+            return self._starmap(other, lambda a, b: a.commutator(b))
 
     class GAlgebra:
         name = generic_name = f"G_{positive},{negative},{zero}"
@@ -326,3 +338,15 @@ PGA_3D = GAlgebra(3, 0, 1, start_with_zero=True, signs=["e31", "e021", "e032"])
 PGA_4D = GAlgebra(4, 0, 1, start_with_zero=True)
 CGA_2D = GAlgebra(3, 1, 0)
 CGA_3D = GAlgebra(4, 1, 0)
+
+def infinitePoint2D(x: float, y: float):
+    return PGA_2D.parse_multivector(f"{x}e1+{y}e2")[0]
+
+def point2D(x: float, y: float):
+    return PGA_2D.parse_multivector(f"e0+{x}e1+{y}e2")[0]
+
+def infinitePoint3D(x: float, y: float, z: float):
+    return PGA_3D.parse_multivector(f"{x}e1+{y}e2+{z}e3")[0]
+
+def point3D(x: float, y: float, z: float):
+    return PGA_3D.parse_multivector(f"e0+{x}e1+{y}e2+{z}e3")[0]
