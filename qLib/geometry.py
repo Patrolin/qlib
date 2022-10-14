@@ -13,7 +13,7 @@ class Coefficient:
     product: list[str]
 
     def __init__(self, number: int | float, product: list[str]):
-        self.number = number
+        self.number = int(number) if isinstance(number, float) and number.is_integer() else number
         self.product = product
 
     def __eq__(self, other: "Coefficient"):
@@ -34,8 +34,7 @@ class Coefficient:
         self.product.insert(i, other)
 
     def __mul__(self, other: "Coefficient"):
-        acc = Coefficient(self.number, self.product.copy())
-        acc.number *= other.number
+        acc = Coefficient(self.number * other.number, self.product.copy())
         for v in other.product:
             acc._mul(v)
         return acc
@@ -119,7 +118,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
     def parse_blade_normalized(s: str) -> tuple["Blade", int]:
         i = 0
         k = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
-        acc, j = parseInt(s[i:i + k], _INT_BASE) # TODO: parse_float
+        acc, j = parseFloat64(s[i:i + k])
         if j <= 0:
             acc = 1
         else:

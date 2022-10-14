@@ -81,7 +81,6 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
     integer_offset = floatBits.mantissa - exponent_offset
     exponent += exponent_offset
     mantissa = mantissa << integer_offset
-    #print("integer part:   ", string, f"{acc + ((exponent + HALF_MAX_EXPONENT) << floatBits.mantissa) + (mantissa & _mantissaMask(floatBits)):032b}")
 
     # fraction
     fraction = 0
@@ -98,10 +97,8 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
                 fraction = fraction*10 + j
                 base10_digits += 1
     divisor = 10**ceilLog10(fraction)
-    #print("fraction:", fraction, divisor)
     while integer_offset > 0 and fraction > 0:
-        #print(j, integer_offset, fraction << 1, ((fraction << 1) >= divisor), mantissa)
-        fraction = fraction << 1
+        fraction <<= 1
         bit = (fraction >= divisor)
         fraction -= bit * divisor
         if mantissa == 0: # find first non-zero bit
@@ -109,17 +106,17 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
         else: # fill in remaining bits
             integer_offset -= 1
         mantissa += bit << integer_offset
+    mantissa += ((fraction << 1) >= divisor)
 
     # zero
     if mantissa == 0:
-        exponent = -HALF_MAX_EXPONENT # 0.0
+        exponent = -HALF_MAX_EXPONENT
 
     # base10 exponent
     if (i == 0) or ((i == 1) and string[0] == "-"):
         exponent = 0 # 1.0 by default
     acc = acc + ((exponent + HALF_MAX_EXPONENT) << floatBits.mantissa) + (mantissa & _MANTISSA_MASK(floatBits))
     acc_float = _packFloat(acc, floatBits)
-    #print("fractional part:", string, f"{exponent + HALF_MAX_EXPONENT:08b}", f"{mantissa & MANTISSA_MASK:023b}", f"{acc:032b}", acc_float)
     if i < len(string) and string[i] == "e":
         i += 1
         base10_exponent_sign = 1
@@ -129,7 +126,11 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
         base10_exponent, j = parseInt(string[i:])
         if j > 0:
             i += j
-            acc_float *= 10.0**(base10_exponent_sign * base10_exponent)
+            exponent_correction = base10_exponent_sign * base10_exponent
+            if exponent_correction >= 0:
+                acc_float *= 10.0**exponent_correction
+            else:
+                acc_float /= 10.0**(-exponent_correction)
         else:
             return acc_float, -i
 
