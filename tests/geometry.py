@@ -63,16 +63,14 @@ def testWedge():
 
 @test
 def testMultivector():
-    for G in (PGA_2D, PGA_3D):
-        #G.print_name()
-        A = point2D(1, 2)
-        B = point2D(2, 3)
-        assert_equals(repr(A), "(e0 + e1 + 2e2)")
-        assert_equals(repr(B), "(e0 + 2e1 + 3e2)")
-        assert_equals(repr(A * B), "(8 + e01 - e20 - e12)")
-        assert_equals(repr((A * B).dnorm()), "sqrt(2)")
-        assert_equals(repr((A * B).pnorm()), "sqrt(65)")
-        assert_equals(repr((A * B).inverse()), "(8 - e01 + e20 + e12) / 65")
+    A = point2D(1, 2)
+    B = point2D(2, 3)
+    assert_equals(repr(A), "(e0 + e1 + 2e2)")
+    assert_equals(repr(B), "(e0 + 2e1 + 3e2)")
+    assert_equals(repr(A * B), "(8 + e01 - e20 - e12)")
+    assert_equals(repr((A * B).dnorm()), "sqrt(2)")
+    assert_equals(repr((A * B).pnorm()), "sqrt(65)")
+    assert_equals(repr((A * B).inverse()), "(8 - e01 + e20 + e12) / 65")
 
 @test
 def testParseMultivector():
