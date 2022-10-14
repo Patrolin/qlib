@@ -458,7 +458,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 HYPERBOLIC_NUMBERS = GAlgebra(1, 0, 0)
 COMPLEX_NUMBERS = GAlgebra(0, 1, 0)
 DUAL_NUMBERS = GAlgebra(0, 0, 1)
-CONIC_ALGEBRA = GAlgebra(5, 3, 0)
+#CONIC_ALGEBRA = GAlgebra(5, 3, 0)
 #QUADRIC_ALGEBRA = GAlgebra(9, 6, 0)
 VGA_2D = GAlgebra(2, 0, 0)
 VGA_3D = GAlgebra(3, 0, 0)
