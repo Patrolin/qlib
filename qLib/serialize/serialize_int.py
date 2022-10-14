@@ -1,4 +1,5 @@
-from qLib.serialize import indexOrMinusOne, DIGITS
+from qLib.collections_ import findIndexOrDefault
+from qLib.serialize import DIGITS
 
 def parseInt(string: str, base=10) -> tuple[int, int]:
     acc = 0
@@ -7,7 +8,7 @@ def parseInt(string: str, base=10) -> tuple[int, int]:
         if string[i] == "_":
             i += 1
             continue
-        j = indexOrMinusOne(DIGITS[:base], string[i])
+        j = findIndexOrDefault(DIGITS[:base], lambda v: v == string[i])
         if j < 0:
             break
         acc = acc*base + j # TODO: saturate on overflow?

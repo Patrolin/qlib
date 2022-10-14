@@ -1,7 +1,7 @@
-from itertools import product
 from typing import Callable, Union
-from qLib.collections_ import findIndex, findIndexOrDefault, reduce
+from qLib.collections_ import findIndexOrDefault, reduce
 from qLib.serialize.serialize_int import parseInt
+from qLib.serialize.serialize_string import parseOp
 from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never
 
 _INT_BASE = 10
@@ -62,6 +62,9 @@ class Value:
         elif len(self.sum) == 1: return repr(self.sum[0])
         else: return f"({''.join(_print_coefficient(i, v) for i, v in enumerate(self.sum))})"
 
+    def _deep_copy(self):
+        return Value([Coefficient(v.number, v.product.copy()) for v in self.sum])
+
     def _add(self, other: "Coefficient"):
         if other.number == 0: return
         for i in range(len(self.sum)):
@@ -78,7 +81,7 @@ class Value:
         return acc
 
     def __add__(self, other: "Value"):
-        acc = Value(self.sum.copy())
+        acc = self._deep_copy()
         for v in other.sum:
             acc._add(v)
         return acc
@@ -119,9 +122,10 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             acc = 1
         else:
             i += j
+        j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
+        op, j = parseOp(s[i:i + j])
+        i += j
         j = 0
-        # TODO: parse_op
-        #j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
         acc_str = ""
         if i < len(s) and s[i] == "e":
             i += 1
@@ -139,7 +143,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     if k - 1 >= 0 and acc_str[k] == acc_str[k - 1]:
                         acc *= bases[int(acc_str[k], _INT_BASE) - min_basis]
                         acc_str = acc_str[:k - 1] + acc_str[k + 1:]
-        return Blade(Value.fromNumber(acc), f"e{acc_str}" if acc_str else "1"), i + j
+        value = Value.fromNumber(acc)
+        if op: value = value * Value([Coefficient(1, [op])])
+        return Blade(value, f"e{acc_str}" if acc_str else "1"), i + j
 
     def genBlades():
         acc: list[str] = []
@@ -193,6 +199,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def __eq__(self, other: "Blade"):
             return (self.name == other.name) and (self.value == other.value)
+
+        def _deep_copy(self):
+            return Blade(self.value._deep_copy(), self.name)
 
         def grade(self):
             return len(self.name) - 1
@@ -280,6 +289,8 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                 if (i > 0): sign = " - " if (sign == "-") else " + "
                 return sign + str_blade.removeprefix("-")
 
+            if len(self.blades) == 0: return "0"
+
             str_blades = f"({''.join(_print_blade(i, v) for i, v in enumerate(self.blades))})"
             str_denom = "" if (self.denominator == 1) else f" / {self.denominator}"
 
@@ -287,20 +298,27 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def _add(self, blade: Blade):
             if blade.value == 0: return
-            for v in self.blades:
-                if (v.name == blade.name):
-                    v.value += blade.value
+            for i in range(len(self.blades)):
+                if (self.blades[i].name == blade.name):
+                    self.blades[i].value += blade.value
+                    if self.blades[i].value == 0: self.blades.pop(i)
                     return
             self.blades.append(blade)
 
         def __add__(self, other: "Multivector"):
             assert_equals(self.denominator, other.denominator) # TODO: multiply fraction?
             acc = Multivector()
-            acc.blades = self.blades.copy()
+            acc.blades = [v._deep_copy() for v in self.blades]
             for blade in other.blades:
                 acc._add(blade)
             acc._sortBlades()
             return acc
+
+        def __neg__(self):
+            return Multivector([-v for v in self.blades], self.denominator._deep_copy())
+
+        def __sub__(self, other: "Multivector"):
+            return self + (-other)
 
         def _map(self, key: Callable[[Blade], Blade]):
             acc = Multivector()

@@ -1,7 +1,8 @@
 import struct
 from typing import NamedTuple
+from qLib.collections_ import findIndexOrDefault
 from qLib.math_ import ceilLog10, log10, ceil, floor
-from qLib.serialize import indexOrMinusOne, DIGITS
+from qLib.serialize import DIGITS
 from qLib.serialize.serialize_int import parseInt, printInt
 
 class FloatBits(NamedTuple):
@@ -67,7 +68,7 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
     while True:
         if i >= len(string):
             break
-        j = indexOrMinusOne(DIGITS[:10], string[i])
+        j = findIndexOrDefault(DIGITS[:10], lambda v: v == string[i])
         if j < 0:
             break
         i += 1
@@ -87,7 +88,7 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
         while True:
             if i >= len(string):
                 break
-            j = indexOrMinusOne(DIGITS[:10], string[i])
+            j = findIndexOrDefault(DIGITS[:10], lambda v: v == string[i])
             if j < 0:
                 break
             i += 1

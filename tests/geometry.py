@@ -75,13 +75,14 @@ def testMultivector():
         assert_equals(repr((A * B).inverse()), "(8 - e01 + e20 + e12) / 65")
 
 @test
-def testValue():
-    a = Value([Coefficient(1, ["a1"]), Coefficient(1, ["a2"])])
-    b = Value([Coefficient(2, ["b1"])])
-    assert_equals(repr(a + b), "(a1 + a2 + 2b1)")
-    assert_equals(repr(a - b), "(a1 + a2 - 2b1)")
+def testParseMultivector():
+    a = PGA_3D.parse_multivector("a1e1 + a2e2")[0]
+    b = PGA_3D.parse_multivector("2b1e1")[0]
+    assert_equals(repr(a + b), "((a1 + 2b1)e1 + a2e2)")
+    assert_equals(repr(a + b), "((a1 + 2b1)e1 + a2e2)")
+    assert_equals(repr(a - b), "((a1 - 2b1)e1 + a2e2)")
     assert_equals(repr(a*b - a*b), "0")
-    assert_equals(repr((a+b) * b), "(2(a1*b1) + 2(a2*b1) + 4(b1*b1))")
+    assert_equals(repr((a+b) * b), "((2(a1*b1) + 4(b1*b1)) - 2(a2*b1)e12)")
 
 if __name__ == "__main__":
     run_tests()

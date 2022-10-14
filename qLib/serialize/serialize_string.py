@@ -36,8 +36,8 @@ def printString(string: str) -> str:
             acc += c
     return f"\"{acc}\""
 
-if __name__ == "__main__":
-    print(parseString("\"234.6\"")) # 234.6
-    print(parseString("\"234\\\"78.0\"")) # 234"78.0
-    print(parseString("\"234.6\\u9012")) # 234.6递
-    print(parseString("\"234.6\\u901")) # 234.6
+def parseOp(s: str) -> tuple[str, int]:
+    i = 0
+    while i < len(s) and s[i] != " ":
+        i += 1
+    return s[:i], i
