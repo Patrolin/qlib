@@ -9,7 +9,7 @@ def normalize(string: str, case_sensitive = False, accent_sensitive = False, sym
     return acc
 
 def string_similarity(filter: str, option: str) -> float:
-    '''return a string similarity of value, option in O(len(filter) + len(option))'''
+    '''return a string similarity between filter and option in O(len(filter) + len(option))'''
     length_sum = len(filter) + len(option)
     if length_sum == 0: return 1.0
 
