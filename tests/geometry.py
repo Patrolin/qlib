@@ -1,26 +1,59 @@
 from qLib.tests import test, run_tests
 from qLib.geometry import *
 
-#@test
+@test
 def testPGA_2D():
-    PGA_2D.print_name()
-    print("~A")
-    PGA_2D.print_row(lambda v: ~v) # TODO print to string
-    print("A.dual()")
-    PGA_2D.print_row(lambda v: v.dual())
-    print("A.undual()")
-    PGA_2D.print_row(lambda v: v.undual())
-    print("A*B")
-    PGA_2D.print_table(lambda a, b: a * b)
-    print("A^B")
-    PGA_2D.print_table(lambda a, b: a ^ b)
-    print("A&B")
-    PGA_2D.print_table(lambda a, b: a & b)
+    #PGA_2D.print_name()
+    assert_equals(PGA_2D.tprint_row(lambda v: ~v), "        1       e0       e1       e2     -e01     -e20     -e12    -e012")
+    assert_equals(PGA_2D.tprint_row(lambda v: v.dual()), "     e012      e12      e20      e01       e2       e1       e0        1")
+    assert_equals(PGA_2D.tprint_row(lambda v: v.undual()), "     e012      e12      e20      e01       e2       e1       e0        1")
+    assert_equals(
+        PGA_2D.tprint_table(lambda a, b: a * b), """        1       e0       e1       e2      e01      e20      e12     e012
+       e0        0      e01     -e20        0        0     e012        0
+       e1     -e01        1      e12      -e0     e012       e2      e20
+       e2      e20     -e12        1     e012       e0      -e1      e01
+      e01        0       e0     e012        0        0     -e20        0
+      e20        0     e012      -e0        0        0      e01        0
+      e12     e012      -e2       e1      e20     -e01       -1      -e0
+     e012        0      e20      e01        0        0      -e0        0""")
+    assert_equals(
+        PGA_2D.tprint_table(lambda a, b: a ^ b), """        1       e0       e1       e2      e01      e20      e12     e012
+       e0        0      e01     -e20        0        0     e012        0
+       e1     -e01        0      e12        0     e012        0        0
+       e2      e20     -e12        0     e012        0        0        0
+      e01        0        0     e012        0        0        0        0
+      e20        0     e012        0        0        0        0        0
+      e12     e012        0        0        0        0        0        0
+     e012        0        0        0        0        0        0        0""")
+    assert_equals(
+        PGA_2D.tprint_table(lambda a, b: a & b), """        0        0        0        0        0        0        0        1
+        0        0        0        0        0        0        1       e0
+        0        0        0        0        0        1        0       e1
+        0        0        0        0        1        0        0       e2
+        0        0        0        1        0      -e0       e1      e01
+        0        0        1        0       e0        0      -e2      e20
+        0        1        0        0      -e1       e2        0      e12
+        1       e0       e1       e2      e01      e20      e12     e012""")
     if True:
-        print("A commutator B")
-        PGA_2D.print_table(lambda a, b: a.commutator(b))
-        print("-(A.dual() commutator B).undual()")
-        PGA_2D.print_table(lambda a, b: -a.dual().commutator(b).undual())
+        assert_equals(
+            PGA_2D.tprint_table(lambda a, b: a.commutator(b)), """        0        0        0        0        0        0        0        0
+        0        0   1.0e01  -1.0e20        0        0        0        0
+        0  -1.0e01        0   1.0e12   -1.0e0        0    1.0e2        0
+        0   1.0e20  -1.0e12        0        0    1.0e0   -1.0e1        0
+        0        0    1.0e0        0        0        0  -1.0e20        0
+        0        0        0   -1.0e0        0        0   1.0e01        0
+        0        0   -1.0e2    1.0e1   1.0e20  -1.0e01        0        0
+        0        0        0        0        0        0        0        0""")
+        assert_equals(
+            PGA_2D.tprint_table(lambda a, b: -a.dual().commutator(b).undual()),
+            """        0        0        0        0        0        0        0        0
+        0        0   1.0e01  -1.0e20   -1.0e1    1.0e2        0        0
+        0        0        0   1.0e12        0        0   -1.0e2        0
+        0        0  -1.0e12        0        0        0    1.0e1        0
+        0   -1.0e1    1.0e0        0        0  -1.0e12   1.0e20        0
+        0    1.0e2        0   -1.0e0   1.0e12        0  -1.0e01        0
+        0        0   -1.0e2    1.0e1        0        0        0        0
+        0        0        0        0        0        0        0        0""")
 
 @test
 def testWedge():
@@ -34,13 +67,21 @@ def testMultivector():
         #G.print_name()
         A = point2D(1, 2)
         B = point2D(2, 3)
-        assert_equals(repr(A), "(1e0 + 1e1 + 2e2)")
-        assert_equals(repr(B), "(1e0 + 2e1 + 3e2)")
-        assert_equals(repr(A * B), "(1e01 - 1e20 + 8 - 1e12)")
-        assert_equals((A * B).dnorm(), 1.4142135623730951)
-        assert_equals((A * B).pnorm(), 8.06225774829855)
-        assert_equals(repr((A * B).inverse()),
-                      "(-0.015384615384615387e01 + 0.015384615384615387e20 + 0.1230769230769231 + 0.015384615384615387e12)")
+        assert_equals(repr(A), "(e0 + e1 + 2e2)")
+        assert_equals(repr(B), "(e0 + 2e1 + 3e2)")
+        assert_equals(repr(A * B), "(8 + e01 - e20 - e12)")
+        assert_equals(repr((A * B).dnorm()), "sqrt(2)")
+        assert_equals(repr((A * B).pnorm()), "sqrt(65)")
+        assert_equals(repr((A * B).inverse()), "(8 - e01 + e20 + e12) / 65")
+
+@test
+def testValue():
+    a = Value([Coefficient(1, ["a1"]), Coefficient(1, ["a2"])])
+    b = Value([Coefficient(2, ["b1"])])
+    assert_equals(repr(a + b), "(a1 + a2 + 2b1)")
+    assert_equals(repr(a - b), "(a1 + a2 - 2b1)")
+    assert_equals(repr(a*b - a*b), "0")
+    assert_equals(repr((a+b) * b), "(2(a1*b1) + 2(a2*b1) + 4(b1*b1))")
 
 if __name__ == "__main__":
     run_tests()

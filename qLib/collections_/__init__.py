@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, TypeVar
+from typing import Callable, Iterable, Sequence, TypeVar
 
 from ..tests import assert_never
 
@@ -18,10 +18,10 @@ def findIndex(arr: Iterable[V], matches: Callable[[V], bool]) -> int:
         if matches(v): return i
     assert_never(f"Couldn't find match in {arr}")
 
-def findIndexOrMinusOne(arr: Iterable[V], matches: Callable[[V], bool]) -> int:
+def findIndexOrDefault(arr: Iterable[V], matches: Callable[[V], bool], default: int = -1) -> int:
     for i, v in enumerate(arr):
         if matches(v): return i
-    return -1
+    return default
 
 A = TypeVar("A")
 def reduce(arr: Iterable[V], f: Callable[[A, V], A], acc: A):

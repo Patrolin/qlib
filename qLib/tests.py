@@ -4,7 +4,7 @@ __all__ = [
 ]
 
 from types import FrameType
-from typing import Callable, NamedTuple, cast
+from typing import Any, Callable, NamedTuple, cast
 from traceback import print_exc
 from qLib.vtcodes import TextColor
 from inspect import currentframe, getframeinfo
@@ -13,21 +13,27 @@ from os.path import basename
 def assert_never(error: str):
     raise AssertionError(error)
 
+def _pretty_print(value: Any):
+    if isinstance(value, str):
+        return f"'{value}'"
+    else:
+        return repr(value)
+
 def assert_equals(got, expected):
     if got != expected:
-        raise AssertionError(f"got: {got}; expected: {expected}")
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: {_pretty_print(expected)}")
 
 def assert_not_equals(got, expected):
     if got == expected:
-        raise AssertionError(f"got: {got}; expected: not {expected}")
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: not {_pretty_print(expected)}")
 
 def assert_less_than_equals(got, expected):
     if got > expected:
-        raise AssertionError(f"got: {got}; expected: <= {expected}")
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: <= {_pretty_print(expected)}")
 
 def assert_greater_than_equals(got, expected):
     if got < expected:
-        raise AssertionError(f"got: {got}; expected: >= {expected}")
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: >= {_pretty_print(expected)}")
 
 def assert_(*conditions: bool):
     if not all(conditions):
