@@ -11,6 +11,15 @@ def testParseInt():
     assert_equals(parseInt("1a", base=16), (26, 2))
 
 @test
+def testParseFloat():
+    assert_equals(parseFloat64("a")[1], 0)
+    assert_equals(parseFloat64("0"), (0, 1))
+    assert_equals(parseFloat64("000"), (0, 3))
+    assert_equals(parseFloat64("123"), (123, 3))
+    assert_equals(parseFloat64("12.4"), (12.4, 4))
+    assert_equals(parseFloat64("123e-6"), (.000123, 6))
+
+@test
 def testPrintInt():
     assert_equals(printInt(0), "0")
     assert_equals(printInt(123), "123")

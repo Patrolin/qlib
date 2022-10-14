@@ -1,5 +1,6 @@
 from typing import Callable, Union
 from qLib.collections_ import findIndexOrDefault, reduce
+from qLib.serialize.serialize_float import parseFloat64
 from qLib.serialize.serialize_int import parseInt
 from qLib.serialize.serialize_string import parseOp
 from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never
@@ -117,13 +118,13 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
     def parse_blade_normalized(s: str) -> tuple["Blade", int]:
         i = 0
-        acc, j = parseInt(s[i:], _INT_BASE) # TODO: float
+        k = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
+        acc, j = parseInt(s[i:i + k], _INT_BASE) # TODO: parse_float
         if j <= 0:
             acc = 1
         else:
             i += j
-        j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
-        op, j = parseOp(s[i:i + j])
+        op, j = parseOp(s[i:k])
         i += j
         j = 0
         acc_str = ""

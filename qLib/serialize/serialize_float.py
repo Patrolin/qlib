@@ -5,6 +5,8 @@ from qLib.math_ import ceilLog10, log10, ceil, floor
 from qLib.serialize import DIGITS
 from qLib.serialize.serialize_int import parseInt, printInt
 
+# TODO: parse_real() then convert to float
+
 class FloatBits(NamedTuple):
     exponent: int
     mantissa: int
