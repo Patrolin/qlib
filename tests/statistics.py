@@ -8,8 +8,8 @@ def testMeanStdev():
         ([3, 2, 1], 2, 1),
         ([10, 0, -1], 3, 6.082762530298219)
     ]:
-        assert meanOrZero(arr) == u
-        assert stdevOrZero(arr, u) == s
+        assert_equals(meanOrZero(arr), u)
+        assert_equals(stdevOrZero(arr, u), s)
 
 @test
 def testMode():
@@ -20,7 +20,7 @@ def testMode():
         ([1, 2, 2], {2}),
         ([-1, -1, 0, 0, 1, 1, 2, 2, 2, 3], {2})
     ]:
-        assert modeOrZero(arr) in acceptable_values, f"{arr} {acceptable_values}"
+        assert_contains(modeOrZero(arr), acceptable_values)
 
 if __name__ == "__main__":
     run_tests()

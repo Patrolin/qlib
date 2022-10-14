@@ -1,6 +1,7 @@
 __all__ = ["decodeQuiteOK", "readQuiteOK", "encodeQuiteOK", "writeQuiteOK", "QoiImage"]
 
 from qLib.math_ import lerp
+from qLib.tests import assert_equals
 
 def u32(R: int, G: int, B: int, A: int) -> int:
     return ((R << 24) + (G << 16) + (B << 8) + A)
@@ -25,12 +26,12 @@ class QoiImage:
     MAGIC = b"qoif"
 
     def __init__(self, width: int, height: int, isLinear: bool):
-        self.data = [0] * (width * height)
+        self.data = [0] * (width*height)
         self.width = width
         self.height = height
         self.isLinear = isLinear
 
-    def print(self, x: int, y: int, n: int):
+    def tprint(self, x: int, y: int, n: int):
         acc = f"-- {x} {y} --"
         for j in range(n):
             i = y * self.width + x + j
@@ -45,11 +46,11 @@ QOI_OP_LUMA = 0b10
 QOI_OP_RUN = 0b11
 
 def quiteOKHash(R: int, G: int, B: int, A: int) -> int:
-    return (R * 3 + G * 5 + B * 7 + A * 11) & 0x3f
+    return (R*3 + G*5 + B*7 + A*11) & 0x3f
 
 def decodeQuiteOK(qoi: bytes) -> QoiImage:
     # header
-    assert qoi[0:4] == QoiImage.MAGIC
+    assert_equals(qoi[0:4], QoiImage.MAGIC)
     width = decode_u32(qoi[4:8])
     height = decode_u32(qoi[8:12])
     channels = qoi[12]
@@ -112,7 +113,7 @@ def readQuiteOK(path: str) -> QoiImage:
         return decodeQuiteOK(f.read())
 
 def smallest_difference_u8(b: int, a: int) -> int:
-    d1 = (b - a) % 256
+    d1 = (b-a) % 256
     d2 = d1 - 256
     return lerp(d1 >= 128, d1, d2)
 
@@ -160,14 +161,14 @@ def encodeQuiteOK(image: QoiImage) -> bytes:
                 break
             # QOI_OP_DIFF
             if (-2 <= dR <= 1) and (-2 <= dG <= 1) and (-2 <= dB <= 1):
-                acc += encode_u8((QOI_OP_DIFF << 6) + ((dR + 2) << 4) + ((dG + 2) << 2) + (dB + 2))
+                acc += encode_u8((QOI_OP_DIFF << 6) + ((dR + 2) << 4) + ((dG + 2) << 2) + (dB+2))
                 break
             # QOI_OP_LUMA
             dRdG = smallest_difference_u8(dR, dG)
             dBdG = smallest_difference_u8(dB, dG)
             if (-32 <= dG <= 31) and (-8 <= dRdG <= 7) and (-8 <= dBdG <= 7):
-                acc += encode_u8((QOI_OP_LUMA << 6) + (dG + 32))
-                acc += encode_u8(((dRdG + 8) << 4) + (dBdG + 8))
+                acc += encode_u8((QOI_OP_LUMA << 6) + (dG+32))
+                acc += encode_u8(((dRdG + 8) << 4) + (dBdG+8))
                 break
             # QOI_OP_RGB
             acc += encode_u8(QOI_OP_RGB)

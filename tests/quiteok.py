@@ -1,12 +1,13 @@
 from qLib.quiteok import decodeQuiteOK, readQuiteOK, encodeQuiteOK, writeQuiteOK, QoiImage
 from qLib import relative_path, test, run_tests
+from qLib.tests import assert_between, assert_equals, assert_never
 
 def encode_u8(u8: int) -> bytes:
-    assert 0 <= u8 < 256
+    assert_between(u8, 0, 255)
     return u8.to_bytes(1, "big")
 
 def encode_u32(u32: int) -> bytes:
-    assert 0 <= u32 < 2**32
+    assert_between(u32, 0, 2**32 - 1)
     return u32.to_bytes(4, "big")
 
 def RGBA(u32: int) -> tuple[int, int, int, int]:
@@ -14,7 +15,8 @@ def RGBA(u32: int) -> tuple[int, int, int, int]:
     G = (u32 >> 16) & 0xff
     B = (u32 >> 8) & 0xff
     A = u32 & 0xff
-    assert (0 <= R < 256) and (0 <= G < 256) and (0 <= B < 256) and (0 <= A < 256)
+    for v in (R, G, B, A):
+        assert_between(v, 0, 255)
     return (R, G, B, A)
 
 class TestCase:
@@ -52,15 +54,18 @@ def QOI_OP_INDEX(color: int) -> bytes:
     return encode_u8((0b00 << 6) + j)
 
 def QOI_OP_DIFF(dR: int, dG: int, dB: int) -> bytes:
-    assert (-2 <= dR <= 1) and (-2 <= dG <= 1) and (-2 <= dB <= 1)
+    for v in (dR, dG, dB):
+        assert_between(v, -2, 1)
     return encode_u8((0b01 << 6) + ((dR + 2) << 4) + ((dG + 2) << 2) + (dB+2))
 
 def QOI_OP_LUMA(dG: int, dRdG: int, dBdG: int) -> bytes:
-    assert (-32 <= dG <= 31) and (-8 <= dRdG <= 7) and (-8 <= dBdG <= 7)
+    assert_between(dG, -32, 31)
+    assert_between(dRdG, -8, 7)
+    assert_between(dBdG, -8, 7)
     return encode_u8((0b10 << 6) + (dG+32)) + encode_u8(((dRdG + 8) << 4) + (dBdG+8))
 
 def QOI_OP_RUN(n: int) -> bytes:
-    assert 0 <= n <= 61
+    assert_between(n, 0, 61)
     return encode_u8((0b11 << 6) + n)
 
 pixelTest = makeTestCase(1, 1, channels=3, isLinear=True)
@@ -95,23 +100,23 @@ def printBytes(bytes: bytes) -> str:
 #print(printBytes(coverageTest.bytes[14:]))
 
 def assertImageMatches(image1: QoiImage, image2: QoiImage):
-    assert image1.width == image2.width
-    assert image1.height == image2.height
-    assert image1.isLinear == image2.isLinear
+    assert_equals(image1.width, image2.width)
+    assert_equals(image1.height, image2.height)
+    assert_equals(image1.isLinear, image2.isLinear)
     for y in range(image1.height):
         for x in range(image1.width):
             i = y * image1.width + x
             if image1.data[i] != image2.data[i]:
-                assert False, image1.print(0, y, image1.width)
+                assert_never(image1.tprint(0, y, image1.width))
 
 def assertBytesMatch(qoi1: bytes, qoi2: bytes):
     for i in range(len(qoi2)):
         if i >= len(qoi1):
-            assert False, f"Missing bytes at {i}:\n    expected: {printBytes(qoi2[i:])}"
+            assert_never(f"Missing bytes at {i}:\n    expected: {printBytes(qoi2[i:])}")
         if qoi1[i] != qoi2[i]:
-            assert False, f"Bytes differ at {i}:\n    got:      {printBytes(qoi1[:i+1])}\n    expected: {printBytes(qoi2[:i+1])}"
+            assert_never(f"Bytes differ at {i}:\n    got:      {printBytes(qoi1[:i+1])}\n    expected: {printBytes(qoi2[:i+1])}")
     if len(qoi1) > len(qoi2):
-        assert False, f"Extra bytes at {len(qoi2)+1}:\n    got: {printBytes(qoi1[len(qoi2)+1:])}"
+        assert_never(f"Extra bytes at {len(qoi2)+1}:\n    got: {printBytes(qoi1[len(qoi2)+1:])}")
 
 @test
 def testDecodeQuiteOK():
