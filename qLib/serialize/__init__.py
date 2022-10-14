@@ -1,4 +1,5 @@
-DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz" # TODO: rename to parsing
+# TODO: rename to parsing
+DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz"
 
 from .serialize_float import *
 from .serialize_int import *

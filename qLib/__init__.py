@@ -9,6 +9,6 @@ from .vtcodes import *
 from .collections_ import *
 from .serialize import *
 
-def relative_path(prefix: str, suffix: str) -> str:
+def relative_path(prefix: str, suffix: str) -> str: # TODO: move this somewhere
     BACKSLASH = "\\"
     return prefix.replace(BACKSLASH, "/").rsplit("/", 1)[0] + suffix
