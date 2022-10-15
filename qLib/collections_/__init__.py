@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, Sequence, TypeVar
+from typing import Callable, Iterable, TypeVar
 
 from ..tests import assert_never
 

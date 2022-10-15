@@ -2,6 +2,8 @@ from qLib.tests import assert_, assert_equals, test, run_tests
 from qLib.collections_ import normalize, string_similarity, Set, Map
 from typing import NamedTuple, Callable
 
+# TODO: tests
+
 class NormalizeTest(NamedTuple):
     string: str
     expected: Callable[[bool, bool, bool], str]
