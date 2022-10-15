@@ -63,37 +63,37 @@ def testWedge():
 
 @test
 def testMultivector():
-    A = point2D(1, 2)
-    B = point2D(2, 3)
-    assert_equals(repr(A), "(e0 + e1 + 2e2)")
-    assert_equals(repr(B), "(e0 + 2e1 + 3e2)")
-    assert_equals(repr(A * B), "(8 + e01 - e20 - e12)")
-    assert_equals(repr((A * B).dnorm()), "sqrt(2)")
-    assert_equals(repr((A * B).pnorm()), "sqrt(65)")
-    assert_equals(repr((A * B).inverse()), "(8 - e01 + e20 + e12) / 65")
+    p1 = point2D(1, 2)
+    p2 = point2D(2, 3)
+    assert_equals(repr(p1), "(e0 + e1 + 2e2)")
+    assert_equals(repr(p2), "(e0 + 2e1 + 3e2)")
+    assert_equals(repr(p1 * p2), "(8 + e01 - e20 - e12)")
+    assert_equals(repr((p1 * p2).dnorm()), "sqrt(2)")
+    assert_equals(repr((p1 * p2).pnorm()), "sqrt(65)")
+    assert_equals(repr((p1 * p2).inverse()), "(8 - e01 + e20 + e12) / 65")
 
-    a = infPoint3D("a1", "a2", 0)
-    b = infPoint3D("2b1", 0, 0)
-    assert_equals(repr(a + b), "((a1 + 2b1)e1 + a2e2)")
-    assert_equals(repr(a + b), "((a1 + 2b1)e1 + a2e2)")
-    assert_equals(repr(a - b), "((a1 - 2b1)e1 + a2e2)")
-    assert_equals(repr(a*b - a*b), "0")
-    assert_equals(repr((a+b) * b), "((2(a1*b1) + 4(b1*b1)) - 2(a2*b1)e12)")
+    p1 = infPoint3D("a1", "a2", 0)
+    p2 = infPoint3D("2b1", 0, 0)
+    assert_equals(repr(p1 + p2), "((a1 + 2b1)e1 + a2e2)")
+    assert_equals(repr(p1 + p2), "((a1 + 2b1)e1 + a2e2)")
+    assert_equals(repr(p1 - p2), "((a1 - 2b1)e1 + a2e2)")
+    assert_equals(repr(p1*p2 - p1*p2), "0")
+    assert_equals(repr((p1+p2) * p2), "((2(a1*b1) + 4(b1*b1)) - 2(a2*b1)e12)")
 
-    A = point2D("a_1", "a_2")
-    B = point2D("b_1", "b_2")
+    p1 = point2D("a_1", "a_2")
+    p2 = point2D("b_1", "b_2")
 
     move = infPoint2D("c_1", "c_2")
-    assert_equals((A ^ B).direction(), ((A + move) ^ (B + move)).direction())
+    assert_equals((p1 ^ p2).direction(), ((p1 + move) ^ (p2 + move)).direction())
 
     move_along_line = infPoint2D("(b_1-a_1)", "(b_2-a_2)")
-    assert_equals((A ^ B).direction(), ((A + move_along_line) ^ (B + move_along_line)).direction())
-    assert_equals((A ^ B).position(), ((A + move_along_line) ^ (B + move_along_line)).position())
+    assert_equals((p1 ^ p2).direction(), ((p1 + move_along_line) ^ (p2 + move_along_line)).direction())
+    assert_equals((p1 ^ p2).position(), ((p1 + move_along_line) ^ (p2 + move_along_line)).position())
 
-    A = point3D("a_1", "a_2", "a_3")
-    B = point3D("b_1", "b_2", "b_3")
+    p1 = point3D("a_1", "a_2", "a_3")
+    p2 = point3D("b_1", "b_2", "b_3")
     assert_equals(
-        repr(A ^ B),
+        repr(p1 ^ p2),
         "((-a_1 + b_1)e01 + (-a_2 + b_2)e02 + (-a_3 + b_3)e03 + ((a_1*b_2) - (a_2*b_1))e12 + (-(a_1*b_3) + (a_3*b_1))e31 + ((a_2*b_3) - (a_3*b_2))e23)"
     )
 
