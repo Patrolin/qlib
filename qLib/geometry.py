@@ -79,13 +79,41 @@ class Value:
                 self.sum[i].number += other.number
                 if self.sum[i].number == 0: self.sum.pop(i)
                 return
-        self.sum.append(other)
+        i = sum(1 for v in self.sum if other.product > v.product)
+        self.sum.insert(i, other)
 
     @staticmethod
     def fromNumber(number: int | float):
         acc = Value([])
         acc._add(Coefficient(number, []))
         return acc
+
+    @staticmethod
+    def parseValue(s: str) -> tuple["Value", int]:
+        acc = Value([])
+        i = (0 < len(s) and s[0] == "(")
+        sign = 1
+        while i < len(s) and s[i] != ")":
+            while i < len(s) and s[i] == " ":
+                i += 1
+            if i < len(s) and s[i] in "+-":
+                sign = 1 - 2 * (s[i] == "-")
+                i += 1
+            while i < len(s) and s[i] == " ":
+                i += 1
+            number, j = parseFloat64(s[i:])
+            if j <= 0:
+                number = 1
+            else:
+                i += j
+            j = findIndexOrDefault(s[i:], lambda v: v in "+-)", len(s))
+            op, j = parseOp(s[i:i + j])
+            i += j
+            acc._add(Coefficient(sign * number, [op] if op else []))
+            while i < len(s) and s[i] == " ":
+                i += 1
+        i += (i < len(s)) and (s[i] == ")")
+        return acc, i
 
     def __add__(self, other: "Value"):
         acc = self._deep_copy()
@@ -124,15 +152,12 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
     def parse_blade_normalized(s: str) -> tuple["Blade", int]:
         i = 0
-        k = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
-        acc, j = parseFloat64(s[i:i + k])
-        if j <= 0:
-            acc = 1
-        else:
-            i += j
-        op, j = parseOp(s[i:k])
+        j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
+        value, j = Value.parseValue(s[i:i + j])
         i += j
+        if j == 0: value = Value.fromNumber(1)
         j = 0
+        acc = 1
         acc_str = ""
         if i < len(s) and s[i] == "e":
             i += 1
@@ -150,8 +175,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     if k - 1 >= 0 and acc_str[k] == acc_str[k - 1]:
                         acc *= bases[int(acc_str[k], _INT_BASE) - min_basis]
                         acc_str = acc_str[:k - 1] + acc_str[k + 1:]
-        value = Value.fromNumber(acc)
-        if op: value = value * Value([Coefficient(1, [op])])
+        value *= Value.fromNumber(acc)
         return Blade(value, f"e{acc_str}" if acc_str else "1"), i + j
 
     def genBlades():
