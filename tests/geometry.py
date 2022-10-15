@@ -88,8 +88,9 @@ def testParseMultivector():
     move_along_line = PGA_2D.parse_multivector(f"(b_1-a_1)e1 + (b_2-a_2)e2")[0]
     assert_equals((A ^ B).direction(), ((A + move) ^ (B + move)).direction())
     assert_equals((A ^ B).dnorm(), ((A + move) ^ (B + move)).dnorm())
+
     assert_equals((A ^ B).direction(), ((A + move_along_line) ^ (B + move_along_line)).direction())
-    # same position if you plug it into wolfram alpha
+    # same .position() if you plug it into wolfram alpha
     assert_equals(repr((A ^ B).position()), "(((a_1*b_2) - (a_2*b_1))e12)")
     assert_equals(repr(((A + move_along_line) ^ (B + move_along_line)).position()),
                   "(((a_1*b_2) + ((b_2-a_2)*a_1) + ((b_1-a_1)*b_2) - (a_2*b_1) - ((b_1-a_1)*a_2) - ((b_2-a_2)*b_1))e12)")
