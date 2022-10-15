@@ -20,7 +20,7 @@ class Coefficient:
         return (self.number == other.number) and (self.product == other.product)
 
     def __repr__(self):
-        str_number = "" if (self.number == 1) and (len(self.product) >= 1) else repr(self.number)
+        str_number = ("" if self.number == 1 else "-") if (abs(self.number) == 1) and (len(self.product) >= 1) else repr(self.number)
         if len(self.product) == 0: return str_number
         elif len(self.product) == 1: return f"{str_number}{self.product[0]}"
         else: return f"{str_number}({'*'.join(self.product)})"
@@ -53,10 +53,10 @@ class Value:
 
     def __repr__(self):
         def _print_coefficient(i: int, coefficient: Coefficient):
-            sign = "" if (i == 0) and (coefficient.number >= 0) \
-                else ("-" if (i == 0)
-                else (" + " if (coefficient.number >= 0) else " - "))
-            return sign + repr(coefficient).removeprefix("+").removeprefix("-")
+            str_coefficient = repr(coefficient)
+            sign = "-" if str_coefficient.startswith("-") else ""
+            if (i > 0): sign = " - " if (sign == "-") else " + "
+            return f"{sign}{str_coefficient.removeprefix('-')}"
 
         if len(self.sum) == 0: return "0"
         elif len(self.sum) == 1: return repr(self.sum[0])
@@ -195,7 +195,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             str_name = "" if (self.name == "1") else self.name
             if (str_value == "1") and (str_name != ""): str_value = ""
             if (str_value == "-1") and (str_name != ""): str_value = "-"
-            return f"{str_value}{self.name if self.name != '1' else ''}"
+            return f"{str_value}{str_name}"
 
         def __eq__(self, other: "Blade"):
             return (self.name == other.name) and (self.value == other.value)
@@ -340,11 +340,14 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             return self._map(lambda v: v.undual())
 
         # point based dnorm
-        def dnorm_squred(self) -> Value:
+        def dnorm_squared(self) -> Value:
             return reduce((v.value * v.value for v in self.blades if (v * v).value == 0), lambda a, v: a + v, Value.fromNumber(0))
 
         def dnorm(self) -> Value:
-            return self.dnorm_squred().sqrt()
+            return self.dnorm_squared().sqrt()
+
+        def dnormalized(self):
+            return self * Multivector([Blade(Value.fromNumber(1), "1")], self.dnorm())
 
         # point based pnorm
         def pnorm_squared(self):
@@ -352,6 +355,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def pnorm(self) -> Value:
             return self.pnorm_squared().sqrt()
+
+        def pnormalized(self):
+            return self * Multivector([Blade(Value.fromNumber(1), "1")], self.pnorm())
 
         def _starmap(self, other: "Multivector", key: Callable[[Blade, Blade], Blade]):
             acc = Multivector()

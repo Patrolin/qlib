@@ -82,5 +82,13 @@ def testParseMultivector():
     assert_equals(repr(a*b - a*b), "0")
     assert_equals(repr((a+b) * b), "((2(a1*b1) + 4(b1*b1)) - 2(a2*b1)e12)")
 
+    print("...")
+    A = PGA_2D.parse_multivector(f"e0 + a_1e1 + a_2e2")[0]
+    B = PGA_2D.parse_multivector(f"e0 + b_1e1 + b_2e2")[0]
+    d = PGA_2D.parse_multivector(f"(b_1-a_1)e1 + (b_2-a_2)e2")[0]
+    print((A ^ B)) #.dnormalized())
+    print("...")
+    print(((A + d) ^ (B + d))) #.dnormalized())
+
 if __name__ == "__main__":
     run_tests()
