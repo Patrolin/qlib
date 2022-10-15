@@ -165,6 +165,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
     str_blades = genBlades()
     blades: list["Blade"] = []
     pseudoscalar: "Blade"
+    mask_to_normalized_name: dict[int, str] = {}
     mask_to_unit: dict[int, "Blade"] = {}
 
     def bladeMask(name: str) -> int:
@@ -276,6 +277,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
     for str_blade in str_blades:
         blade = Blade(Value.fromNumber(1), str_blade)
+        mask_to_normalized_name[bladeMask(str_blade)] = parse_blade_normalized(str_blade)[0].name
         mask_to_unit[bladeMask(str_blade)] = blade
         blades.append(blade)
     pseudoscalar = blades[-1]
@@ -306,7 +308,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     self.blades[i].value += blade.value
                     if self.blades[i].value == 0: self.blades.pop(i)
                     return
-            i = sum(1 for v in self.blades if bladeMask(blade.name) > bladeMask(v.name))
+            i = sum(1 for v in self.blades if mask_to_normalized_name[bladeMask(blade.name)] > mask_to_normalized_name[bladeMask(v.name)])
             self.blades.insert(i, blade)
 
         def __add__(self, other: "Multivector"):
@@ -481,14 +483,14 @@ PGA_4D = GAlgebra(4, 0, 1, start_with_zero=True)
 CGA_2D = GAlgebra(3, 1, 0)
 CGA_3D = GAlgebra(4, 1, 0)
 
-def infinitePoint2D(x: float, y: float):
+def infPoint2D(x: float | str, y: float | str):
     return PGA_2D.parse_multivector(f"{x}e1+{y}e2")[0]
 
-def point2D(x: float, y: float):
+def point2D(x: float | str, y: float | str):
     return PGA_2D.parse_multivector(f"e0+{x}e1+{y}e2")[0]
 
-def infinitePoint3D(x: float, y: float, z: float):
+def infPoint3D(x: float | str, y: float | str, z: float | str):
     return PGA_3D.parse_multivector(f"{x}e1+{y}e2+{z}e3")[0]
 
-def point3D(x: float, y: float, z: float):
+def point3D(x: float | str, y: float | str, z: float | str):
     return PGA_3D.parse_multivector(f"e0+{x}e1+{y}e2+{z}e3")[0]

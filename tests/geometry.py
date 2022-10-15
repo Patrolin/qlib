@@ -72,20 +72,18 @@ def testMultivector():
     assert_equals(repr((A * B).pnorm()), "sqrt(65)")
     assert_equals(repr((A * B).inverse()), "(8 - e01 + e20 + e12) / 65")
 
-@test
-def testParseMultivector():
-    a = PGA_3D.parse_multivector("a1e1 + a2e2")[0]
-    b = PGA_3D.parse_multivector("2b1e1")[0]
+    a = infPoint3D("a1", "a2", 0)
+    b = infPoint3D("2b1", 0, 0)
     assert_equals(repr(a + b), "((a1 + 2b1)e1 + a2e2)")
     assert_equals(repr(a + b), "((a1 + 2b1)e1 + a2e2)")
     assert_equals(repr(a - b), "((a1 - 2b1)e1 + a2e2)")
     assert_equals(repr(a*b - a*b), "0")
     assert_equals(repr((a+b) * b), "((2(a1*b1) + 4(b1*b1)) - 2(a2*b1)e12)")
 
-    A = PGA_2D.parse_multivector(f"e0 + a_1e1 + a_2e2")[0]
-    B = PGA_2D.parse_multivector(f"e0 + b_1e1 + b_2e2")[0]
-    move = PGA_2D.parse_multivector(f"c_1e1 + c_2e2")[0]
-    move_along_line = PGA_2D.parse_multivector(f"(b_1-a_1)e1 + (b_2-a_2)e2")[0]
+    A = point2D("a_1", "a_2")
+    B = point2D("b_1", "b_2")
+    move = infPoint2D("c_1", "c_2")
+    move_along_line = infPoint2D("(b_1-a_1)", "(b_2-a_2)") # TODO: parse entire expression so you don't have to use wolfram alpha?
     assert_equals((A ^ B).direction(), ((A + move) ^ (B + move)).direction())
     assert_equals((A ^ B).dnorm(), ((A + move) ^ (B + move)).dnorm())
 
@@ -99,7 +97,7 @@ def testParseMultivector():
     B = PGA_3D.parse_multivector(f"e0 + b_1e1 + b_2e2 + b_3e3")[0]
     assert_equals(
         repr(A ^ B),
-        "((b_1 - a_1)e01 + (b_2 - a_2)e02 + ((a_1*b_2) - (a_2*b_1))e12 + (b_3 - a_3)e03 + (-(a_1*b_3) + (a_3*b_1))e31 + ((a_2*b_3) - (a_3*b_2))e23)"
+        "((b_1 - a_1)e01 + (b_2 - a_2)e02 + (b_3 - a_3)e03 + ((a_1*b_2) - (a_2*b_1))e12 + (-(a_1*b_3) + (a_3*b_1))e31 + ((a_2*b_3) - (a_3*b_2))e23)"
     )
 
 if __name__ == "__main__":
