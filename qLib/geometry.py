@@ -8,6 +8,14 @@ from .tests import assert_, assert_equals, assert_greater_than_equals, assert_le
 _INT_BASE = 10
 MAX_PRINT_BLADES = 2**16
 
+def _signedJoin(arr: list[str]) -> str:
+    def _print_item(i: int, str_item: str):
+        sign = "-" if str_item.startswith("-") else ""
+        if (i > 0): sign = " - " if (sign == "-") else " + "
+        return f"{sign}{str_item.removeprefix('-')}"
+
+    return f"({''.join(_print_item(i, v) for i, v in enumerate(arr))})"
+
 class Coefficient:
     number: int | float
     product: list[str]
@@ -57,15 +65,9 @@ class Value:
             return ((len(self.sum) == 1) and (self.sum[0] == other)) if (other != 0) else (len(self.sum) == 0)
 
     def __repr__(self):
-        def _print_coefficient(i: int, coefficient: Coefficient):
-            str_coefficient = repr(coefficient)
-            sign = "-" if str_coefficient.startswith("-") else ""
-            if (i > 0): sign = " - " if (sign == "-") else " + "
-            return f"{sign}{str_coefficient.removeprefix('-')}"
-
         if len(self.sum) == 0: return "0"
         elif len(self.sum) == 1: return repr(self.sum[0])
-        else: return f"({''.join(_print_coefficient(i, v) for i, v in enumerate(self.sum))})"
+        else: return _signedJoin([repr(v) for v in self.sum])
 
     def _deep_copy(self):
         return Value([Coefficient(v.number, v.product.copy()) for v in self.sum])
@@ -102,7 +104,7 @@ class Value:
         return acc
 
     def sqrt(self):
-        return Value([Coefficient(1, [f"sqrt({' + '.join(repr(v) for v in self.sum)})"])]) # TODO: signed_join
+        return Value([Coefficient(1, [f"sqrt({self})"])])
 
 def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: list[str] = []):
     bases: list[int] = []
@@ -291,18 +293,10 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             return (self.blades == other.blades) and (self.denominator == other.denominator)
 
         def __repr__(self):
-            def _print_blade(i: int, blade: Blade):
-                str_blade = repr(blade)
-                sign = "-" if str_blade.startswith("-") else ""
-                if (i > 0): sign = " - " if (sign == "-") else " + "
-                return sign + str_blade.removeprefix("-")
-
             if len(self.blades) == 0: return "0"
-
-            str_blades = f"({''.join(_print_blade(i, v) for i, v in enumerate(self.blades))})"
+            str_blades = _signedJoin([repr(v) for v in self.blades])
             str_denom = "" if (self.denominator == 1) else f" / {self.denominator}"
-
-            return str_blades + str_denom
+            return f"{str_blades}{str_denom}"
 
         def _add(self, blade: Blade):
             if blade.value == 0: return
