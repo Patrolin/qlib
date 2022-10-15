@@ -93,8 +93,8 @@ def testMultivector():
     assert_equals(repr(((A + move_along_line) ^ (B + move_along_line)).position()),
                   "(((a_1*b_2) + ((b_2-a_2)*a_1) + ((b_1-a_1)*b_2) - (a_2*b_1) - ((b_1-a_1)*a_2) - ((b_2-a_2)*b_1))e12)")
 
-    A = PGA_3D.parse_multivector(f"e0 + a_1e1 + a_2e2 + a_3e3")[0]
-    B = PGA_3D.parse_multivector(f"e0 + b_1e1 + b_2e2 + b_3e3")[0]
+    A = point3D("a_1", "a_2", "a_3")
+    B = point3D("b_1", "b_2", "b_3")
     assert_equals(
         repr(A ^ B),
         "((b_1 - a_1)e01 + (b_2 - a_2)e02 + (b_3 - a_3)e03 + ((a_1*b_2) - (a_2*b_1))e12 + (-(a_1*b_3) + (a_3*b_1))e31 + ((a_2*b_3) - (a_3*b_2))e23)"
