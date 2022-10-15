@@ -83,7 +83,7 @@ def testMultivector():
     A = point2D("a_1", "a_2")
     B = point2D("b_1", "b_2")
     move = infPoint2D("c_1", "c_2")
-    move_along_line = infPoint2D("(b_1-a_1)", "(b_2-a_2)") # TODO: parse entire expression so you don't have to use wolfram alpha?
+    move_along_line = infPoint2D("(b_1-a_1)", "(b_2-a_2)")
     assert_equals((A ^ B).direction(), ((A + move) ^ (B + move)).direction())
     assert_equals((A ^ B).dnorm(), ((A + move) ^ (B + move)).dnorm())
 
