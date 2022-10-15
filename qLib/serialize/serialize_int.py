@@ -9,9 +9,8 @@ def parseInt(string: str, base=10) -> tuple[int, int]:
             i += 1
             continue
         j = findIndexOrDefault(DIGITS[:base], lambda v: v == string[i])
-        if j < 0:
-            break
-        acc = acc*base + j # TODO: saturate on overflow?
+        if j < 0: break
+        acc = acc*base + j # TODO: error on overflow?
         i += 1
     return acc, i
 

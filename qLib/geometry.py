@@ -16,13 +16,18 @@ class Coefficient:
         self.number = int(number) if isinstance(number, float) and number.is_integer() else number
         self.product = product
 
-    def __eq__(self, other: "Coefficient"):
-        return (self.number == other.number) and (self.product == other.product)
+    def __eq__(self, other: Union[int, float, "Coefficient"]):
+        if isinstance(other, Coefficient):
+            return (self.number == other.number) and (self.product == other.product)
+        else:
+            return (self.number == other) and (len(self.product) == 0)
 
     def __repr__(self):
-        str_number = ("" if self.number == 1 else "-") if (abs(self.number) == 1) and (len(self.product) >= 1) else repr(self.number)
+        str_number = repr(self.number)
         if len(self.product) == 0: return str_number
-        elif len(self.product) == 1: return f"{str_number}{self.product[0]}"
+        if (abs(self.number) == 1):
+            str_number = ("" if self.number == 1 else "-")
+        if len(self.product) == 1: return f"{str_number}{self.product[0]}"
         else: return f"{str_number}({'*'.join(self.product)})"
 
     def _mul(self, other: str):
@@ -49,7 +54,7 @@ class Value:
         if isinstance(other, Value):
             return self.sum == other.sum
         else:
-            return self == Value.fromNumber(other)
+            return ((len(self.sum) == 1) and (self.sum[0] == other)) if (other != 0) else (len(self.sum) == 0)
 
     def __repr__(self):
         def _print_coefficient(i: int, coefficient: Coefficient):
@@ -87,7 +92,7 @@ class Value:
         return acc
 
     def __sub__(self, other: "Value"):
-        return self + Value([Coefficient(-v.number, v.product) for v in other.sum])
+        return self + Value([Coefficient(-v.number, v.product.copy()) for v in other.sum])
 
     def __mul__(self, other: "Value"):
         acc = Value.fromNumber(0)
@@ -97,7 +102,7 @@ class Value:
         return acc
 
     def sqrt(self):
-        return Value([Coefficient(1, [f"sqrt({' + '.join(repr(v) for v in self.sum)})"])])
+        return Value([Coefficient(1, [f"sqrt({' + '.join(repr(v) for v in self.sum)})"])]) # TODO: signed_join
 
 def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: list[str] = []):
     bases: list[int] = []
@@ -190,6 +195,10 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             self.value = value
             self.name = name if value != 0 else "1"
 
+        @staticmethod
+        def fromNumber(number: int | float):
+            return Blade(Value.fromNumber(number), "1")
+
         def __repr__(self):
             str_value = repr(self.value)
             str_name = "" if (self.name == "1") else self.name
@@ -277,10 +286,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         def __init__(self, blades: list[Blade] | None = None, denominator: Value | None = None):
             self.blades = blades or []
             self.denominator = denominator or Value.fromNumber(1)
-            self._sortBlades()
 
-        def _sortBlades(self):
-            self.blades = sorted(self.blades, key=lambda v: bladeMask(v.name))
+        def __eq__(self, other: "Multivector"):
+            return (self.blades == other.blades) and (self.denominator == other.denominator)
 
         def __repr__(self):
             def _print_blade(i: int, blade: Blade):
@@ -298,12 +306,14 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def _add(self, blade: Blade):
             if blade.value == 0: return
+            i = 0
             for i in range(len(self.blades)):
                 if (self.blades[i].name == blade.name):
                     self.blades[i].value += blade.value
                     if self.blades[i].value == 0: self.blades.pop(i)
                     return
-            self.blades.append(blade)
+            i = sum(1 for v in self.blades if bladeMask(blade.name) > bladeMask(v.name))
+            self.blades.insert(i, blade)
 
         def __add__(self, other: "Multivector"):
             assert_equals(self.denominator, other.denominator) # TODO: multiply fraction?
@@ -311,7 +321,6 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             acc.blades = [v._deep_copy() for v in self.blades]
             for blade in other.blades:
                 acc._add(blade)
-            acc._sortBlades()
             return acc
 
         def __neg__(self):
@@ -324,14 +333,13 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             acc = Multivector()
             for v in self.blades:
                 acc._add(key(v))
-            acc._sortBlades()
             return acc
 
         def __invert__(self): # reverse
             return self._map(lambda v: ~v)
 
         def inverse(self):
-            return ~self * Multivector([Blade(Value.fromNumber(1), "1")], self.pnorm_squared())
+            return ~self * Multivector([Blade.fromNumber(1)], self.pnorm_squared())
 
         def dual(self): # right complement
             return self._map(lambda v: v.dual())
@@ -339,7 +347,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         def undual(self): # left complement
             return self._map(lambda v: v.undual())
 
-        # point based dnorm
+        # point based PGA dnorm
         def dnorm_squared(self) -> Value:
             return reduce((v.value * v.value for v in self.blades if (v * v).value == 0), lambda a, v: a + v, Value.fromNumber(0))
 
@@ -347,9 +355,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             return self.dnorm_squared().sqrt()
 
         def dnormalized(self):
-            return self * Multivector([Blade(Value.fromNumber(1), "1")], self.dnorm())
+            return self * Multivector([Blade.fromNumber(1)], self.dnorm())
 
-        # point based pnorm
+        # point based PGA pnorm
         def pnorm_squared(self):
             return reduce((v.value * v.value for v in self.blades if (v * v).value != 0), lambda a, v: a + v, Value.fromNumber(0))
 
@@ -359,13 +367,19 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         def pnormalized(self):
             return self * Multivector([Blade(Value.fromNumber(1), "1")], self.pnorm())
 
+        # point based PGA direction/position
+        def direction(self):
+            return self._map(lambda v: v * Blade.fromNumber(int("0" in v.name)))
+
+        def position(self):
+            return self._map(lambda v: v * Blade.fromNumber(int("0" not in v.name)))
+
         def _starmap(self, other: "Multivector", key: Callable[[Blade, Blade], Blade]):
             acc = Multivector()
             for a in self.blades:
                 for b in other.blades:
                     acc._add(key(a, b))
             acc.denominator = self.denominator * other.denominator
-            acc._sortBlades()
             return acc
 
         def __mul__(self, other: "Multivector"):
@@ -401,7 +415,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         @staticmethod
         def parse_multivector(s: str) -> tuple[Multivector, int]:
             acc = Multivector()
-            i = int(s[0] == "(")
+            i = 0
             while i < len(s):
                 while i < len(s) and s[i] == " ":
                     i += 1
@@ -413,7 +427,6 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                 if j <= i: break
                 acc._add(blade)
                 i = j
-            acc._sortBlades()
             return acc, i
 
         @staticmethod

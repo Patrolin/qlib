@@ -82,13 +82,17 @@ def testParseMultivector():
     assert_equals(repr(a*b - a*b), "0")
     assert_equals(repr((a+b) * b), "((2(a1*b1) + 4(b1*b1)) - 2(a2*b1)e12)")
 
-    print("...")
     A = PGA_2D.parse_multivector(f"e0 + a_1e1 + a_2e2")[0]
     B = PGA_2D.parse_multivector(f"e0 + b_1e1 + b_2e2")[0]
-    d = PGA_2D.parse_multivector(f"(b_1-a_1)e1 + (b_2-a_2)e2")[0]
-    print((A ^ B)) #.dnormalized())
-    print("...")
-    print(((A + d) ^ (B + d))) #.dnormalized())
+    move = PGA_2D.parse_multivector(f"c_1e1 + c_2e2")[0]
+    move_along_line = PGA_2D.parse_multivector(f"(b_1-a_1)e1 + (b_2-a_2)e2")[0]
+    assert_equals((A ^ B).direction(), ((A + move) ^ (B + move)).direction())
+    assert_equals((A ^ B).dnorm(), ((A + move) ^ (B + move)).dnorm())
+    assert_equals((A ^ B).direction(), ((A + move_along_line) ^ (B + move_along_line)).direction())
+    # same position if you plug it into wolfram alpha
+    assert_equals(repr((A ^ B).position()), "(((a_1*b_2) - (a_2*b_1))e12)")
+    assert_equals(repr(((A + move_along_line) ^ (B + move_along_line)).position()),
+                  "(((a_1*b_2) + ((b_2-a_2)*a_1) + ((b_1-a_1)*b_2) - (a_2*b_1) - ((b_1-a_1)*a_2) - ((b_2-a_2)*b_1))e12)")
 
 if __name__ == "__main__":
     run_tests()
