@@ -85,7 +85,6 @@ def testMultivector():
 
     move = infPoint2D("c_1", "c_2")
     assert_equals((A ^ B).direction(), ((A + move) ^ (B + move)).direction())
-    assert_equals((A ^ B).dnorm(), ((A + move) ^ (B + move)).dnorm())
 
     move_along_line = infPoint2D("(b_1-a_1)", "(b_2-a_2)")
     assert_equals((A ^ B).direction(), ((A + move_along_line) ^ (B + move_along_line)).direction())
