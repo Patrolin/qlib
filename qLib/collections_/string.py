@@ -51,6 +51,7 @@ class DiffToken:
 def diff(a: str, b: str) -> list[DiffToken]: # TODO: tests
     '''return a diff between a and b in O(len(a) + len(b))'''
     acc: list[DiffToken] = []
+    LOOKAHEAD = 5
     i = 0
     j = 0
     while i < len(a) and j < len(b):
@@ -61,11 +62,11 @@ def diff(a: str, b: str) -> list[DiffToken]: # TODO: tests
             k = 0
             while True:
                 k += 1
-                if a[i + k] == b[j]:
+                if a[i + k:i + k + LOOKAHEAD] == b[j:j + LOOKAHEAD]: # TODO: optimize this
                     acc.append(DiffToken(0, a[i:i + k], i))
                     i += k
                     break
-                elif b[j + k] == a[i]:
+                elif b[j + k:j + k + LOOKAHEAD] == a[i:i + LOOKAHEAD]:
                     acc.append(DiffToken(1, b[j:j + k], j))
                     j += k
                     break
