@@ -152,7 +152,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
     def parse_blade_normalized(s: str) -> tuple["Blade", int]:
         i = 0
-        j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
+        j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:])) # TODO: proper math parsing
         value, j = Value.parseValue(s[i:i + j])
         i += j
         if j == 0: value = Value.fromNumber(1)
@@ -437,15 +437,18 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             acc = Multivector()
             i = 0
             while i < len(s):
+                isSubtraction = False
                 while i < len(s) and s[i] == " ":
                     i += 1
-                if i < len(s) and s[i] == "+": i += 1
+                if i < len(s) and s[i] in "+-":
+                    if s[i] == "-": isSubtraction = True
+                    i += 1
                 while i < len(s) and s[i] == " ":
                     i += 1
                 blade, j = parse_blade_normalized(s[i:])
                 j += i
                 if j <= i: break
-                acc._add(blade)
+                acc._add(blade * Value.fromNumber(1 - 2*isSubtraction))
                 i = j
             return acc, i
 

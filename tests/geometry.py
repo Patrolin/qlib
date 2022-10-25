@@ -64,8 +64,8 @@ def testWedge():
 @test
 def testMultivector():
     p1 = point2D(1, 2)
-    p2 = point2D(2, 3)
     assert_equals(repr(p1), "(e0 + e1 + 2e2)")
+    p2 = point2D(2, 3)
     assert_equals(repr(p2), "(e0 + 2e1 + 3e2)")
     assert_equals(repr(p1 * p2), "(8 + e01 - e20 - e12)")
     assert_equals(repr((p1 * p2).dnorm()), "sqrt(2)")
@@ -96,6 +96,12 @@ def testMultivector():
         repr(p1 ^ p2),
         "((-a_1 + b_1)e01 + (-a_2 + b_2)e02 + (-a_3 + b_3)e03 + ((a_1*b_2) - (a_2*b_1))e12 + (-(a_1*b_3) + (a_3*b_1))e31 + ((a_2*b_3) - (a_3*b_2))e23)"
     )
+
+    top = VGA_3D.parse_multivector("e1")[0]
+    latLng = VGA_3D.parse_multivector("cos_LAT cos_LNG + cos_LAT sin_LNGe13 + sin_LAT cos_LNGe12 - sin_LAT sin_LNGe23")[0]
+    assert_equals(repr(latLng), "(cos_LAT cos_LNG + cos_LAT sin_LNG e13 + sin_LAT cos_LNG e12 - sin_LAT sin_LNG e23)")
+    print(latLng)
+    print(latLng * top * ~latLng)
 
 if __name__ == "__main__":
     run_tests()
