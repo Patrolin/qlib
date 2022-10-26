@@ -1,4 +1,5 @@
-from qLib.serialize.serialize_int import parseInt
+from qLib.parsing.parse_int import parseInt
+from os import getcwd as _getcwd
 
 def parseString(string: str) -> tuple[str, int]:
     if len(string) == 0 or string[0] != "\"":
@@ -41,3 +42,9 @@ def parseOp(s: str) -> tuple[str, int]:
     while i < len(s) and s[i] != " ":
         i += 1
     return s[:i], i
+
+_cwd = _getcwd()
+
+def printRelativePath(relative_path: str) -> str:
+    BACKSLASH = "\\"
+    return f"{_cwd.replace(BACKSLASH, '/')}/{relative_path.removeprefix('/')}"

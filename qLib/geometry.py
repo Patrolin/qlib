@@ -1,8 +1,8 @@
 from typing import Callable, Union
 from qLib.collections_ import findIndexOrDefault, reduce
-from qLib.serialize.serialize_float import parseFloat64
-from qLib.serialize.serialize_int import parseInt
-from qLib.serialize.serialize_string import parseOp
+from qLib.parsing.parse_float import parseFloat64
+from qLib.parsing.parse_int import parseInt
+from qLib.parsing.parse_string import parseOp
 from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never
 
 _INT_BASE = 10

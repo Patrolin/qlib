@@ -1,6 +1,6 @@
+from qLib.parsing.parse_string import printRelativePath
 from qLib.quiteok import decodeQuiteOK, readQuiteOK, encodeQuiteOK, writeQuiteOK, QoiImage
-from qLib import relative_path, test, run_tests
-from qLib.tests import assert_between, assert_equals, assert_never
+from qLib.tests import assert_between, assert_equals, assert_never, run_tests, test
 
 def encode_u8(u8: int) -> bytes:
     assert_between(u8, 0, 255)
@@ -144,8 +144,8 @@ def assertWriteAndReadQuiteOK(path: str, testCase: TestCase):
 
 @test
 def testWriteAndReadQuiteOK():
-    assertWriteAndReadQuiteOK(relative_path(__file__, "/data/pixelTest.qoi"), pixelTest)
-    assertWriteAndReadQuiteOK(relative_path(__file__, "/data/coverageTest.qoi"), coverageTest)
+    assertWriteAndReadQuiteOK(printRelativePath("/tests/data/pixelTest.qoi"), pixelTest)
+    assertWriteAndReadQuiteOK(printRelativePath("/tests/data/coverageTest.qoi"), coverageTest)
 
 if __name__ == "__main__":
     run_tests()

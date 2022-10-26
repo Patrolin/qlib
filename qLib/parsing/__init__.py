@@ -8,6 +8,6 @@ u16 = NewType("u16", int) # WORD
 u32 = NewType("u32", int) # DWORD = LONG
 u64 = NewType("u64", int) # QWORD = ULONGLONG
 
-from .serialize_float import *
-from .serialize_int import *
-from .serialize_string import *
+from .parse_float import *
+from .parse_int import *
+from .parse_string import *
