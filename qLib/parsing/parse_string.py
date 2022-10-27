@@ -13,10 +13,9 @@ def parseString(string: str) -> tuple[str, int]:
                 break
             if string[i] == "u":
                 i += 1
-                c, j = parseInt(string[i:i + 4], base=16)
-                i += j
-                if j != 4:
-                    break
+                c, j = parseInt(string[:i + 4], i, base=16)
+                if j != i + 4: break
+                i = j
                 acc += chr(c)
             else:
                 acc += string[i]
@@ -36,12 +35,6 @@ def printString(string: str) -> str:
         else:
             acc += c
     return f"\"{acc}\""
-
-def parseOp(s: str) -> tuple[str, int]:
-    i = 0
-    while i < len(s) and s[i] != " ":
-        i += 1
-    return s[:i], i
 
 _cwd = _getcwd()
 

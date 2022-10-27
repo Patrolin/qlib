@@ -44,19 +44,18 @@ FLOAT64 = FloatBits(11, 52)
 # packed struct f64 { u1 sign, u11 exponent, u52 mantissa }
 # exponent (zero/subnormal = 0, normal = 1..2046, inf/NaN = 2047), stored with bias of 1023
 
-def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
+def parseFloat(s: str, i: int, floatBits: FloatBits) -> tuple[float, int]:
     MAX_EXPONENT = _MAX_EXPONENT(floatBits)
     HALF_MAX_EXPONENT = MAX_EXPONENT // 2
 
     acc = 0x00_00_00_00_00_00_00_00 # 64b
-    i = 0
     # sign
-    if i < len(string) and string[i] == "-":
+    if i < len(s) and s[i] == "-":
         acc ^= 1 << (floatBits.exponent + floatBits.mantissa)
         i += 1
 
     # infinity
-    if (i + 2 < len(string)) and string[i] == "i" and string[i + 1] == "n" and string[i + 2] == "f":
+    if (i + 2 < len(s)) and s[i] == "i" and s[i + 1] == "n" and s[i + 2] == "f":
         i += 3
         acc = acc + (MAX_EXPONENT << floatBits.mantissa) # inf
         acc_float = _packFloat(acc, floatBits)
@@ -68,9 +67,9 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
     mantissa = 0
     base10_digits = 0
     while True:
-        if i >= len(string):
+        if i >= len(s):
             break
-        j = findIndexOrDefault(DIGITS[:10], lambda v: v == string[i])
+        j = findIndexOrDefault(DIGITS[:10], lambda v: v == s[i])
         if j < 0:
             break
         i += 1
@@ -84,12 +83,12 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
 
     # fraction
     fraction = 0
-    if i < len(string) and string[i] == ".":
+    if i < len(s) and s[i] == ".":
         i += 1
         while True:
-            if i >= len(string):
+            if i >= len(s):
                 break
-            j = findIndexOrDefault(DIGITS[:10], lambda v: v == string[i])
+            j = findIndexOrDefault(DIGITS[:10], lambda v: v == s[i])
             if j < 0:
                 break
             i += 1
@@ -113,19 +112,19 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
         exponent = -HALF_MAX_EXPONENT
 
     # base10 exponent
-    if (i == 0) or ((i == 1) and string[0] == "-"):
+    if (i == 0) or ((i == 1) and s[0] == "-"):
         exponent = 0 # 1.0 by default
     acc = acc + ((exponent + HALF_MAX_EXPONENT) << floatBits.mantissa) + (mantissa & _MANTISSA_MASK(floatBits))
     acc_float = _packFloat(acc, floatBits)
-    if i < len(string) and string[i] == "e":
+    if i < len(s) and s[i] == "e":
         i += 1
         base10_exponent_sign = 1
-        if i < len(string) and string[i] == "-":
+        if i < len(s) and s[i] == "-":
             i += 1
             base10_exponent_sign = -1
-        base10_exponent, j = parseInt(string[i:])
-        if j > 0:
-            i += j
+        base10_exponent, j = parseInt(s, i)
+        if j > i:
+            i = j
             exponent_correction = base10_exponent_sign * base10_exponent
             if exponent_correction >= 0:
                 acc_float *= 10.0**exponent_correction
@@ -136,11 +135,11 @@ def parseFloat(string: str, floatBits: FloatBits) -> tuple[float, int]:
 
     return acc_float, i
 
-def parseFloat32(string: str):
-    return parseFloat(string, FLOAT32)
+def parseFloat32(string: str, i=0):
+    return parseFloat(string, i, FLOAT32)
 
-def parseFloat64(string: str):
-    return parseFloat(string, FLOAT64)
+def parseFloat64(string: str, i=0):
+    return parseFloat(string, i, FLOAT64)
 
 def printFloat(float_: float, floatBits: FloatBits, base10_significant_digits=2) -> str:
     # sign

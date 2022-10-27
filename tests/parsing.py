@@ -1,4 +1,5 @@
 from qLib import *
+from qLib.parsing.parse_math import MathNode, parseMath, parseTokens
 
 @test
 def testParseInt():
@@ -34,7 +35,7 @@ def testParseString():
     assert_equals(parseString("\"abc\""), ("abc", 5))
     assert_equals(parseString("\"hello world\""), ("hello world", 13))
     assert_equals(parseString("\"23456\\\" 01234\""), ("23456\" 01234", 15))
-    assert_equals(parseString("\"234.6\\u901\""), ("234.6", -11))
+    assert_equals(parseString("\"234.6\\u901\""), ("234.6", -8))
     assert_equals(parseString("\"234.6\\u9012\""), ("234.6递", 13))
 
 @test
@@ -54,6 +55,35 @@ def testParseOp():
     assert_equals(parseOp("\"23456\\\" 01234\""), ("\"23456\\\"", 8))
     assert_equals(parseOp("\"234.6\\u901\""), ("\"234.6\\u901\"", 12))
     assert_equals(parseOp("\"234.6\\u9012\""), ("\"234.6\\u9012\"", 13))
+
+@test
+def testParseTokens():
+    assert_equals(parseTokens("1+1 - 2/4", "+-*/"), ["1", "+", "1", "-", "2", "/", "4"])
+    assert_equals(parseTokens("2 pow 3", "+-*/"), ["2", "pow", "3"])
+
+@test
+def testParseMath():
+    assert_equals(parseMath("2 pow 3"),
+        MathNode("*", \
+            MathNode("*",
+                MathNode("2"),
+                MathNode("pow")),
+            MathNode("3")))
+    assert_equals(parseMath("1+1 - 2/4"),
+        MathNode("/", \
+            MathNode("-",
+                MathNode("+",
+                    MathNode("1"),
+                    MathNode("1")),
+                MathNode("2")),
+            MathNode("4")))
+    print("ayaya")
+    assert_equals(parseMath("2 + (3*2)"),
+        MathNode("+", \
+            MathNode("2"),
+            MathNode("*",
+                MathNode("3"),
+                MathNode("2"))))
 
 if __name__ == "__main__":
     run_tests()

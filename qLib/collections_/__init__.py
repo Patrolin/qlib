@@ -1,8 +1,18 @@
-from typing import Callable, Iterable, TypeVar
+from typing import Callable, Iterable, Generic, TypeVar
 
 from ..tests import assert_never
 
 V = TypeVar("V")
+class Slice(Generic[V]):
+    def __init__(self, ptr: list, start: int, end: int):
+        self.ptr = ptr
+        self.start = start
+        self.end = end
+    def __getitem__(self, key):
+        i = key + self.start
+        assert_less_than_equals(i, self.end)
+        return self.ptr[i]
+
 def find(arr: Iterable[V], matches: Callable[[V], bool]) -> V:
     for v in arr:
         if matches(v): return v

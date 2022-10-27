@@ -1,14 +1,13 @@
 from qLib.collections_ import findIndexOrDefault
 from qLib.parsing import DIGITS
 
-def parseInt(string: str, base=10) -> tuple[int, int]:
+def parseInt(s: str, i: int = 0, base=10) -> tuple[int, int]:
     acc = 0
-    i = 0
-    while i < len(string):
-        if string[i] == "_":
+    while i < len(s):
+        if s[i] == "_":
             i += 1
             continue
-        j = findIndexOrDefault(DIGITS[:base], lambda v: v == string[i])
+        j = findIndexOrDefault(DIGITS[:base], lambda v: v == s[i])
         if j < 0: break
         acc = acc*base + j # TODO: error on overflow?
         i += 1

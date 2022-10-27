@@ -9,8 +9,8 @@ def assert_never(error: str):
     raise AssertionError(error)
 
 def _pretty_print(value: Any):
-    if isinstance(value, str):
-        return f"'{value}'"
+    if "\n" in str(value):
+        return f"\n{repr(value)}"
     else:
         return repr(value)
 

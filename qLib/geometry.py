@@ -2,7 +2,7 @@ from typing import Callable, Union
 from qLib.collections_ import findIndexOrDefault, reduce
 from qLib.parsing.parse_float import parseFloat64
 from qLib.parsing.parse_int import parseInt
-from qLib.parsing.parse_string import parseOp
+from qLib.parsing.parse_math import parseOp, parseTokens
 from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never
 
 _INT_BASE = 10
@@ -88,33 +88,6 @@ class Value:
         acc._add(Coefficient(number, []))
         return acc
 
-    @staticmethod
-    def parseValue(s: str) -> tuple["Value", int]:
-        acc = Value([])
-        i = (0 < len(s) and s[0] == "(")
-        sign = 1
-        while i < len(s) and s[i] != ")":
-            while i < len(s) and s[i] == " ":
-                i += 1
-            if i < len(s) and s[i] in "+-":
-                sign = 1 - 2 * (s[i] == "-")
-                i += 1
-            while i < len(s) and s[i] == " ":
-                i += 1
-            number, j = parseFloat64(s[i:])
-            if j <= 0:
-                number = 1
-            else:
-                i += j
-            j = findIndexOrDefault(s[i:], lambda v: v in "+-)", len(s))
-            op, j = parseOp(s[i:i + j])
-            i += j
-            acc._add(Coefficient(sign * number, [op] if op else []))
-            while i < len(s) and s[i] == " ":
-                i += 1
-        i += (i < len(s)) and (s[i] == ")")
-        return acc, i
-
     def __add__(self, other: "Value"):
         acc = self._deep_copy()
         for v in other.sum:
@@ -150,20 +123,17 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
     blade_count = 2**(positive + negative + zero)
     assert_less_than_equals(log_blade_count, _INT_BASE)
 
-    def parse_blade_normalized(s: str) -> tuple["Blade", int]:
-        i = 0
-        j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:])) # TODO: proper math parsing
-        value, j = Value.parseValue(s[i:i + j])
-        i += j
-        if j == 0: value = Value.fromNumber(1)
-        j = 0
-        acc = 1
+    def parse_blade_normalized(s: str, i=0) -> tuple["Blade", int]:
+        k = findIndexOrDefault(s[i:], lambda v: v != "e", len(s))
+        acc, j = parseFloat64(s[:i + k], i)
+        if j == i: acc = 1
+        i = j
         acc_str = ""
         if i < len(s) and s[i] == "e":
             i += 1
-            j = parseInt(s[i:], _INT_BASE)[1]
-            if j > 0:
-                for v in s[i:i + j]:
+            j = parseInt(s, i, base=_INT_BASE)[1]
+            if j > i:
+                for v in s[i:j]:
                     acc_str += v
                     k = len(acc_str) - 1
                     while k > 0:
@@ -175,8 +145,8 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     if k - 1 >= 0 and acc_str[k] == acc_str[k - 1]:
                         acc *= bases[int(acc_str[k], _INT_BASE) - min_basis]
                         acc_str = acc_str[:k - 1] + acc_str[k + 1:]
-        value *= Value.fromNumber(acc)
-        return Blade(value, f"e{acc_str}" if acc_str else "1"), i + j
+                i = j
+        return Blade(Value.fromNumber(acc), f"e{acc_str}" if acc_str else "1"), i
 
     def genBlades():
         acc: list[str] = []
@@ -433,23 +403,10 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             return denormalize_blade(blade), i
 
         @staticmethod
-        def parse_multivector(s: str) -> tuple[Multivector, int]:
+        def parse_multivector(s: str, i=0) -> tuple[Multivector, int]:
             acc = Multivector()
-            i = 0
-            while i < len(s):
-                isSubtraction = False
-                while i < len(s) and s[i] == " ":
-                    i += 1
-                if i < len(s) and s[i] in "+-":
-                    if s[i] == "-": isSubtraction = True
-                    i += 1
-                while i < len(s) and s[i] == " ":
-                    i += 1
-                blade, j = parse_blade_normalized(s[i:])
-                j += i
-                if j <= i: break
-                acc._add(blade * Value.fromNumber(1 - 2*isSubtraction))
-                i = j
+            tokens = parseTokens(s, "+-*/", i)
+            # TODO
             return acc, i
 
         @staticmethod
