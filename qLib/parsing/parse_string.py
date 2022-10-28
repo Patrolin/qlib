@@ -13,9 +13,9 @@ def parseString(string: str) -> tuple[str, int]:
                 break
             if string[i] == "u":
                 i += 1
-                c, j = parseInt(string[:i + 4], i, base=16)
-                if j != i + 4: break
-                i = j
+                c, j = parseInt(string[i:i + 4], base=16)
+                if j != 4: break
+                i += 4
                 acc += chr(c)
             else:
                 acc += string[i]

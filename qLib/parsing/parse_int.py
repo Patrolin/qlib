@@ -1,7 +1,8 @@
 from qLib.collections_ import findIndexOrDefault
 from qLib.parsing import DIGITS
 
-def parseInt(s: str, i: int = 0, base=10) -> tuple[int, int]:
+def parseInt(s: str, *, base=10) -> tuple[int, int]:
+    i = 0
     acc = 0
     while i < len(s):
         if s[i] == "_":
@@ -15,7 +16,7 @@ def parseInt(s: str, i: int = 0, base=10) -> tuple[int, int]:
 
 # TODO: parseSignedInt
 
-def printInt(int_: int, base=10) -> str:
+def printInt(int_: int, *, base=10) -> str:
     if int_ == 0: return "0"
     acc_string = ""
     acc = abs(int_)

@@ -1,9 +1,9 @@
-from typing import Callable, Union
+from typing import Callable, Union, cast
 from qLib.collections_ import findIndexOrDefault, reduce
 from qLib.parsing.parse_float import parseFloat64
 from qLib.parsing.parse_int import parseInt
-from qLib.parsing.parse_math import parseMath, parseOp, parseTokens
-from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never
+from qLib.parsing.parse_math import MathNode, parseMath, parseOp, parseTokens
+from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never, assert_not_equals
 
 _INT_BASE = 10
 MAX_PRINT_BLADES = 2**16
@@ -88,6 +88,13 @@ class Value:
         acc._add(Coefficient(number, []))
         return acc
 
+    @staticmethod
+    def parseValue(s: str) -> tuple["Value", int]:
+        if s:
+            return Value([Coefficient(1, [s])]), len(s)
+        else:
+            return Value.fromNumber(1), 0
+
     def __add__(self, other: "Value"):
         acc = self._deep_copy()
         for v in other.sum:
@@ -123,17 +130,20 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
     blade_count = 2**(positive + negative + zero)
     assert_less_than_equals(log_blade_count, _INT_BASE)
 
-    def parse_blade_normalized(s: str, i=0) -> tuple["Blade", int]:
-        k = findIndexOrDefault(s[i:], lambda v: v != "e", len(s))
-        acc, j = parseFloat64(s[:i + k], i)
-        if j == i: acc = 1
-        i = j
+    def parse_blade_normalized(s: str) -> tuple["Blade", int]:
+        i = 0
+        j = findIndexOrDefault(s[i:], lambda v: v == "e", len(s[i:]))
+        value, j = Value.parseValue(s[i:i + j])
+        i += j
+        if j == 0: value = Value.fromNumber(1)
+        j = 0
+        acc = 1
         acc_str = ""
         if i < len(s) and s[i] == "e":
             i += 1
-            j = parseInt(s, i, base=_INT_BASE)[1]
-            if j > i:
-                for v in s[i:j]:
+            j = parseInt(s[i:], base=_INT_BASE)[1]
+            if j > 0:
+                for v in s[i:i + j]:
                     acc_str += v
                     k = len(acc_str) - 1
                     while k > 0:
@@ -145,8 +155,8 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     if k - 1 >= 0 and acc_str[k] == acc_str[k - 1]:
                         acc *= bases[int(acc_str[k], _INT_BASE) - min_basis]
                         acc_str = acc_str[:k - 1] + acc_str[k + 1:]
-                i = j
-        return Blade(Value.fromNumber(acc), f"e{acc_str}" if acc_str else "1"), i
+        value *= Value.fromNumber(acc)
+        return Blade(value, f"e{acc_str}" if acc_str else "1"), i + j
 
     def genBlades():
         acc: list[str] = []
@@ -404,9 +414,28 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         @staticmethod
         def parse_multivector(s: str, i=0) -> tuple[Multivector, int]:
-            acc = Multivector()
+            def build_multivector(node: MathNode) -> Multivector:
+                def do_operation(a: Multivector, b: Multivector):
+                    if node.value == "+": return a + b
+                    elif node.value == "-": return a - b
+                    elif node.value == "*": return a * b
+                    elif node.value == "/": return a / b
+                    else: raise
+
+                if node.value in "+-*/":
+                    left, right = node.left, node.right
+                    assert_not_equals(left, None)
+                    assert_not_equals(right, None)
+                    return do_operation(build_multivector(cast(MathNode, left)), build_multivector(cast(MathNode, right)))
+                else:
+                    assert_equals(node.left, None)
+                    assert_equals(node.right, None)
+                    blade, i = parse_blade_normalized(node.value)
+                    assert_greater_than_equals(i, 0)
+                    return Multivector([blade])
+
             math = parseMath(s, i)
-            # TODO
+            acc = build_multivector(math)
             return acc, i
 
         @staticmethod

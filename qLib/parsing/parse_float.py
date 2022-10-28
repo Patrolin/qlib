@@ -5,8 +5,6 @@ from qLib.math_ import ceilLog10, log10, ceil, floor
 from qLib.parsing import DIGITS
 from qLib.parsing.parse_int import parseInt, printInt
 
-# TODO: parse_real() then convert to float
-
 class FloatBits(NamedTuple):
     exponent: int
     mantissa: int
@@ -122,9 +120,9 @@ def parseFloat(s: str, i: int, floatBits: FloatBits) -> tuple[float, int]:
         if i < len(s) and s[i] == "-":
             i += 1
             base10_exponent_sign = -1
-        base10_exponent, j = parseInt(s, i)
-        if j > i:
-            i = j
+        base10_exponent, j = parseInt(s[i:])
+        if j > 0:
+            i += j
             exponent_correction = base10_exponent_sign * base10_exponent
             if exponent_correction >= 0:
                 acc_float *= 10.0**exponent_correction
@@ -180,7 +178,7 @@ def printFloat32(float_: float) -> str:
 def printFloat64(float_: float) -> str:
     return printFloat(float_, FLOAT64)
 
-if __name__ == "__main__":
+if __name__ == "__main__": # TODO: move this to tests
     print(parseFloat32("inf")) # inf
     print(parseFloat32("-inf")) # -inf
     print(parseFloat32("1")) # 1.0
