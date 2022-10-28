@@ -71,9 +71,9 @@ def testParseMath():
                     MathNode("1")),
                 MathNode("2")),
             MathNode("4")))
-    assert_equals(parseMath("1 + (2 3) + 4"),
+    assert_equals(parseMath("1 - (2 3) + 4"),
         MathNode("+", \
-            MathNode("+",
+            MathNode("-",
                 MathNode("1"),
                 MathNode("*",
                     MathNode("2"),
@@ -87,28 +87,32 @@ def testParseMath():
             MathNode("*",
                 MathNode("c"),
                 MathNode("d"))))
-    assert_equals(parseMath("(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)"),
-        MathNode("-", \
+    for s in [
+            "(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)",
+            "cos_LAT cos_LNG + cos_LAT sin_LNG e13 + sin_LAT cos_LNG e12 - sin_LAT sin_LNG e23"
+    ]:
+        assert_equals(parseMath(s),
+            MathNode("-", \
             MathNode("+",
                 MathNode("+",
                     MathNode("*",
                         MathNode("cos_LAT"),
                         MathNode("cos_LNG")),
-                        MathNode("*",
                     MathNode("*",
                         MathNode("cos_LAT"),
-                        MathNode("sin_LNG")),
-                    MathNode("e13"))),
+                        MathNode("*",
+                            MathNode("sin_LNG"),
+                            MathNode("e13")))),
                 MathNode("*",
+                    MathNode("sin_LAT"),
                     MathNode("*",
-                        MathNode("sin_LAT"),
-                        MathNode("cos_LNG")),
-                    MathNode("e12"))),
+                        MathNode("cos_LNG"),
+                        MathNode("e12")))),
             MathNode("*",
-                    MathNode("*",
-                        MathNode("sin_LAT"),
-                        MathNode("sin_LNG")),
-                    MathNode("e23"))))
+                MathNode("sin_LAT"),
+                MathNode("*",
+                    MathNode("sin_LNG"),
+                    MathNode("e23")))))
 
 @test
 def testParseExpression():

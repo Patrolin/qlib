@@ -46,7 +46,7 @@ class MathNode:
 
 BINARY_OPERATORS = "+-*/"
 MATH_SYMBOLS = f"{BINARY_OPERATORS}()"
-_DEBUG = True
+_DEBUG = False
 
 def parseMath(s: str, i=0) -> MathNode:
     tokens = parseTokens(s, MATH_SYMBOLS, i)
@@ -57,6 +57,8 @@ def parseMath(s: str, i=0) -> MathNode:
     while i < len(tokens):
         # unary
         unary = acc
+        while (unary.value in BINARY_OPERATORS) and (unary.right != None):
+            unary = unary.right
         while i < len(tokens):
             token = tokens[i]
             i += 1
