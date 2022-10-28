@@ -1,5 +1,5 @@
 from qLib import *
-from qLib.parsing.parse_math import MathNode, parseMath, parseTokens
+from qLib.parsing.parse_math import MathNode, parseExpression, parseMath, parseTokens
 
 @test
 def testParseInt():
@@ -63,12 +63,6 @@ def testParseTokens():
 
 @test
 def testParseMath():
-    assert_equals(parseMath("2 pow 3"),
-        MathNode("*", \
-            MathNode("*",
-                MathNode("2"),
-                MathNode("pow")),
-            MathNode("3")))
     assert_equals(parseMath("1+1 - 2/4"),
         MathNode("/", \
             MathNode("-",
@@ -77,13 +71,51 @@ def testParseMath():
                     MathNode("1")),
                 MathNode("2")),
             MathNode("4")))
-    print("ayaya")
-    assert_equals(parseMath("2 + (3*2)"),
+    assert_equals(parseMath("1 + (2 3) + 4"),
         MathNode("+", \
-            MathNode("2"),
+            MathNode("+",
+                MathNode("1"),
+                MathNode("*",
+                    MathNode("2"),
+                    MathNode("3"))),
+            MathNode("4")))
+    assert_equals(parseMath("a b + c d"),
+        MathNode("+", \
             MathNode("*",
-                MathNode("3"),
-                MathNode("2"))))
+                MathNode("a"),
+                MathNode("b")),
+            MathNode("*",
+                MathNode("c"),
+                MathNode("d"))))
+    assert_equals(parseMath("(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)"),
+        MathNode("-", \
+            MathNode("+",
+                MathNode("+",
+                    MathNode("*",
+                        MathNode("cos_LAT"),
+                        MathNode("cos_LNG")),
+                        MathNode("*",
+                    MathNode("*",
+                        MathNode("cos_LAT"),
+                        MathNode("sin_LNG")),
+                    MathNode("e13"))),
+                MathNode("*",
+                    MathNode("*",
+                        MathNode("sin_LAT"),
+                        MathNode("cos_LNG")),
+                    MathNode("e12"))),
+            MathNode("*",
+                    MathNode("*",
+                        MathNode("sin_LAT"),
+                        MathNode("sin_LNG")),
+                    MathNode("e23"))))
+
+@test
+def testParseExpression():
+    assert_equals(parseExpression("2 pow 3"),
+        MathNode("pow", \
+            MathNode("2"),
+            MathNode("3")))
 
 if __name__ == "__main__":
     run_tests()

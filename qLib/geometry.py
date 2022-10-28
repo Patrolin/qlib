@@ -2,7 +2,7 @@ from typing import Callable, Union
 from qLib.collections_ import findIndexOrDefault, reduce
 from qLib.parsing.parse_float import parseFloat64
 from qLib.parsing.parse_int import parseInt
-from qLib.parsing.parse_math import parseOp, parseTokens
+from qLib.parsing.parse_math import parseMath, parseOp, parseTokens
 from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never
 
 _INT_BASE = 10
@@ -405,7 +405,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         @staticmethod
         def parse_multivector(s: str, i=0) -> tuple[Multivector, int]:
             acc = Multivector()
-            tokens = parseTokens(s, "+-*/", i)
+            math = parseMath(s, i)
             # TODO
             return acc, i
 
@@ -428,7 +428,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
             return "\n".join(GAlgebra.tprint_row(lambda b: f(a, b)) for a in blades)
 
         @staticmethod
-        def assert_equals(f: Callable[[Blade, Blade], Blade], g: Callable[[Blade, Blade], Blade]):
+        def assert_functions_match(f: Callable[[Blade, Blade], Blade], g: Callable[[Blade, Blade], Blade]):
             for a in blades:
                 for b in blades:
                     assert_equals(f(a, b), g(a, b))

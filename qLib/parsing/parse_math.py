@@ -1,6 +1,6 @@
 from typing import cast
 
-from qLib.tests import assert_not_equals
+from qLib.tests import assert_, assert_equals, assert_not_equals
 
 def parseTokens(s: str, splitOn: str, i=0) -> list[str]:
     acc: list[str] = []
@@ -44,12 +44,15 @@ class MathNode:
         if not isinstance(other, MathNode): return False
         return (self.value == other.value) and (self.left == other.left) and (self.right == other.right)
 
-MATH_SYMBOLS = "+-*/()"
+BINARY_OPERATORS = "+-*/"
+MATH_SYMBOLS = f"{BINARY_OPERATORS}()"
+_DEBUG = True
 
-def _parseMath(tokens: list[str]) -> MathNode | None:
-    if len(tokens) == 0: return None
-    noop = acc = MathNode("(")
-    brackets = []
+def parseMath(s: str, i=0) -> MathNode:
+    tokens = parseTokens(s, MATH_SYMBOLS, i)
+    if _DEBUG: print("tokens", tokens)
+    acc = MathNode("(")
+    brackets: list[MathNode] = []
     i = 0
     while i < len(tokens):
         # unary
@@ -59,57 +62,100 @@ def _parseMath(tokens: list[str]) -> MathNode | None:
             i += 1
             if token == ")":
                 acc = brackets.pop()
-                acc.right = acc.right.right
                 assert_not_equals(acc.right, None)
-                print(f"UNARY; {token}; \n{acc}")
-                continue
-            unary.right = MathNode(token)
-            unary = unary.right
-            if token == "(":
+                if _DEBUG: print(f"UNARY; {token}; \n{acc}")
+            elif token == "(":
+                if unary.value != "(":
+                    unary.right = MathNode(token)
+                    unary = unary.right
                 brackets.append(acc)
                 acc = unary
-                print(f"UNARY; {token}; \n{acc}")
-            elif token != "-":
-                print(f"UNARY; {token}; \n{acc}")
-                break
+                if _DEBUG: print(f"UNARY; {token}; \n{acc}")
+            else:
+                if unary.value == "(":
+                    unary.value = token
+                else:
+                    unary.right = MathNode(token)
+                    unary = unary.right
+                if _DEBUG: print(f"UNARY; {token}; \n{acc}")
+                if token != "-": break
         # binary
         while i < len(tokens):
             token = tokens[i]
-            if token == "(":
-                acc.right = MathNode(token)
-                brackets.append(acc)
-                acc = acc.right
-            elif token == ")":
-                print(f"BRACKETS; {brackets}")
+            if token == ")":
                 acc = brackets.pop()
-                acc.right = acc.right.right
                 assert_not_equals(acc.right, None)
+                i += 1
+                if _DEBUG: print(f"BINARY; {token}; \n{acc}")
+                continue
+            elif token in BINARY_OPERATORS:
+                old = MathNode(acc.value, acc.left, acc.right)
+                acc.value = token
+                acc.left = old
+                acc.right = None
             else:
-                if token in MATH_SYMBOLS:
-                    new = MathNode(token)
-                    new.left = acc
-                    acc = new
-                else:
-                    new = MathNode("*")
-                    new.left = acc
-                    new.right = MathNode(token)
-                    acc = new
-                    i += 1
-                    print(f"BINARY; {token}; \n{acc}")
-                    continue
-            print(f"BINARY; {token}; \n{acc}")
+                curr = acc
+                while (curr.value in BINARY_OPERATORS) and (curr.right != None):
+                    curr = curr.right
+                old = MathNode(curr.value, curr.left, curr.right)
+                curr.value = "*"
+                curr.left = old
+                curr.right = None
+                if _DEBUG: print(f"BINARY; {token}; \n{acc}")
+                break
             i += 1
+            if _DEBUG: print(f"BINARY; {token}; \n{acc}")
             break
-    first = cast(MathNode, noop.right)
-    noop.value = first.value
-    noop.right = first.right
-    print(f"brackets; {len(brackets)}")
+    assert_equals(len(brackets), 0)
     return acc
 
-def parseMath(s: str, i=0):
+def parseExpression(s: str, i=0) -> MathNode:
     tokens = parseTokens(s, MATH_SYMBOLS, i)
-    print("tokens", tokens)
-    return _parseMath(tokens)
-
-# 1 + (2 + 3)
-# node(node(1, 2), 3)
+    if _DEBUG: print("tokens", tokens)
+    acc = MathNode("(")
+    brackets: list[MathNode] = []
+    i = 0
+    while i < len(tokens):
+        # unary
+        unary = acc
+        while i < len(tokens):
+            token = tokens[i]
+            i += 1
+            if token == ")":
+                acc = brackets.pop()
+                assert_not_equals(acc.right, None)
+                if _DEBUG: print(f"UNARY; {token}; \n{acc}")
+            elif token == "(":
+                if unary.value != "(":
+                    unary.right = MathNode(token)
+                    unary = unary.right
+                brackets.append(acc)
+                acc = unary
+                if _DEBUG: print(f"UNARY; {token}; \n{acc}")
+            else:
+                if unary.value == "(":
+                    unary.value = token
+                else:
+                    unary.right = MathNode(token)
+                    unary = unary.right
+                if _DEBUG: print(f"UNARY; {token}; \n{acc}")
+                if token != "-": break
+        # binary
+        while i < len(tokens):
+            token = tokens[i]
+            if token == ")":
+                acc = brackets.pop()
+                assert_not_equals(acc.right, None)
+                i += 1
+                if _DEBUG: print(f"BINARY; {token}; \n{acc}")
+                continue
+            else:
+                old = MathNode(acc.value, acc.left, acc.right)
+                acc.value = token
+                acc.left = old
+                acc.right = None
+            i += 1
+            if _DEBUG: print(f"BINARY; {token}; \n{acc}")
+            break
+    assert_equals(len(brackets), 0)
+    return acc

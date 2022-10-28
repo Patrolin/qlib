@@ -58,8 +58,8 @@ def testPGA_2D():
 @test
 def testWedge():
     for G in (PGA_2D, PGA_3D, PGA_4D, CGA_2D, CGA_3D):
-        G.assert_equals(lambda a, b: a & b, lambda a, b: (a.dual() ^ b.dual()).undual())
-        G.assert_equals(lambda a, b: a ^ b, lambda a, b: (a.dual() & b.dual()).undual())
+        G.assert_functions_match(lambda a, b: a & b, lambda a, b: (a.dual() ^ b.dual()).undual())
+        G.assert_functions_match(lambda a, b: a ^ b, lambda a, b: (a.dual() & b.dual()).undual())
 
 @test
 def testMultivector():
@@ -98,8 +98,8 @@ def testMultivector():
     )
 
     top = VGA_3D.parse_multivector("e1")[0]
-    latLng = VGA_3D.parse_multivector("cos_LAT cos_LNG + cos_LAT sin_LNGe13 + sin_LAT cos_LNGe12 - sin_LAT sin_LNGe23")[0]
-    assert_equals(repr(latLng), "(cos_LAT cos_LNG + cos_LAT sin_LNG e13 + sin_LAT cos_LNG e12 - sin_LAT sin_LNG e23)")
+    latLng = VGA_3D.parse_multivector("(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)")[0]
+    assert_equals(repr(latLng), "(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)")
     print(latLng)
     print(latLng * top * ~latLng)
 
