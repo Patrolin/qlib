@@ -94,15 +94,25 @@ def testMultivector():
     p1 = point3D("a_1", "a_2", "a_3")
     p2 = point3D("b_1", "b_2", "b_3")
     assert_equals(
-        repr(p1 ^ p2),
-        "((-a_1 + b_1)e01 + (-a_2 + b_2)e02 + (-a_3 + b_3)e03 + ((a_1 b_2) - (a_2 b_1))e12 + (-(a_1 b_3) + (a_3 b_1))e31 + ((a_2 b_3) - (a_3 b_2))e23)"
-    )
+        repr(p1 ^ p2), """(
+  (-a_1 + b_1)e01
+  + (-a_2 + b_2)e02
+  + (-a_3 + b_3)e03
+  + ((a_1 b_2) - (a_2 b_1))e12
+  + (-(a_1 b_3) + (a_3 b_1))e31
+  + ((a_2 b_3) - (a_3 b_2))e23
+)""")
 
     top = VGA_3D.parse_multivector("e1")[0]
     latLng = VGA_3D.parse_multivector("cos_LAT cos_LNG + (cos_LAT sin_LNG) e13 + (sin_LAT cos_LNG) e12 - (sin_LAT sin_LNG) e23")[0]
-    assert_equals(repr(latLng), "((cos_LAT cos_LNG) + (cos_LNG sin_LAT)e12 + (cos_LAT sin_LNG)e13 - (sin_LAT sin_LNG)e23)")
+    assert_equals(repr(latLng), """(
+  (cos_LAT cos_LNG)
+  + (cos_LNG sin_LAT)e12
+  + (cos_LAT sin_LNG)e13
+  - (sin_LAT sin_LNG)e23
+)""")
     #print(latLng)
-    #print(latLng * top * ~latLng) # TODO: print multivectors on multiple lines
+    #print(latLng * top * ~latLng)
 
 if __name__ == "__main__":
     run_tests()

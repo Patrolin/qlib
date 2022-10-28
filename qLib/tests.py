@@ -10,7 +10,7 @@ def assert_never(error: str):
 
 def _pretty_print(value: Any):
     if "\n" in str(value):
-        return f"\n{repr(value)}"
+        return f"\n{str(value)}"
     else:
         return repr(value)
 

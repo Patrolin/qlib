@@ -8,13 +8,13 @@ from .tests import assert_, assert_equals, assert_greater_than_equals, assert_le
 _INT_BASE = 10
 MAX_PRINT_BLADES = 2**16
 
-def _signedJoin(arr: list[str]) -> str:
-    def _print_item(i: int, str_item: str):
-        sign = "-" if str_item.startswith("-") else ""
-        if (i > 0): sign = " - " if (sign == "-") else " + "
-        return f"{sign}{str_item.removeprefix('-')}"
+def _signedPrint(i: int, str_item: str):
+    sign = "-" if str_item.startswith("-") else ""
+    if (i > 0): sign = " - " if (sign == "-") else " + "
+    return f"{sign}{str_item.removeprefix('-')}"
 
-    return f"({''.join(_print_item(i, v) for i, v in enumerate(arr))})"
+def _signedJoin(arr: list[str]) -> str:
+    return f"({''.join(_signedPrint(i, v) for i, v in enumerate(arr))})"
 
 class Coefficient:
     number: int | float
@@ -301,7 +301,9 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def __repr__(self):
             if len(self.blades) == 0: return "0"
-            str_blades = _signedJoin([repr(v) for v in self.blades])
+            blade_strings = [_signedPrint(i, repr(v)) for i, v in enumerate(self.blades)]
+            str_blades = f"({''.join(blade_strings)})" if len(''.join(blade_strings)) < 40 else \
+                "(\n  " + "\n ".join(blade_strings) + "\n)"
             str_denom = "" if (self.denominator == 1) else f" / {self.denominator}"
             return f"{str_blades}{str_denom}"
 
