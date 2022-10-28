@@ -42,7 +42,8 @@ FLOAT64 = FloatBits(11, 52)
 # packed struct f64 { u1 sign, u11 exponent, u52 mantissa }
 # exponent (zero/subnormal = 0, normal = 1..2046, inf/NaN = 2047), stored with bias of 1023
 
-def parseFloat(s: str, i: int, floatBits: FloatBits) -> tuple[float, int]:
+def parseFloat(s: str, floatBits: FloatBits) -> tuple[float, int]:
+    i = 0
     MAX_EXPONENT = _MAX_EXPONENT(floatBits)
     HALF_MAX_EXPONENT = MAX_EXPONENT // 2
 
@@ -133,11 +134,11 @@ def parseFloat(s: str, i: int, floatBits: FloatBits) -> tuple[float, int]:
 
     return acc_float, i
 
-def parseFloat32(string: str, i=0):
-    return parseFloat(string, i, FLOAT32)
+def parseFloat32(string: str):
+    return parseFloat(string, FLOAT32)
 
-def parseFloat64(string: str, i=0):
-    return parseFloat(string, i, FLOAT64)
+def parseFloat64(string: str):
+    return parseFloat(string, FLOAT64)
 
 def printFloat(float_: float, floatBits: FloatBits, base10_significant_digits=2) -> str:
     # sign

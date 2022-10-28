@@ -87,6 +87,24 @@ def testParseMath():
             MathNode("*",
                 MathNode("c"),
                 MathNode("d"))))
+    assert_equals(parseMath("(b_1-a_1)e1"), \
+        MathNode("*",
+            MathNode("-",
+                MathNode("b_1"),
+                MathNode("a_1")),
+            MathNode("e1")))
+    assert_equals(parseMath("(b_1-a_1)e1 - (b_2-a_2)e2"), \
+        MathNode("-",
+            MathNode("*",
+                MathNode("-",
+                    MathNode("b_1"),
+                    MathNode("a_1")),
+                MathNode("e1")),
+            MathNode("*",
+                MathNode("-",
+                    MathNode("b_2"),
+                    MathNode("a_2")),
+                MathNode("e2"))))
     for s in [
             "(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)",
             "cos_LAT cos_LNG + cos_LAT sin_LNG e13 + sin_LAT cos_LNG e12 - sin_LAT sin_LNG e23"

@@ -36,7 +36,7 @@ class Coefficient:
         if (abs(self.number) == 1):
             str_number = ("" if self.number == 1 else "-")
         if len(self.product) == 1: return f"{str_number}{self.product[0]}"
-        else: return f"{str_number}({'*'.join(self.product)})"
+        else: return f"{str_number}({' '.join(self.product)})"
 
     def _mul(self, other: str):
         i = 0
@@ -90,10 +90,11 @@ class Value:
 
     @staticmethod
     def parseValue(s: str) -> tuple["Value", int]:
-        if s:
-            return Value([Coefficient(1, [s])]), len(s)
-        else:
-            return Value.fromNumber(1), 0
+        number, i = parseFloat64(s)
+        if i == 0: number = 1
+        acc = []
+        if s[i:]: acc.append(s[i:])
+        return Value([Coefficient(number, acc)]), len(s)
 
     def __add__(self, other: "Value"):
         acc = self._deep_copy()
