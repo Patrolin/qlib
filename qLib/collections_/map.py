@@ -62,7 +62,8 @@ class BaseMap(Generic[K, V]):
             elif self.data[i].state == _MapSlotState.Filled:
                 if (self.data[i].item.key == key): return i
             h >>= 5
-            i = (5*i + 5 + h) % len(self.data) # Note(Patrolin): 5*i + 5 wouldn't repeat, but this can however we want to avoid long blocks of .Filled slots
+            i = (5*i + 5 + h) % len(self.data) # Note(Patrolin): 5*i + 5 wouldn't repeat, but this can, however we want to avoid long blocks of .Filled slots
+            # ...and we want to mitigate Hash flooding
         return 0 # make compiler happy
 
     def has(self, key: K) -> bool:
