@@ -11,6 +11,7 @@ def _hash(value: Any) -> int:
 K = TypeVar("K")
 V = TypeVar("V")
 class _MapSlotState:
+    # TODO: use a ref counter so we can set slots back to .Empty?
     Empty = 0
     Filled = 1
     Deleted = 2
@@ -77,15 +78,15 @@ class BaseMap(Generic[K, V]):
         h = _hash(key)
         i = h % len(self.data)
         while 1:
-            if self.data[i].state == _MapSlotState.Empty:
+            if self.data[i].state == _MapSlotState.Filled:
+                if self.data[i].item.key == key:
+                    self.data[i].item.value = value
+                    return
+            else:
                 assert_less_than_equals(self.size + 1, len(self.data))
                 self.data[i] = _MapSlot(_MapItem(key, value), _MapSlotState.Filled)
                 self.size += 1
                 return
-            elif self.data[i].state == _MapSlotState.Filled:
-                if self.data[i].item.key == key:
-                    self.data[i].item.value = value
-                    return
             h >>= 5
             i = (5*i + 5 + h) % len(self.data)
     def _get(self, key: K) -> V:
