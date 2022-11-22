@@ -22,6 +22,8 @@ def assert_not_equals(got, expected):
     if got == expected:
         raise AssertionError(f"got: {_pretty_print(got)}; expected: not {_pretty_print(expected)}")
 
+# TODO: as not null
+
 def assert_less_than_equals(got, expected):
     if got > expected:
         raise AssertionError(f"got: {_pretty_print(got)}; expected: <= {_pretty_print(expected)}")

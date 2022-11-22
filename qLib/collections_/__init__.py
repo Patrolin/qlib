@@ -39,14 +39,41 @@ def reduce(arr: Iterable[V], f: Callable[[A, V], A], acc: A):
         acc = f(acc, v)
     return acc
 
-class Enum:
-    @classmethod
-    def toString(cls, value):
-        valueToKey = {}
-        for k in dir(cls):
-            if k.startswith("__"): break
-            valueToKey[cls.__dict__[k]] = k
-        return valueToKey[value] if value in valueToKey else f"?(0x{value:x})"
+def enum(cls):
+    def __init__(self, value):
+        self.value = value
+    setattr(cls, "__init__", __init__)
+    def __repr__(self):
+        return f"(value={self.value})"
+    setattr(cls, "__repr__", __repr__)
+    for k in cls.__dict__:
+        if k[0] != "_":
+            setattr(cls, k, cls(cls.__dict__[k]))
+    return cls
+
+def flags(cls):
+    def __init__(self, value):
+        self.value = value
+    setattr(cls, "__init__", __init__)
+    def __getattribute__(self, key):
+        if key.upper() == key:
+            # TODO: support groups
+            value = getattr(cls, key).value
+            return (self.value & value) == value
+        return object.__getattribute__(self, key)
+    setattr(cls, "__getattribute__", __getattribute__)
+    def __getitem__(self, key):
+        return self.__getattribute__(key)
+    setattr(cls, "__getitem__", __getitem__)
+    keys = []
+    def __repr__(self):
+        return "|".join(str(key) for key in keys if self[key])
+    setattr(cls, "__repr__", __repr__)
+    for k in cls.__dict__:
+        if k[0] != "_":
+            keys.append(k)
+            setattr(cls, k, cls(cls.__dict__[k]))
+    return cls
 
 class Flags:
     @classmethod
