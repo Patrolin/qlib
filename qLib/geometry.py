@@ -301,7 +301,8 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
 
         def __repr__(self):
             if len(self.blades) == 0: return "0"
-            blade_strings = [_signedPrint(i, repr(v)) for i, v in enumerate(self.blades)]
+            sorted_blades = sorted(self.blades, key=lambda v: [len(v.name), v.name])
+            blade_strings = [_signedPrint(i, repr(v)) for i, v in enumerate(sorted_blades)]
             str_blades = f"({''.join(blade_strings)})" if len(''.join(blade_strings)) < 40 else \
                 "(\n  " + "\n ".join(blade_strings) + "\n)"
             str_denom = "" if (self.denominator == 1) else f" / {self.denominator}"
@@ -493,6 +494,7 @@ DUAL_NUMBERS = GAlgebra(0, 0, 1)
 #QUADRIC_ALGEBRA = GAlgebra(9, 6, 0)
 VGA_2D = GAlgebra(2, 0, 0)
 VGA_3D = GAlgebra(3, 0, 0)
+VGA_4D = GAlgebra(4, 0, 0)
 PGA_2D = GAlgebra(2, 0, 1, start_with_zero=True, signs=["e20"])
 PGA_3D = GAlgebra(3, 0, 1, start_with_zero=True, signs=["e31", "e021", "e032"])
 PGA_4D = GAlgebra(4, 0, 1, start_with_zero=True)
