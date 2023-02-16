@@ -1,4 +1,4 @@
-from .math_ import *
+from .math import *
 from .geometry import *
 from .quiteok import *
 from .statistics import *

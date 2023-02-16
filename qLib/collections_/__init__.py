@@ -1,5 +1,4 @@
 from typing import Callable, Iterable, Generic, TypeVar
-
 from ..tests import assert_never
 
 V = TypeVar("V")
@@ -48,30 +47,6 @@ def enum(cls):
     setattr(cls, "__repr__", __repr__)
     for k in cls.__dict__:
         if k[0] != "_":
-            setattr(cls, k, cls(cls.__dict__[k]))
-    return cls
-
-def flags(cls):
-    def __init__(self, value):
-        self.value = value
-    setattr(cls, "__init__", __init__)
-    def __getattribute__(self, key):
-        if key.upper() == key:
-            # TODO: support groups
-            value = getattr(cls, key).value
-            return (self.value & value) == value
-        return object.__getattribute__(self, key)
-    setattr(cls, "__getattribute__", __getattribute__)
-    def __getitem__(self, key):
-        return self.__getattribute__(key)
-    setattr(cls, "__getitem__", __getitem__)
-    keys = []
-    def __repr__(self):
-        return "|".join(str(key) for key in keys if self[key])
-    setattr(cls, "__repr__", __repr__)
-    for k in cls.__dict__:
-        if k[0] != "_":
-            keys.append(k)
             setattr(cls, k, cls(cls.__dict__[k]))
     return cls
 

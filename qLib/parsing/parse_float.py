@@ -1,7 +1,7 @@
 import struct
 from typing import NamedTuple
 from qlib.collections_ import findIndexOrDefault
-from qlib.math_ import ceilLog10, log10, ceil, floor
+from qlib.math import ceilLog10, log10, ceil, floor
 from qlib.parsing import DIGITS
 from qlib.parsing.parse_int import parseInt, printInt
 

@@ -1,5 +1,5 @@
 from time import sleep as _sleep, time_ns as _time, perf_counter_ns as _perf_counter_ns, process_time_ns as _process_time_ns
-from .math_ import floor
+from .math import floor
 
 def sleep(ns: int):
     _sleep(ns / NS_PER_S)

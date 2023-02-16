@@ -1,6 +1,6 @@
 from typing import overload, Optional
 from .collections_ import *
-from .math_ import *
+from .math import *
 
 # (sample mean, sample standard deviation)
 @overload

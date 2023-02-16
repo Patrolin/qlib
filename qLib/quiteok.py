@@ -2,7 +2,7 @@ __all__ = ["decodeQuiteOK", "readQuiteOK", "encodeQuiteOK", "writeQuiteOK", "Qoi
 
 # TODO: test against reference implementation
 
-from qlib.math_ import lerp
+from qlib.math import lerp
 from qlib.tests import assert_equals
 
 def u32(R: int, G: int, B: int, A: int) -> int:

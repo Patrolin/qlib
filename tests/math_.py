@@ -1,5 +1,5 @@
 from qlib.tests import assert_equals, test, run_tests
-from qlib.math_ import e, tau, tauOver2, tauOver4, phi1, phi2, phi3, phi4
+from qlib.math import e, tau, tauOver2, tauOver4, phi1, phi2, phi3, phi4
 
 @test
 def testMathConstants():

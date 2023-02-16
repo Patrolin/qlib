@@ -1,5 +1,5 @@
 __all__ = ["normalize", "string_similarity"]
-from qlib.math_ import log
+from qlib.math import log
 import unicodedata
 
 from qlib.tests import assert_between
