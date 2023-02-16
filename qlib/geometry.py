@@ -378,11 +378,11 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
         def position(self):
             return self._map(lambda v: v * Blade.fromNumber(int("0" not in v.name)))
 
-        def _starmap(self, other: "Multivector", key: Callable[[Blade, Blade], Blade]):
+        def _starmap(self, other: "Multivector", bin_op: Callable[[Blade, Blade], Blade]):
             acc = Multivector()
             for a in self.blades:
                 for b in other.blades:
-                    acc._add(key(a, b))
+                    acc._add(bin_op(a, b))
             acc.denominator = self.denominator * other.denominator
             return acc
 
