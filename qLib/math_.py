@@ -2,7 +2,7 @@ from math import log, log2, log10
 from math import remainder as rem, modf, floor, ceil
 from typing import Callable, Iterable, TypeVar, overload
 
-from qLib.tests import assert_equals, assert_not_equals
+from qlib.tests import assert_equals, assert_not_equals
 
 # units
 e = 2.718281828459045
@@ -67,7 +67,7 @@ def cos(x: float) -> float:
 # a rem b
 
 def Gamma(x: int | float) -> float:
-    '''return Gamma(x) in O(log n)'''
+    '''return Gamma(x) in O(log x)'''
     y = (2*x + 1/3)**.5 * tauOver2**.5 * x**x * e**(-x)
     if x < 0:
         return tauOver2 / (sin(tauOver2 * x) * y)
@@ -75,7 +75,7 @@ def Gamma(x: int | float) -> float:
         return y
 
 def bisection_solve(a: float, b: float, f: Callable[[float], float]) -> float:
-    # find a root x of f(x) on the interval [min(a,b), max(a,b)]
+    '''find a root x of f(x) on the interval [min(a,b), max(a,b)]'''
     sign_a = sign(f(a))
     assert_not_equals(sign_a, sign(f(b)))
     while True:

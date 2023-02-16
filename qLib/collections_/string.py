@@ -1,8 +1,8 @@
 __all__ = ["normalize", "string_similarity"]
-from qLib.math_ import log
+from qlib.math_ import log
 import unicodedata
 
-from qLib.tests import assert_between
+from qlib.tests import assert_between
 
 def normalize(string: str, case_sensitive = False, accent_sensitive = False, symbol_sensitive = False) -> str:
     acc = unicodedata.normalize("NFD", string) if symbol_sensitive else unicodedata.normalize("NFKD", string)

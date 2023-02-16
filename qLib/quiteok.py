@@ -1,7 +1,9 @@
 __all__ = ["decodeQuiteOK", "readQuiteOK", "encodeQuiteOK", "writeQuiteOK", "QoiImage"]
 
-from qLib.math_ import lerp
-from qLib.tests import assert_equals
+# TODO: test against reference implementation
+
+from qlib.math_ import lerp
+from qlib.tests import assert_equals
 
 def u32(R: int, G: int, B: int, A: int) -> int:
     return ((R << 24) + (G << 16) + (B << 8) + A)

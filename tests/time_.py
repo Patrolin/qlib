@@ -1,5 +1,5 @@
-from qLib.tests import assert_equals, assert_greater_than_equals, test, run_tests
-from qLib.time_ import *
+from qlib.tests import assert_equals, assert_greater_than_equals, test, run_tests
+from qlib.time_ import *
 from typing import Callable, NamedTuple
 
 class DurationTest(NamedTuple):

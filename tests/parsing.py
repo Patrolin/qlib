@@ -1,5 +1,5 @@
-from qLib import *
-from qLib.parsing.parse_math import MathNode, parseExpression, parseMath, parseTokens
+from qlib import *
+from qlib.parsing.parse_math import MathNode, parseExpression, parseMath, parseTokens
 
 @test
 def testParseInt():

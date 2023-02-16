@@ -1,5 +1,5 @@
-from qLib.tests import test, run_tests
-from qLib.geometry import *
+from qlib.tests import test, run_tests
+from qlib.geometry import *
 
 #@test
 def testPGA_2D():
@@ -67,10 +67,10 @@ def testMultivector():
     assert_equals(repr(p1), "(e0 + e1 + 2e2)")
     p2 = point2D(2, 3)
     assert_equals(repr(p2), "(e0 + 2e1 + 3e2)")
-    assert_equals(repr(p1 * p2), "(8 + e01 - e20 - e12)")
+    assert_equals(repr(p1 * p2), "(8 + e01 - e12 - e20)")
     assert_equals(repr((p1 * p2).dnorm()), "sqrt(2)")
     assert_equals(repr((p1 * p2).pnorm()), "sqrt(65)")
-    assert_equals(repr((p1 * p2).inverse()), "(8 - e01 + e20 + e12) / 65")
+    assert_equals(repr((p1 * p2).inverse()), "(8 - e01 + e12 + e20) / 65")
 
     p1 = infPoint3D("a1", "a2", 0)
     p2 = infPoint3D("2b1", 0, 0)
@@ -99,8 +99,8 @@ def testMultivector():
   + (-a_2 + b_2)e02
   + (-a_3 + b_3)e03
   + ((a_1 b_2) - (a_2 b_1))e12
-  + (-(a_1 b_3) + (a_3 b_1))e31
   + ((a_2 b_3) - (a_3 b_2))e23
+  + (-(a_1 b_3) + (a_3 b_1))e31
 )""")
 
     top = VGA_3D.parse_multivector("e1")[0]

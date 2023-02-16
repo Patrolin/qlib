@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='qLib',
+    name='qlib',
     version='0.0a',
     author='Patrolin',
     author_email='patrik@balas.cz',

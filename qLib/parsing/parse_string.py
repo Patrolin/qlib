@@ -1,4 +1,4 @@
-from qLib.parsing.parse_int import parseInt
+from qlib.parsing.parse_int import parseInt
 from os import getcwd as _getcwd
 
 def parseString(string: str) -> tuple[str, int]:

@@ -1,7 +1,7 @@
 from types import FrameType as _FrameType
 from typing import Any, Callable, NamedTuple, cast
 from traceback import print_exc as _print_exc
-from qLib.vtcodes import TextColor
+from qlib.vtcodes import TextColor
 from inspect import currentframe as _currentframe, getframeinfo as _getframeinfo
 from os.path import basename as _basename
 

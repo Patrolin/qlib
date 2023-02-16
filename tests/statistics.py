@@ -1,4 +1,4 @@
-from qLib import *
+from qlib import *
 
 @test
 def testMeanStdev():

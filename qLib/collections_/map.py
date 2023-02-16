@@ -1,6 +1,6 @@
 from typing import Any, Generic, TypeVar, cast
-from qLib.collections_ import reduce
-from qLib.tests import assert_greater_than_equals, assert_less_than_equals, assert_not_equals
+from qlib.collections_ import reduce
+from qlib.tests import assert_greater_than_equals, assert_less_than_equals, assert_not_equals
 
 def _hash(value: Any) -> int:
     if isinstance(value, str):

@@ -1,9 +1,9 @@
 import struct
 from typing import NamedTuple
-from qLib.collections_ import findIndexOrDefault
-from qLib.math_ import ceilLog10, log10, ceil, floor
-from qLib.parsing import DIGITS
-from qLib.parsing.parse_int import parseInt, printInt
+from qlib.collections_ import findIndexOrDefault
+from qlib.math_ import ceilLog10, log10, ceil, floor
+from qlib.parsing import DIGITS
+from qlib.parsing.parse_int import parseInt, printInt
 
 class FloatBits(NamedTuple):
     exponent: int

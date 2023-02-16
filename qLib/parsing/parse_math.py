@@ -1,4 +1,4 @@
-from qLib.tests import assert_equals, assert_not_equals
+from qlib.tests import assert_equals, assert_not_equals
 
 def parseTokens(s: str, splitOn: str, i=0) -> list[str]:
     acc: list[str] = []

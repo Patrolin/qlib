@@ -1,8 +1,8 @@
 from typing import Callable, Union, cast
-from qLib.collections_ import findIndexOrDefault, reduce
-from qLib.parsing.parse_float import parseFloat64
-from qLib.parsing.parse_int import parseInt
-from qLib.parsing.parse_math import MathNode, parseMath, parseOp, parseTokens
+from qlib.collections_ import findIndexOrDefault, reduce
+from qlib.parsing.parse_float import parseFloat64
+from qlib.parsing.parse_int import parseInt
+from qlib.parsing.parse_math import MathNode, parseMath, parseOp, parseTokens
 from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never, assert_not_equals
 
 _INT_BASE = 10

@@ -1,5 +1,5 @@
-from qLib.collections_ import findIndexOrDefault
-from qLib.parsing import DIGITS
+from qlib.collections_ import findIndexOrDefault
+from qlib.parsing import DIGITS
 
 def parseInt(s: str, *, base=10) -> tuple[int, int]:
     i = 0

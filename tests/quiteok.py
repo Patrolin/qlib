@@ -1,6 +1,6 @@
-from qLib.parsing.parse_string import printRelativePath
-from qLib.quiteok import decodeQuiteOK, readQuiteOK, encodeQuiteOK, writeQuiteOK, QoiImage
-from qLib.tests import assert_between, assert_equals, assert_never, run_tests, test
+from qlib.parsing.parse_string import printRelativePath
+from qlib.quiteok import decodeQuiteOK, readQuiteOK, encodeQuiteOK, writeQuiteOK, QoiImage
+from qlib.tests import assert_between, assert_equals, assert_never, run_tests, test
 
 def encode_u8(u8: int) -> bytes:
     assert_between(u8, 0, 255)

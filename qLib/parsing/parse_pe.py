@@ -1,5 +1,5 @@
-from qLib.collections_ import Enum, Flags
-from qLib.tests import assert_equals
+from qlib.collections_ import Enum, Flags
+from qlib.tests import assert_equals
 from . import *
 from dataclasses import dataclass
 

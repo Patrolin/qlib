@@ -1,4 +1,4 @@
-from qLib.tests import run_tests
+from qlib.tests import run_tests
 from collections_ import *
 from time_ import *
 from geometry import *
