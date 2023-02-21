@@ -59,7 +59,7 @@ def testTokenize():
 
 @test
 def testParseMath():
-    assert_equals(parseMath("1+1 - 2/4"),
+    assert_equals(parseMath("1+1 - 2/4", True),
         MathNode("/", \
             MathNode("-",
                 MathNode("+",
@@ -67,7 +67,7 @@ def testParseMath():
                     MathNode("1")),
                 MathNode("2")),
             MathNode("4")))
-    assert_equals(parseMath("1 - (2 3) + 4"),
+    assert_equals(parseMath("1 - (2 3) + 4", True),
         MathNode("+", \
             MathNode("-",
                 MathNode("1"),
@@ -75,7 +75,7 @@ def testParseMath():
                     MathNode("2"),
                     MathNode("3"))),
             MathNode("4")))
-    assert_equals(parseMath("a b + c d"),
+    assert_equals(parseMath("a b + c d", True),
         MathNode("+", \
             MathNode("*",
                 MathNode("a"),
@@ -83,13 +83,13 @@ def testParseMath():
             MathNode("*",
                 MathNode("c"),
                 MathNode("d"))))
-    assert_equals(parseMath("(b_1-a_1)e1"), \
+    assert_equals(parseMath("(b_1-a_1)e1", True), \
         MathNode("*",
             MathNode("-",
                 MathNode("b_1"),
                 MathNode("a_1")),
             MathNode("e1")))
-    assert_equals(parseMath("(b_1-a_1)e1 - (b_2-a_2)e2"), \
+    assert_equals(parseMath("(b_1-a_1)e1 - (b_2-a_2)e2", True), \
         MathNode("-",
             MathNode("*",
                 MathNode("-",
@@ -105,7 +105,7 @@ def testParseMath():
             "(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)",
             "cos_LAT cos_LNG + cos_LAT sin_LNG e13 + sin_LAT cos_LNG e12 - sin_LAT sin_LNG e23"
     ]:
-        assert_equals(parseMath(s),
+        assert_equals(parseMath(s, True),
             MathNode("-", \
             MathNode("+",
                 MathNode("+",
@@ -130,7 +130,7 @@ def testParseMath():
 
 @test
 def testParseExpression():
-    assert_equals(parseMath("2 pow 3", False),
+    assert_equals(parseMath("2 pow 3"),
         MathNode("pow", \
             MathNode("2"),
             MathNode("3")))

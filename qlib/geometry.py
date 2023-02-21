@@ -438,7 +438,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     assert_greater_than_equals(i, 0)
                     return Multivector([blade])
 
-            math = parseMath(s[i:])
+            math = parseMath(s[i:], True)
             acc = build_multivector(math)
             return acc, i
 

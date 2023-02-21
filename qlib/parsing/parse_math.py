@@ -21,11 +21,25 @@ class MathNode:
         if not isinstance(other, MathNode): return False
         return (self.value == other.value) and (self.left == other.left) and (self.right == other.right)
 
+    def rightmost_bracket(self):
+        acc = self
+        while (acc.value in BINARY_OPERATORS) and (acc.right != None) and not acc.bracketed:
+            acc = acc.right
+        return acc
+
+    def replace_with(self, value: str):
+        prev = MathNode(self.value, self.left, self.right, self.bracketed)
+        self.value = value
+        self.left = prev
+        self.right = None
+        self.bracketed = False
+
 BINARY_OPERATORS = "+-*/"
 MATH_SYMBOLS = f"{BINARY_OPERATORS}()"
 _DEBUG = False
 
-def parseMath(s: str, implicitMultiplication=True) -> MathNode:
+# TODO: recursive version
+def parseMath(s: str, implicitMultiplication=False) -> MathNode:
     tokens = tokenize(s, include=MATH_SYMBOLS)
     if _DEBUG: print("tokens", tokens)
     acc = MathNode("(")
@@ -33,9 +47,7 @@ def parseMath(s: str, implicitMultiplication=True) -> MathNode:
     i = 0
     while i < len(tokens):
         # unary
-        unary = acc
-        while (unary.value in BINARY_OPERATORS) and (unary.right != None) and not unary.bracketed:
-            unary = unary.right
+        unary = acc.rightmost_bracket()
         while i < len(tokens):
             token = tokens[i]
             i += 1
@@ -70,20 +82,9 @@ def parseMath(s: str, implicitMultiplication=True) -> MathNode:
                 if _DEBUG: print(f"BINARY; {token}; \n{acc}")
                 continue
             elif (token in BINARY_OPERATORS) or not implicitMultiplication:
-                old = MathNode(acc.value, acc.left, acc.right, acc.bracketed)
-                acc.value = token
-                acc.left = old
-                acc.right = None
-                acc.bracketed = False
+                acc.replace_with(token)
             else:
-                curr = acc
-                while (curr.value in BINARY_OPERATORS) and (curr.right != None) and not curr.bracketed:
-                    curr = curr.right
-                old = MathNode(curr.value, curr.left, curr.right, curr.bracketed)
-                curr.value = "*"
-                curr.left = old
-                curr.right = None
-                curr.bracketed = False
+                acc.rightmost_bracket().replace_with("*")
                 if _DEBUG: print(f"BINARY; {token}; \n{acc}")
                 break
             i += 1
