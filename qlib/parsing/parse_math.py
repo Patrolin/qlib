@@ -11,7 +11,7 @@ class MathNode:
         return self.tprint()
 
     def tprint(self, i=0) -> str:
-        acc = f"{i*'  '}{self.value}"
+        acc = f"{'  '*i}{self.value}"
         if self.left != None: acc += f"\n{self.left.tprint(i+1)}"
         if self.right != None: acc += f"\n{self.right.tprint(i+1)}"
         return acc
