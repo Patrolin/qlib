@@ -1,16 +1,25 @@
-from qlib.collections_ import findIndexOrDefault
-from qlib.parsing import DIGITS
 from qlib.tests import assert_between
 
+def getDigit(char: str) -> int:
+    if "0" <= char <= "9":
+        return ord(char) - ord("0")
+    elif "A" <= char <= "Z":
+        return ord(char) - ord("A") + 10
+    elif "a" <= char <= "z":
+        return ord(char) - ord("a") + 10
+    else:
+        return -1
+
 def parseInt(s: str, *, base=10) -> tuple[int, int]:
+    assert_between(base, 2, 16)
     i = 0
     acc = 0
     while i < len(s):
         if s[i] == "_":
             i += 1
             continue
-        j = findIndexOrDefault(DIGITS[:base], lambda v: v == s[i])
-        if j < 0: break
+        j = getDigit(s[i])
+        if j < 0 or j >= base: break
         acc = acc*base + j
         i += 1
     return acc, i
@@ -30,13 +39,16 @@ def parseS64(s: str, *, base=10) -> tuple[int, int]:
     assert_between(acc, -2**63, 2**63 - 1)
     return acc, i
 
+BASE16_DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz"
+
 def printInt(int_: int, *, base=10) -> str:
+    assert_between(base, 2, 16)
     if int_ == 0: return "0"
     acc_string = ""
     acc = abs(int_)
     while acc > 0:
         rem = acc % base
-        acc_string += DIGITS[rem]
+        acc_string += BASE16_DIGITS[rem]
         acc = acc // base
     acc_string_reversed = ""
     for i in range(1, len(acc_string) + 1):

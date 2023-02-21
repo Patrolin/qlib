@@ -1,9 +1,7 @@
 import struct
 from typing import NamedTuple
-from qlib.collections_ import findIndexOrDefault
 from qlib.math import ceilLog10, log10, ceil, floor
-from qlib.parsing import DIGITS
-from qlib.parsing.parse_int import parseInt, printInt
+from qlib.parsing.parse_int import getDigit, parseInt, printInt, BASE16_DIGITS
 
 class FloatBits(NamedTuple):
     exponent: int
@@ -68,8 +66,8 @@ def parseFloat(s: str, floatBits: FloatBits) -> tuple[float, int]:
     while True:
         if i >= len(s):
             break
-        j = findIndexOrDefault(DIGITS[:10], lambda v: v == s[i])
-        if j < 0:
+        j = getDigit(s[i])
+        if j < 0 or j >= 10:
             break
         i += 1
         if base10_digits < MAX_BASE10_SIGNIFICANT_DIGITS(floatBits):
@@ -87,7 +85,7 @@ def parseFloat(s: str, floatBits: FloatBits) -> tuple[float, int]:
         while True:
             if i >= len(s):
                 break
-            j = findIndexOrDefault(DIGITS[:10], lambda v: v == s[i])
+            j = getDigit(s[i])
             if j < 0:
                 break
             i += 1
@@ -152,7 +150,7 @@ def printFloat(float_: float, floatBits: FloatBits, base10_significant_digits=2)
     unsigned_exponent = (float_as_int >> floatBits.mantissa) & _EXPONENT_MASK(floatBits)
     if unsigned_exponent == _MAX_EXPONENT(floatBits):
         mantissa = float_as_int & _MANTISSA_MASK(floatBits)
-        return acc_string + ("inf" if (mantissa == 0) else f"NaN(0b{printInt(mantissa, 2).zfill(floatBits.mantissa)})")
+        return acc_string + ("inf" if (mantissa == 0) else f"NaN(0b{printInt(mantissa, base=2).zfill(floatBits.mantissa)})")
 
     # scientific notation
     base10_exponent = floor(log10(acc))
@@ -168,7 +166,7 @@ def printFloat(float_: float, floatBits: FloatBits, base10_significant_digits=2)
     nonzero_fraction = False
     for i in range((negative + (int_ == 0) + 1 + base10_significant_digits) - len(acc_string)):
         acc = (acc*10) % 10
-        acc_fraction_string += DIGITS[int(acc)]
+        acc_fraction_string += BASE16_DIGITS[int(acc)]
         nonzero_fraction |= int(acc) > 0
     if nonzero_fraction: acc_string += acc_fraction_string
     return acc_string + base10_exponent_string
