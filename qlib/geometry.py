@@ -2,7 +2,7 @@ from typing import Callable, Union, cast
 from qlib.collections_ import findIndexOrDefault, reduce
 from qlib.parsing.parse_float import parseFloat64
 from qlib.parsing.parse_int import parseInt
-from qlib.parsing.parse_math import MathNode, parseMath, parseOp, parseTokens
+from qlib.parsing.parse_math import MathNode, parseMath
 from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never, assert_not_equals
 
 _INT_BASE = 10
@@ -438,7 +438,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     assert_greater_than_equals(i, 0)
                     return Multivector([blade])
 
-            math = parseMath(s, i)
+            math = parseMath(s[i:])
             acc = build_multivector(math)
             return acc, i
 

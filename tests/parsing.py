@@ -1,5 +1,5 @@
 from qlib import *
-from qlib.parsing.parse_math import MathNode, parseExpression, parseMath, parseTokens
+from qlib.parsing.parse_math import MathNode, parseMath, tokenize
 
 @test
 def testParseInt():
@@ -53,21 +53,9 @@ def testPrintString():
     assert_equals(printString("hello\" world"), "\"hello\\\" world\"")
 
 @test
-def testParseOp():
-    assert_equals(parseOp(""), ("", 0))
-    assert_equals(parseOp("abc"), ("abc", 3))
-    assert_equals(parseOp("\""), ("\"", 1))
-    assert_equals(parseOp("\"abc"), ("\"abc", 4))
-    assert_equals(parseOp("\"abc\""), ("\"abc\"", 5))
-    assert_equals(parseOp("\"hello world\""), ("\"hello", 6))
-    assert_equals(parseOp("\"23456\\\" 01234\""), ("\"23456\\\"", 8))
-    assert_equals(parseOp("\"234.6\\u901\""), ("\"234.6\\u901\"", 12))
-    assert_equals(parseOp("\"234.6\\u9012\""), ("\"234.6\\u9012\"", 13))
-
-@test
-def testParseTokens():
-    assert_equals(parseTokens("1+1 - 2/4", "+-*/"), ["1", "+", "1", "-", "2", "/", "4"])
-    assert_equals(parseTokens("2 pow 3", "+-*/"), ["2", "pow", "3"])
+def testTokenize():
+    assert_equals(tokenize("1+1 - 2/4", include="+-*/"), ["1", "+", "1", "-", "2", "/", "4"])
+    assert_equals(tokenize("2 pow 3", include="+-*/"), ["2", "pow", "3"])
 
 @test
 def testParseMath():
@@ -142,7 +130,7 @@ def testParseMath():
 
 @test
 def testParseExpression():
-    assert_equals(parseExpression("2 pow 3"),
+    assert_equals(parseMath("2 pow 3", False),
         MathNode("pow", \
             MathNode("2"),
             MathNode("3")))

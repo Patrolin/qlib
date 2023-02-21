@@ -1,27 +1,5 @@
+from qlib.parsing import tokenize
 from qlib.tests import assert_equals, assert_not_equals
-
-def parseTokens(s: str, splitOn: str, i=0) -> list[str]:
-    acc: list[str] = []
-    while i < len(s):
-        while i < len(s) and s[i] in " \n":
-            i += 1
-        while i < len(s) and s[i] in splitOn:
-            acc.append(s[i])
-            i += 1
-        while i < len(s) and s[i] in " \n":
-            i += 1
-        j = i
-        while j < len(s) and s[j] not in f"{splitOn} \n":
-            j += 1
-        if j != i:
-            acc.append(s[i:j])
-        i = j
-    return acc
-
-def parseOp(s: str, i=0) -> tuple[str, int]:
-    while i < len(s) and s[i] != " ":
-        i += 1
-    return s[:i], i
 
 class MathNode:
     def __init__(self, value: str, left=None, right=None, bracketed=False):
@@ -47,8 +25,8 @@ BINARY_OPERATORS = "+-*/"
 MATH_SYMBOLS = f"{BINARY_OPERATORS}()"
 _DEBUG = False
 
-def parseMath(s: str, i=0, implicitMultiplication=True) -> MathNode:
-    tokens = parseTokens(s, MATH_SYMBOLS, i)
+def parseMath(s: str, implicitMultiplication=True) -> MathNode:
+    tokens = tokenize(s, include=MATH_SYMBOLS)
     if _DEBUG: print("tokens", tokens)
     acc = MathNode("(")
     brackets: list[MathNode] = []
@@ -113,6 +91,3 @@ def parseMath(s: str, i=0, implicitMultiplication=True) -> MathNode:
             break
     assert_equals(len(brackets), 0)
     return acc
-
-def parseExpression(s: str, i=0) -> MathNode:
-    return parseMath(s, i, False)
