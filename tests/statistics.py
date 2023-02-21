@@ -20,7 +20,7 @@ def testMode():
         ([1, 2, 2], {2}),
         ([-1, -1, 0, 0, 1, 1, 2, 2, 2, 3], {2})
     ]:
-        assert_contains(modeOrZero(arr), acceptable_values)
+        assert_in(modeOrZero(arr), acceptable_values)
 
 if __name__ == "__main__":
     run_tests()

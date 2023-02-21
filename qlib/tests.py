@@ -27,6 +27,14 @@ def as_not_null(value: T | None) -> T:
     assert_not_equals(value, None)
     return cast(T, value)
 
+def assert_less_than(got, expected):
+    if got >= expected:
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: < {_pretty_print(expected)}")
+
+def assert_greater_than(got, expected):
+    if got <= expected:
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: > {_pretty_print(expected)}")
+
 def assert_less_than_equals(got, expected):
     if got > expected:
         raise AssertionError(f"got: {_pretty_print(got)}; expected: <= {_pretty_print(expected)}")
@@ -39,9 +47,13 @@ def assert_between(got, expectedLow, expectedHigh):
     if (got < expectedLow) or (got > expectedHigh):
         raise AssertionError(f"got: {_pretty_print(got)}; expected: >= {_pretty_print(expectedLow)} and <= {_pretty_print(expectedHigh)}")
 
-def assert_contains(got, expected):
+def assert_in(got, expected):
     if got not in expected:
         raise AssertionError(f"got: {_pretty_print(got)}; expected: in {_pretty_print(expected)}")
+
+def assert_not_in(got, expected):
+    if got in expected:
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: not in {_pretty_print(expected)}")
 
 def assert_(*conditions: bool, message=""):
     if not all(conditions):

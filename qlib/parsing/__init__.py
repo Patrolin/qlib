@@ -18,3 +18,5 @@ def tokenize(s: str, *, include="", exclude=" \t\r\n") -> list[str]:
             acc.append(s[i:j])
         i = j
     return acc
+
+from .parse_math import *

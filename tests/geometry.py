@@ -104,7 +104,7 @@ def testMultivector():
 )""")
 
     top = VGA_3D.parse_multivector("e1")[0]
-    latLng = VGA_3D.parse_multivector("cos_LAT cos_LNG + (cos_LAT sin_LNG) e13 + (sin_LAT cos_LNG) e12 - (sin_LAT sin_LNG) e23")[0]
+    latLng = VGA_3D.parse_multivector("cos_LAT*cos_LNG + (cos_LAT*sin_LNG*e13) + (sin_LAT*cos_LNG*e12) - (sin_LAT*sin_LNG*e23)")[0]
     assert_equals(repr(latLng), """(
   (cos_LAT cos_LNG)
   + (cos_LNG sin_LAT)e12

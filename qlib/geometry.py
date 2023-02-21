@@ -438,7 +438,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                     assert_greater_than_equals(i, 0)
                     return Multivector([blade])
 
-            math = parseMath(s[i:], True)
+            math = parseMath(s[i:])
             acc = build_multivector(math)
             return acc, i
 
@@ -502,13 +502,13 @@ CGA_2D = GAlgebra(3, 1, 0)
 CGA_3D = GAlgebra(4, 1, 0)
 
 def infPoint2D(x: float | str, y: float | str):
-    return PGA_2D.parse_multivector(f"{x}e1+{y}e2")[0]
+    return PGA_2D.parse_multivector(f"{x}*e1 + ({y}*e2)")[0]
 
 def point2D(x: float | str, y: float | str):
-    return PGA_2D.parse_multivector(f"e0+{x}e1+{y}e2")[0]
+    return PGA_2D.parse_multivector(f"e0 + ({x}*e1) + ({y}*e2)")[0]
 
 def infPoint3D(x: float | str, y: float | str, z: float | str):
-    return PGA_3D.parse_multivector(f"{x}e1+{y}e2+{z}e3")[0]
+    return PGA_3D.parse_multivector(f"{x}*e1 + ({y}*e2) + ({z}*e3)")[0]
 
 def point3D(x: float | str, y: float | str, z: float | str):
-    return PGA_3D.parse_multivector(f"e0+{x}e1+{y}e2+{z}e3")[0]
+    return PGA_3D.parse_multivector(f"e0 + ({x}*e1) + ({y}*e2) + ({z}*e3)")[0]

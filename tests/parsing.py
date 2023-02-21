@@ -59,7 +59,7 @@ def testTokenize():
 
 @test
 def testParseMath():
-    assert_equals(parseMath("1+1 - 2/4", True),
+    assert_equals(parseMath("1+1 - 2/4"),
         MathNode("/", \
             MathNode("-",
                 MathNode("+",
@@ -67,7 +67,7 @@ def testParseMath():
                     MathNode("1")),
                 MathNode("2")),
             MathNode("4")))
-    assert_equals(parseMath("1 - (2 3) + 4", True),
+    assert_equals(parseMath("1 - (2*3) + 4"),
         MathNode("+", \
             MathNode("-",
                 MathNode("1"),
@@ -75,7 +75,7 @@ def testParseMath():
                     MathNode("2"),
                     MathNode("3"))),
             MathNode("4")))
-    assert_equals(parseMath("a b + c d", True),
+    assert_equals(parseMath("a*b + (c*d)"),
         MathNode("+", \
             MathNode("*",
                 MathNode("a"),
@@ -83,13 +83,13 @@ def testParseMath():
             MathNode("*",
                 MathNode("c"),
                 MathNode("d"))))
-    assert_equals(parseMath("(b_1-a_1)e1", True), \
+    assert_equals(parseMath("(b_1-a_1)*e1"), \
         MathNode("*",
             MathNode("-",
                 MathNode("b_1"),
                 MathNode("a_1")),
             MathNode("e1")))
-    assert_equals(parseMath("(b_1-a_1)e1 - (b_2-a_2)e2", True), \
+    assert_equals(parseMath("(b_1-a_1)*e1 - ((b_2-a_2)*e2)"), \
         MathNode("-",
             MathNode("*",
                 MathNode("-",
@@ -101,32 +101,28 @@ def testParseMath():
                     MathNode("b_2"),
                     MathNode("a_2")),
                 MathNode("e2"))))
-    for s in [
-            "(cos_LAT cos_LNG) + (cos_LAT sin_LNG e13) + (sin_LAT cos_LNG e12) - (sin_LAT sin_LNG e23)",
-            "cos_LAT cos_LNG + cos_LAT sin_LNG e13 + sin_LAT cos_LNG e12 - sin_LAT sin_LNG e23"
-    ]:
-        assert_equals(parseMath(s, True),
-            MathNode("-", \
+    assert_equals(parseMath("(cos_LAT*cos_LNG) + (cos_LAT*sin_LNG*e13) + (sin_LAT*cos_LNG*e12) - (sin_LAT*sin_LNG*e23)"),
+        MathNode("-", \
             MathNode("+",
                 MathNode("+",
                     MathNode("*",
                         MathNode("cos_LAT"),
                         MathNode("cos_LNG")),
                     MathNode("*",
-                        MathNode("cos_LAT"),
                         MathNode("*",
-                            MathNode("sin_LNG"),
-                            MathNode("e13")))),
+                            MathNode("cos_LAT"),
+                            MathNode("sin_LNG")),
+                        MathNode("e13"))),
+                MathNode("*",
+                    MathNode("*",
+                        MathNode("sin_LAT"),
+                        MathNode("cos_LNG")),
+                    MathNode("e12"))),
+            MathNode("*",
                 MathNode("*",
                     MathNode("sin_LAT"),
-                    MathNode("*",
-                        MathNode("cos_LNG"),
-                        MathNode("e12")))),
-            MathNode("*",
-                MathNode("sin_LAT"),
-                MathNode("*",
-                    MathNode("sin_LNG"),
-                    MathNode("e23")))))
+                    MathNode("sin_LNG")),
+                MathNode("e23"))))
 
 @test
 def testParseExpression():
