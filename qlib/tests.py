@@ -1,5 +1,4 @@
-from types import FrameType as _FrameType
-from typing import Any, Callable, NamedTuple, cast
+from typing import Any, Callable, NamedTuple, TypeVar, cast
 from traceback import print_exc as _print_exc
 from qlib.vtcodes import TextColor
 from inspect import currentframe as _currentframe, getframeinfo as _getframeinfo
@@ -22,7 +21,11 @@ def assert_not_equals(got, expected):
     if got == expected:
         raise AssertionError(f"got: {_pretty_print(got)}; expected: not {_pretty_print(expected)}")
 
-# TODO: as not null
+T = TypeVar("T")
+
+def as_not_null(value: T | None) -> T:
+    assert_not_equals(value, None)
+    return cast(T, value)
 
 def assert_less_than_equals(got, expected):
     if got > expected:
@@ -51,8 +54,8 @@ class _Test(NamedTuple):
 _tests: list[_Test] = []
 
 def test(callback: Callable) -> Callable:
-    current_frame = cast(_FrameType, _currentframe())
-    caller_frame = cast(_FrameType, current_frame.f_back)
+    current_frame = as_not_null(_currentframe())
+    caller_frame = as_not_null(current_frame.f_back)
     file_path, *_ = _getframeinfo(caller_frame)
     file_name = _basename(file_path)
     _tests.append(_Test(callback, file_name))

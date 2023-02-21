@@ -11,6 +11,14 @@ def testParseInt():
     assert_equals(parseInt("1012", base=2), (5, 3))
     assert_equals(parseInt("1a", base=16), (26, 2))
 
+    assert_equals(parseSignedInt("a")[1], 0)
+    assert_equals(parseSignedInt("0"), (0, 1))
+    assert_equals(parseSignedInt("-000"), (0, 4))
+    assert_equals(parseSignedInt("123"), (123, 3))
+    assert_equals(parseSignedInt("-123a"), (-123, 4))
+    assert_equals(parseSignedInt("1012", base=2), (5, 3))
+    assert_equals(parseSignedInt("-1a", base=16), (-26, 3))
+
 @test
 def testParseFloat():
     assert_equals(parseFloat64("a")[1], 0)
