@@ -50,8 +50,14 @@ def ceilLog10(n: int) -> int:
         acc += 1
     return acc
 
-# TODO: chebshev polynomial (https://en.wikipedia.org/wiki/Remez_algorithm) + horner's method approximation to ~5ULP
-# (+ golden section search)
+# TODO: quake invsqrt() # 0x5F375A82, 1.5008909 instead of 1.5??
+
+# TODO: https://hero.handmade.network/forums/game-discussion/t/3049-handmade_hero_day_440_-_introduction_to_function_approximation_with_andrew_bromage ~2ULP
+# (edge cases)
+# chebshev polynomial (https://en.wikipedia.org/wiki/Remez_algorithm) (golden section search)
+# (Cody & Waite Additive Range Reduction / Double Residue Modular Range Reduction / Payne & Hanek Reduction)
+# horner's method
+
 # TODO: accurate to 0.001
 def _sin(x: float, half_interval: float = PI) -> float:
     '''return sin(x * half_tau/half_interval) on [0, 1] for x on [-half_interval, half_interval]'''
