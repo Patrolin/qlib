@@ -12,18 +12,24 @@ from typing import TypeVar
 # a rem b
 
 # units
-e = 2.718281828459045
-tau = 6.283185307179586
-tauOver2 = tau / 2
-tauOver4 = tauOver2 / 2
+E = 2.718281828459045
+TAU = 6.283185307179586
+PI = TAU / 2
 
-epsilon = 1e-6
+# TODO: split int, float?
+# TODO: frexp() -> tuple[float, int]
+SIGNIFICAND_BITS_64 = 52
+EPSILON_64 = 2**-SIGNIFICAND_BITS_64
+ROUND_TO_INTEGER_64 = 1.5 / EPSILON_64
+
+def round(x: float) -> float:
+    return x + ROUND_TO_INTEGER_64 - ROUND_TO_INTEGER_64
 
 def deg(radians: float) -> float:
-    return radians * 360 / tau
+    return radians * 360 / TAU
 
 def rad(degrees: float) -> float:
-    return degrees * tau / 360
+    return degrees * TAU / 360
 
 N = TypeVar("N", bool, int, float)
 
@@ -44,9 +50,10 @@ def ceilLog10(n: int) -> int:
         acc += 1
     return acc
 
-# TODO: chebshev polynomial + horner's method approximation to ~5ULP
+# TODO: chebshev polynomial (https://en.wikipedia.org/wiki/Remez_algorithm) + horner's method approximation to ~5ULP
+# (+ golden section search)
 # TODO: accurate to 0.001
-def _sin(x: float, half_interval: float = tauOver2) -> float:
+def _sin(x: float, half_interval: float = PI) -> float:
     '''return sin(x * half_tau/half_interval) on [0, 1] for x on [-half_interval, half_interval]'''
     # https://web.archive.org/web/20171228230531/http://forum.devmaster.net/t/fast-and-accurate-sine-cosine/9648
     y = (4/half_interval) * x - (4 / half_interval**2) * x * abs(x)
@@ -56,23 +63,23 @@ def _sin(x: float, half_interval: float = tauOver2) -> float:
 # TODO: also accurate to 0.001
 def _sin2(x: float):
     # Bhaskara's approximation
-    k = 5 / 4 * tauOver2**2
-    xd = x * (tauOver2-x)
+    k = 5 / 4 * PI**2
+    xd = x * (PI-x)
     return 4 * xd / (k-xd)
 
 def sin(x: float) -> float:
     '''return sin(x) on [0, 1] for x on (-inf, inf)'''
-    return _sin(tauOver2 - (x%tau))
+    return _sin(PI - (x%TAU))
 
 def cos(x: float) -> float:
     '''return cos(x) on [0, 1] for x on (-inf, inf)'''
-    return sin(x + tauOver4)
+    return sin(x + TAU/4)
 
 def Gamma(x: int | float) -> float:
     '''return Gamma(x) in O(log x)'''
-    y = (2*x + 1/3)**.5 * tauOver2**.5 * x**x * e**(-x)
+    y = (2*x + 1/3)**.5 * PI**.5 * x**x * E**(-x)
     if x < 0:
-        return tauOver2 / (sin(tauOver2 * x) * y)
+        return PI / (sin(PI * x) * y)
     else:
         return y
 
