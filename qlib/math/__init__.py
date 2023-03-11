@@ -44,11 +44,19 @@ def ceilLog10(n: int) -> int:
         acc += 1
     return acc
 
+# TODO: accurate to 0.001
 def _sin(x: float, half_interval: float = tauOver2) -> float:
     '''return sin(x * half_tau/half_interval) on [0, 1] for x on [-half_interval, half_interval]'''
-    y = 4/half_interval*x - 4 / half_interval**2 * x * abs(x)
+    y = (4/half_interval)*x - (4/half_interval**2) * x * abs(x)
+    y = 0.775 * y + 0.225 * (y * abs(y))
     return y
-    #return 0.775 * y + 0.225 * (y * abs(y))
+
+# TODO: also accurate to 0.001
+def _sin2(x: float):
+    # Bhaskara's approximation
+    k = 5/4*tauOver2**2
+    xd = x*(tauOver2-x)
+    return 4*xd / (k - xd)
 
 def sin(x: float) -> float:
     '''return sin(x) on [0, 1] for x on (-inf, inf)'''
