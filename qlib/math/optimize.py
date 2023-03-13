@@ -1,5 +1,5 @@
 from typing import Callable, Iterable, TypeVar
-from qlib.math.float import F64_EPSILON, F64_NORMAL_MIN
+from qlib.math.float import F64_NORMAL_MIN
 from qlib.tests import assert_equals, assert_greater_than_equals
 
 # TODO: move to random
@@ -31,7 +31,7 @@ def aStar(start: Node, neighbors: Callable[[Node], Iterable[Node]], goal: Callab
 ## A.inverse() = 1/A.det() * A.adjoint()
 ## A.adjoint() = (-1)^(i+j) A[i,j]
 
-def raySolve(X: list[float], f: Callable[[list[float]], float]):
+def raySolveNonlinear(X: list[float], f: Callable[[list[float]], float]):
     n = len(X)
     prev_X = X
     hitCount = 0
@@ -78,7 +78,7 @@ def raySolve(X: list[float], f: Callable[[list[float]], float]):
     return X
 
 def raySolveNonlinearSystem(X: list[float], f: Callable[[list[float]], list[float]]):
-    return raySolve(X, lambda X0: sum(v**2 for v in f(X0)))
+    return raySolveNonlinear(X, lambda X0: sum(v**2 for v in f(X0)))
 
 def solveLinearSystem(X: list[list[float]]):
     n = len(X)
@@ -111,10 +111,6 @@ def solveLinearSystem(X: list[list[float]]):
         for column in range(n):
             assert_equals(X[row][column], 1.0 if (row == column) or (column == n + 1) else 0.0)
     return [X[row][n] for row in range(n)]
-
-# TODO: (Generalized Aitken-Steffensen / Steffensen's / Newton's / False position + invert matrix)?
-# / (Secant / Generalized newton) + solve linear system?
-# / grid search but bisection # random direction?
 
 # TODO: https://hero.handmade.network/forums/game-discussion/t/3049-handmade_hero_day_440_-_introduction_to_function_approximation_with_andrew_bromage ~2ULP
 # (inf/nan)
