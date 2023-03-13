@@ -1,7 +1,18 @@
 import struct
-from typing import NamedTuple
-from qlib.math import ceilLog10, log10, ceil, floor
+from typing import NamedTuple, TypeVar, cast
+from qlib.math import ceilLog, log10, ceil, floor
 from qlib.parsing.parse_int import getDigit, parseInt, printInt, BASE16_DIGITS
+
+N = TypeVar("N", int, float)
+
+def lerp(t: N, x: N, y: N) -> N:
+    return x * (1-t) + y*t
+
+def abs(x: N) -> N:
+    return cast(N, x if (x > 0) else -x)
+
+def sign(x: N) -> int:
+    return (x > 0) - (x < 0)
 
 class FloatBits(NamedTuple):
     exponent: int
@@ -92,7 +103,7 @@ def parseFloat(s: str, floatBits: FloatBits) -> tuple[float, int]:
             if base10_digits < MAX_BASE10_SIGNIFICANT_DIGITS(floatBits):
                 fraction = fraction*10 + j
                 base10_digits += 1
-    divisor = 10**ceilLog10(fraction)
+    divisor = 10**ceilLog(fraction, 10)
     while integer_offset > 0 and fraction > 0:
         fraction <<= 1
         bit = (fraction >= divisor)
