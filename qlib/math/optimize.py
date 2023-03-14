@@ -149,16 +149,11 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
         pprint(system)
         A = solveLinearSystem(system)
         print(A)
-        # TODO: find points with worst error
-
+        # TODO: find roots of e(x) = f(x) - P(x) # (R2 + nearest root? (Wegstein's Method?))
+        # TODO: find local extrema of e(x) between the roots (golden section search)
+        # TODO: if e(X) = E, return, else E may be lower than real error
         if False:
             return A
-
-    # e(x) = f(x) - P(x)
-    ## (find roots of e(x)) # how??
-    # find n local extrema of e(x) between the roots
-    ## X = local extrema of e(x)
-    ## if e(X) = E, return # else E may be lower than real error
 
 if __name__ == "__main__":
     from math import sin
