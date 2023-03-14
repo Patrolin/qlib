@@ -21,6 +21,10 @@ def assert_not_equals(got, expected):
     if got == expected:
         raise AssertionError(f"got: {_pretty_print(got)}; expected: not {_pretty_print(expected)}")
 
+def assert_is_close(got: float, expected: float):
+    if abs(got - expected) > 1e-7:
+        raise AssertionError(f"got: {_pretty_print(got)}; expected: {_pretty_print(expected)}")
+
 T = TypeVar("T")
 
 def as_not_null(value: T | None) -> T:

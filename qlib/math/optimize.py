@@ -1,6 +1,7 @@
+from pprint import pprint
 from typing import Callable, Iterable, TypeVar
-from qlib.math.float import F64_NORMAL_MIN
-from qlib.tests import assert_equals, assert_greater_than_equals
+from qlib.math.float import F64_NORMAL_MIN, TAU, cos, lerp
+from qlib.tests import assert_equals, assert_greater_than_equals, assert_is_close
 
 # TODO: move to random
 def phi(n: int) -> float:
@@ -80,37 +81,40 @@ def raySolveNonlinear(X: list[float], f: Callable[[list[float]], float]):
 def raySolveNonlinearSystem(X: list[float], f: Callable[[list[float]], list[float]]):
     return raySolveNonlinear(X, lambda X0: sum(v**2 for v in f(X0)))
 
-def solveLinearSystem(X: list[list[float]]):
-    n = len(X)
-    assert_equals(len(X[0]), n + 1)
+def solveLinearSystem(system: list[list[float]]):
+    n = len(system)
+    assert_equals(len(system[0]), n + 1)
     # normalize
-    x = X[0][0]
+    x = system[0][0]
     if x == 0.0: raise ValueError()
-    k = 1 / x
+    k = 1.0 / x
     for column in range(n + 1):
-        X[0][column] *= k
+        system[0][column] *= k
     for row in range(1, n):
         # subtract
         for row_under in range(row, n):
-            k = X[row_under][row - 1]
+            k = system[row_under][row - 1]
             for column in range(n + 1):
-                X[row_under][column] -= k * X[row - 1][column]
+                system[row_under][column] -= k * system[row - 1][column]
         # normalize
-        x = X[row][row]
-        if x == 0.0: raise ValueError()
-        k = 1 / x
+        x = system[row][row]
+        if x == 0.0: raise ValueError("inf solutions")
+        k = 1.0 / x
         for column in range(n + 1):
-            X[row][column] *= k
+            system[row][column] *= k
+    pprint(system)
     for row in range(n - 1, 0, -1):
         # subtract
         for row_above in range(row):
-            k = X[row_above][row_above + 1]
+            k = system[row_above][row]
             for column in range(row, n + 1):
-                X[row_above][column] -= X[row][column]
+                system[row_above][column] -= k * system[row][column]
+        pprint(system)
+    pprint(system)
     for row in range(n):
         for column in range(n):
-            assert_equals(X[row][column], 1.0 if (row == column) or (column == n + 1) else 0.0)
-    return [X[row][n] for row in range(n)]
+            assert_is_close(system[row][column], 1.0 if (row == column) or (column == n + 1) else 0.0)
+    return [system[row][n] for row in range(n)]
 
 # TODO: https://hero.handmade.network/forums/game-discussion/t/3049-handmade_hero_day_440_-_introduction_to_function_approximation_with_andrew_bromage ~2ULP
 # (inf/nan)
@@ -119,3 +123,40 @@ def solveLinearSystem(X: list[list[float]]):
 ## a0 + a1x^1 + ... # solve system of equations for a_n, E
 ## find new extrema with golden section search
 # horner's method
+
+def polynomial(x: float, A: list[float]) -> float:
+    acc = 0.0
+    for a in A[::-1]:
+        acc = x*acc + a
+    return acc
+
+def chebyshevRoot(i: float, n: float) -> float:
+    return 0.5 - 0.5 * cos((1 + 2*i) / (2*n) * TAU / 2)
+
+def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> list[float]:
+    X = [lerp(chebyshevRoot(i, d + 1), start, end) for i in range(d + 1)]
+    if False:
+        X = [0.0, 0.3962, 1.1161, TAU / 4]
+    print(X)
+    system = [[0.0] * (d+2) for i in range(d + 1)]
+
+    for i, x in enumerate(X):
+        for j in range(d):
+            system[i][j] = x**j
+    for i in range(d + 1):
+        system[i][d] = (-1)**i
+    for i, x in enumerate(X):
+        system[i][d + 1] = f(x)
+    pprint(system)
+    A = solveLinearSystem(system)
+    print(A)
+    # e(x) = f(x) - P(x)
+    ## find roots of e(x)?
+    # TODO: find modes of e(x)
+    ## set X = modes of e(x)
+    ## if e(X) = E, return
+
+if __name__ == "__main__":
+    from math import sin
+    minimax(sin, 0.0, TAU / 4, 3)
+    #print(solveLinearSystem([[1, 1, 1, 0], [1, 2, 3, 2], [1, 3, 2, 1]]))
