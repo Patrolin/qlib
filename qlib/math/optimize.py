@@ -135,24 +135,28 @@ def chebyshevRoot(i: float, n: float) -> float:
 
 def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> list[float]:
     X = [lerp(chebyshevRoot(i, d + 1), start, end) for i in range(d + 1)]
-    if False:
-        X = [0.0, 0.3962, 1.1161, TAU / 4]
-    print(X)
     system = [[0.0] * (d+2) for i in range(d + 1)]
+    print(X)
+    while True:
+        # fit polynomial
+        for i, x in enumerate(X):
+            for j in range(d):
+                system[i][j] = x**j
+        for i in range(d + 1):
+            system[i][d] = (-1)**i
+        for i, x in enumerate(X):
+            system[i][d + 1] = f(x)
+        pprint(system)
+        A = solveLinearSystem(system)
+        print(A)
+        # TODO: find points with worst error
 
-    for i, x in enumerate(X):
-        for j in range(d):
-            system[i][j] = x**j
-    for i in range(d + 1):
-        system[i][d] = (-1)**i
-    for i, x in enumerate(X):
-        system[i][d + 1] = f(x)
-    pprint(system)
-    A = solveLinearSystem(system)
-    print(A)
+        if False:
+            return A
+
     # e(x) = f(x) - P(x)
     ## (find roots of e(x)) # how??
-    # TODO: find n local extrema of e(x) between the roots
+    # find n local extrema of e(x) between the roots
     ## X = local extrema of e(x)
     ## if e(X) = E, return # else E may be lower than real error
 
