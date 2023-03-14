@@ -151,10 +151,10 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
     A = solveLinearSystem(system)
     print(A)
     # e(x) = f(x) - P(x)
-    ## find roots of e(x)?
-    # TODO: find modes of e(x)
-    ## set X = modes of e(x)
-    ## if e(X) = E, return
+    ## (find roots of e(x)) # how??
+    # TODO: find n local extrema of e(x) between the roots
+    ## X = local extrema of e(x)
+    ## if e(X) = E, return # else E may be lower than real error
 
 if __name__ == "__main__":
     from math import sin
