@@ -17,4 +17,4 @@ namespace __crt_state_management {
     #define _malloc_crt(s) (_malloc_dbg(s, _CRT_BLOCK, __FILE__, __LINE__))
 #endif
 
-// TODO: copy ucrt/signal.h
+// TODO: fork C:\Program Files (x86)\Windows Kits\10\Source\10.0.19041.0\ucrt\misc\signal.h
