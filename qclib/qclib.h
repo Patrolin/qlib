@@ -27,6 +27,7 @@ uint cstrCount(const char* start) {
     while (*end != 0) { end++; };
     return end - start;
 }
+// TODO: use String everywhere?
 void debugPrint(const char* cstr) {
     WriteConsoleA(stdout, cstr, cstrCount(cstr), 0, 0);
 }
@@ -44,6 +45,7 @@ void debugPrintNum(uint number) {
 struct String {
     uint count;
     char* data;
+    // TODO: allow allocating on stack
     static String* fromC(const char* cstr) {
         String* str = (String*)alloc(sizeof(String));
         str->count = cstrCount(cstr);
