@@ -30,15 +30,16 @@ static x_signal* xSignal_ = x_signal_stub;
 
 int main() {
     qclibInit();
-#if false
+#if 1
     HMODULE msvcrt = LoadLibraryA("msvcrt.dll");
     debugPrintNum((bool) msvcrt);
     debugPrint("\n\0");
     xSignal = (x_signal*)GetProcAddress(msvcrt, "signal");
     debugPrintNum((uint)xSignal);
 
-    xSignal(SIGSEGV, panicHandler);
+    _crt_signal_t prev_handler = xSignal(SIGSEGV, panicHandler);
     debugPrint("\nCalled xSignal()\0");
+    debugPrintNum((uint) prev_handler);
 #else
     signal(SIGSEGV, panicHandler);
 #endif
