@@ -6,10 +6,8 @@ enum TextColor {
 
 func[] tests = {}
 
-// decorator??
 func test(callback: func)
     tests.append(callback)
-    return callback
 
 void run_tests():
     passed = 0
