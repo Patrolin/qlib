@@ -1,7 +1,8 @@
 @echo off
 set my_files=.\qclib\main.cpp -o .\qclib\out\qclib.exe
 set my_args=-nostdlib++ -no-integrated-cpp -z /subsystem:windows -z Kernel32.lib -z User32.lib -g -gcodeview
-::clang %my_files% %my_args% -nostdlib -z /subsystem:windows -z /entry:main
+
+::clang %my_files% %my_args% -nostdlib -z /entry:main
 :: 14336 B
 :: but <signal.h> depends on stdlib
 :: we want a fork of <signal.h> that doesn't depend on stdlib
