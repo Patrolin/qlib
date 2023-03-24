@@ -1,5 +1,5 @@
 // 14 KB hello world
-//#define USE_NOLIBS
+//#define USE_NOLIBS // TODO
 #include <windows.h>
 #include <stdint.h>
 

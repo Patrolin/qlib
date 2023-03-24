@@ -30,7 +30,7 @@ static x_signal* xSignal_ = x_signal_stub;
 
 int main() {
     qclibInit();
-#if 1
+#if 0
     HMODULE msvcrt = LoadLibraryA("msvcrt.dll");
     debugPrintNum((bool) msvcrt);
     debugPrint("\n\0");
