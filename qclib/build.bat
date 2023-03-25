@@ -8,8 +8,11 @@ set my_args=-nostdlib++ -no-integrated-cpp -z /subsystem:windows -z Kernel32.lib
 :: we want a fork of <signal.h> that doesn't depend on stdlib
 :: except Microsoft does not support this anymore, the closest we have is a chinese reverse engineer of <ucrt/corecrt_internal.h>
 
-clang %my_files% %my_args%
+::clang %my_files% %my_args%
 :: 567808 B
+
+clang %my_files% %my_args% -nostdlib -z msvcrt.lib
+:: 40448 B
 
 :: (if you didn't need stdlib, you could try using something like libctiny.lib
 :: and check linker .MAP file to find even more space optimizations)
