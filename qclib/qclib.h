@@ -11,7 +11,7 @@
 #include "int.h"
 
 // print
-void* alloc(uint size);
+void* talloc(uint size);
 HANDLE stdout = 0; // init
 uint cstrCount(const char* start) {
     const char* end = start;
@@ -38,7 +38,7 @@ struct String {
     char* data;
     // TODO: allow allocating on stack
     static String* fromC(const char* cstr) {
-        String* str = (String*)alloc(sizeof(String));
+        String* str = (String*)talloc(sizeof(String));
         str->count = cstrCount(cstr);
         str->data = (char*)cstr;
         return str;
@@ -60,7 +60,7 @@ struct TAlloc {
     uint data_size = 0;
 };
 TAlloc _talloc = {};
-void* alloc(uint size) {
+void* talloc(uint size) {
     uint new_data_size = _talloc.data_size + size;
     if (new_data_size > _talloc.size) {
         uint new_size = _talloc.size + kiloBytes(1);
@@ -84,7 +84,10 @@ void qclibInit() {
 }
 
 // crt
+//#undef NO_STDLIB
+//#define NO_STDLIB
 #ifdef NO_STDLIB
+    // constructors
     typedef int (__cdecl *_PIFV)(void);
     typedef void (__cdecl *_PVFV)(void);
     #define _CRTALLOC(name) __declspec(allocate(name))
@@ -110,12 +113,42 @@ void qclibInit() {
         }
     }
 
+    // destructors
+    static _PVFV * pf_atexitlist = 0;
+    static unsigned max_atexitlist_entries = 0;
+    static unsigned cur_atexitlist_entries = 0;
+
+    void __cdecl _atexit_init(void) {
+        max_atexitlist_entries = 32;
+        pf_atexitlist = (_PVFV *)talloc(max_atexitlist_entries * sizeof(_PVFV*));
+    }
+    int __cdecl atexit(_PVFV func ) {
+        if ( cur_atexitlist_entries < max_atexitlist_entries ) {
+            pf_atexitlist[cur_atexitlist_entries++] = func;
+            return 0;
+        }
+        return -1;
+    }
+    void __cdecl _DoExit( void ) {
+        if ( cur_atexitlist_entries ) {
+            _initterm(  pf_atexitlist,
+                        // Use ptr math to find the end of the array
+                        pf_atexitlist + cur_atexitlist_entries );
+        }
+    }
+
+    // TOOD: __CxxFrameHandler3, __std_terminate
+    //void __cdecl __std_terminate() {}
+
+
     int WinMain(HINSTANCE app, HINSTANCE prev_app, LPSTR command, int window_options);
     int __stdcall WinMainCRTStartup() {
         qclibInit();
+        _atexit_init();
         _initterm((_PVFV*)__xi_a, (_PVFV*)__xi_z);
         _initterm(__xc_a, __xc_z);
         int retCode = WinMain(0, 0, 0, 0);
+        _DoExit();
         ExitProcess(retCode);
     }
 #endif
