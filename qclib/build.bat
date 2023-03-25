@@ -17,3 +17,5 @@ clang %my_files% %my_args% -nostdlib -z msvcrt.lib
 :: TODO: make custom CRTStartup like in libctiny.lib
 :: https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-170
 :: (and check linker .MAP file to find even more space optimizations)
+
+clang .\qclib\tinylibc.cpp -o .\qclib\out\tinylibc.exe
