@@ -1,12 +1,12 @@
 // 14 KB hello world
+//#pragma comment(linker, "/nodefaultlib:libcmt.lib")
+//#pragma comment(linker, "/nodefaultlib:msvcmrt.lib")
+//#pragma comment(linker, "/nodefaultlib:msvcrt.lib")
+
 //#define USE_NOLIBS // TODO
 #include <windows.h>
 #pragma comment(linker, "/defaultlib:user32.lib")
 #pragma comment(linker, "/defaultlib:kernel32.lib")
-#include <stdint.h>
-//#pragma comment(linker, "/nodefaultlib:libcmt.lib")
-//#pragma comment(linker, "/nodefaultlib:msvcmrt.lib")
-//#pragma comment(linker, "/nodefaultlib:msvcrt.lib")
 
 #include "int.h"
 
@@ -137,7 +137,7 @@ void qclibInit() {
         }
     }
 
-    // TOOD: __CxxFrameHandler3, __std_terminate
+    // TOOD: __CxxFrameHandler3, __std_terminate, _C_specific_handler
     //void __cdecl __std_terminate() {}
 
 
