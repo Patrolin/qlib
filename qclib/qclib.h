@@ -4,8 +4,8 @@
 #pragma comment(linker, "/defaultlib:user32.lib")
 #pragma comment(linker, "/defaultlib:kernel32.lib")
 #include <stdint.h>
-#pragma comment(linker, "/nodefaultlib:libcmt.lib")
-#pragma comment(linker, "/nodefaultlib:msvcmrt.lib")
+//#pragma comment(linker, "/nodefaultlib:libcmt.lib")
+//#pragma comment(linker, "/nodefaultlib:msvcmrt.lib")
 //#pragma comment(linker, "/nodefaultlib:msvcrt.lib")
 
 // int
