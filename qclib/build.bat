@@ -14,5 +14,6 @@ set my_args=-nostdlib++ -no-integrated-cpp -z /subsystem:windows -z Kernel32.lib
 clang %my_files% %my_args% -nostdlib -z msvcrt.lib
 :: 40448 B
 
-:: (if you didn't need stdlib, you could try using something like libctiny.lib
-:: and check linker .MAP file to find even more space optimizations)
+:: TODO: make custom CRTStartup like in libctiny.lib
+:: https://learn.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features?view=msvc-170
+:: (and check linker .MAP file to find even more space optimizations)
