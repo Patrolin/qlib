@@ -11,6 +11,7 @@ public:
     Foo() {
         debugPrint("Foo!");
     }
+    //~Foo() {debugPrint("~Foo!");}
 };
 static Foo x;
 

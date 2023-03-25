@@ -8,22 +8,10 @@
 //#pragma comment(linker, "/nodefaultlib:msvcmrt.lib")
 //#pragma comment(linker, "/nodefaultlib:msvcrt.lib")
 
-// int
-typedef int64_t sint;
-typedef uint64_t uint;
-typedef uint32_t bool32;
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
-
-void* alloc(uint size);
+#include "int.h"
 
 // print
+void* alloc(uint size);
 HANDLE stdout = 0; // init
 uint cstrCount(const char* start) {
     const char* end = start;
