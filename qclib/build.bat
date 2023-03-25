@@ -1,6 +1,6 @@
 @echo off
 set my_files=.\qclib\main.cpp -o .\qclib\out\qclib.exe
-set my_args=-nostdlib++ -no-integrated-cpp -z /subsystem:windows -z Kernel32.lib -z User32.lib -g -gcodeview
+set my_args=-nostdlib++ -no-integrated-cpp -z /subsystem:windows -z Kernel32.lib -z User32.lib -g -gcodeview -z -Map:.\qclib\out\qclib.map
 
 ::clang %my_files% %my_args% -nostdlib -z /entry:main
 :: 14336 B
