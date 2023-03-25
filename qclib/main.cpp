@@ -1,13 +1,20 @@
 #include "qclib.h"
-#if 1
-    #include <signal.h>
-#else
-    typedef void (__cdecl* _crt_signal_t)(int);
-    #define SIGSEGV 11
-#endif
 
-//void (*signal(int, void (*)(int)))(int);
-//void __cdecl *signal(int sig, int (*func)(int, int));
+int bar() {
+    debugPrint("Bar!");
+    return 0;
+}
+int y = bar();
+
+class Foo {
+public:
+    Foo() {
+        debugPrint("Foo!");
+    }
+};
+static Foo x;
+
+// TODO: GetCommandLineA()?
 
 void panicHandler(int code) {
     debugPrint("Panic: ");
@@ -17,29 +24,33 @@ inline void segfault() {
     *((volatile char*)0) = 0;
 }
 
+#define dll_signal
 
-#define X_SIGNAL(name) _crt_signal_t name(int code, _crt_signal_t f)
-typedef X_SIGNAL(x_signal);
-X_SIGNAL(x_signal_stub) {
-    debugPrint("Called x_signal stub.\n\0");
-    return 0;
-}
-static x_signal* xSignal_ = x_signal_stub;
-#define xSignal xSignal_
+#ifdef dll_signal
+    typedef void (__CRTDECL* _crt_signal_t)(int);
+    #define SIGSEGV 11
+    typedef _crt_signal_t FSignal(int code, _crt_signal_t f);
+    static FSignal* signal = [](int code, _crt_signal_t f) -> _crt_signal_t {
+        debugPrint("Called x_signal stub.\n\0");
+        return 0;
+    };
+#else
+    #include <signal.h>
+#endif
 
 
 int main() {
-    qclibInit();
+    //qclibInit();
     //return 0;
-#if 1
+#ifdef dll_signal
     HMODULE msvcrt = LoadLibraryA("msvcrt.dll");
     debugPrintNum((bool) msvcrt);
     debugPrint("\n\0");
-    xSignal = (x_signal*)GetProcAddress(msvcrt, "signal");
-    debugPrintNum((uint)xSignal);
+    signal = (FSignal*)GetProcAddress(msvcrt, "signal");
+    debugPrintNum((uint)signal);
 
-    _crt_signal_t prev_handler = xSignal(SIGSEGV, panicHandler);
-    debugPrint("\nCalled xSignal()\0");
+    _crt_signal_t prev_handler = signal(SIGSEGV, panicHandler);
+    debugPrint("\nCalled signal()\0");
     debugPrintNum((uint) prev_handler);
 #else
     signal(SIGSEGV, panicHandler);

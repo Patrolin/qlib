@@ -1,7 +1,12 @@
 // 14 KB hello world
 //#define USE_NOLIBS // TODO
 #include <windows.h>
+#pragma comment(linker, "/defaultlib:user32.lib")
+#pragma comment(linker, "/defaultlib:kernel32.lib")
 #include <stdint.h>
+#pragma comment(linker, "/nodefaultlib:libcmt.lib")
+#pragma comment(linker, "/nodefaultlib:msvcmrt.lib")
+//#pragma comment(linker, "/nodefaultlib:msvcrt.lib")
 
 // int
 typedef int64_t sint;
@@ -89,3 +94,40 @@ void qclibInit() {
     AllocConsole();
     stdout = GetStdHandle(-11);
 }
+
+// crt
+#ifdef NO_STDLIB
+    typedef int (__cdecl *_PIFV)(void);
+    typedef void (__cdecl *_PVFV)(void);
+    #define _CRTALLOC(name) __declspec(allocate(name))
+    #pragma comment(linker, "/merge:.CRT=.rdata")
+
+    // C constructors
+    #pragma section(".CRT$XIA", long, read)
+    _CRTALLOC(".CRT$XIA") _PIFV __xi_a[] = { 0 };
+    #pragma section(".CRT$XIZ", long, read)
+    _CRTALLOC(".CRT$XIZ") _PIFV __xi_z[] = { 0 };
+
+    // C++ constructors
+    #pragma section(".CRT$XCA", long, read)
+    _CRTALLOC(".CRT$XCA") _PVFV __xc_a[] = { 0 };
+    #pragma section(".CRT$XCZ", long, read)
+    _CRTALLOC(".CRT$XCZ") _PVFV __xc_z[] = { 0 };
+
+    void __cdecl _initterm(_PVFV * pfbegin, _PVFV * pfend) {
+        while ( pfbegin < pfend ) {
+            if ( *pfbegin != 0 )
+                (**pfbegin)();
+            ++pfbegin;
+        }
+    }
+
+    int WinMain(HINSTANCE app, HINSTANCE prev_app, LPSTR command, int window_options);
+    int __stdcall WinMainCRTStartup() {
+        qclibInit();
+        _initterm((_PVFV*)__xi_a, (_PVFV*)__xi_z);
+        _initterm(__xc_a, __xc_z);
+        int retCode = WinMain(0, 0, 0, 0);
+        ExitProcess(retCode);
+    }
+#endif
