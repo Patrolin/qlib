@@ -140,6 +140,8 @@ void qclibInit() {
     // TOOD: __CxxFrameHandler3, __std_terminate, _C_specific_handler
     //void __cdecl __std_terminate() {}
 
+    // signal() -> FlsAlloc() / TlsAlloc() -> ???
+
 
     int WinMain(HINSTANCE app, HINSTANCE prev_app, LPSTR command, int window_options);
     int __stdcall WinMainCRTStartup() {

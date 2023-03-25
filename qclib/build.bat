@@ -9,7 +9,7 @@ clang %my_files% %my_args% -nostdlib -z ucrt.lib -z -Map:.\qclib\out\qclib-nostd
 :: except Microsoft does not support this anymore, the closest we have is a chinese reverse engineer of <ucrt/corecrt_internal.h>
 
 :: TODO: -GS- -Gs9999999 -stack:0x100000,0x100000 to avoid bs traps
-
+:: TODO: -fno-exceptions ?
 
 ::clang %my_files% %my_args% -z -Map:.\qclib\out\qclib-fullstdlib.map
 :: 567808 B
