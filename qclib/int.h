@@ -19,11 +19,11 @@ typedef signed long long s64;
 static_assert(sizeof(u64) == 8, "");
 static_assert(sizeof(s64) == 8, "");
 
-// armwave
+// lax
 #if BITS_64
     typedef s64 sint;
     typedef u64 uint;
-#elif BITS_32
+#else
     typedef s32 sint;
     typedef u32 uint;
 #endif

@@ -41,8 +41,7 @@ inline void segfault() {
 
 
 int main() {
-    //qclibInit();
-    //return 0;
+    //return 0; // debugger -> break into CRT
 #ifdef dll_signal
     HMODULE msvcrt = LoadLibraryA("msvcrt.dll");
     debugPrintNum((bool) msvcrt);
