@@ -8,6 +8,7 @@
 #pragma comment(linker, "/defaultlib:user32.lib")
 #pragma comment(linker, "/defaultlib:kernel32.lib")
 
+#include "constants.h"
 #include "int.h"
 
 // print
