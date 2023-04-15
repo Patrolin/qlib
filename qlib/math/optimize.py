@@ -127,10 +127,12 @@ def solveLinearSystem(system: list[list[float]]):
 # horner's method
 
 def polynomial(x: float, A: list[float]) -> float:
-    acc = 0.0
-    for a in A[::-1]:
-        acc = x*acc + a
-    return acc
+    acc_y = 0.0
+    acc_x = 1.0
+    for a in A:
+        acc_y += acc_x * a
+        acc_x *= x
+    return acc_y
 
 def chebyshevRoot(i: float, n: float) -> float:
     return 0.5 - 0.5 * cos((1 + 2*i) / (2*n) * TAU / 2)
@@ -168,7 +170,7 @@ def newtonFindNRoots(f: Callable[[float], float], n: int, acc_x=0.0, max_tries=1
 def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> list[float]:
     X = [lerp(chebyshevRoot(i, d + 1), start, end) for i in range(d + 1)]
     system = [[0.0] * (d+2) for i in range(d + 1)]
-    print(X)
+    print(f"X = {X}")
     while True:
         # fit polynomial
         for i, x in enumerate(X):
@@ -179,13 +181,17 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
         for i, x in enumerate(X):
             system[i][d + 1] = f(x)
         #pprint(system)
-        A = solveLinearSystem(system)
-        print(A)
+        solve = solveLinearSystem(system)
+        A = solve[:-1]
+        E = solve[-1]
 
         def error(x: float) -> float:
             return f(x) - polynomial(x, A)
 
-        print(f"error: {[error(x) for x in X]}")
+        print(f"A = {A}, E = {E}")
+        error_roots = newtonFindNRoots(error, d)
+        print(f"error_roots = {error_roots}")
+        print(f"errors = {[error(x) for x in error_roots]}")
 
         # TODO: find roots of e(x) = f(x) - P(x) # (R2 + nearest root? (Wegstein's Method?))
         # TODO: find local extrema of e(x) between the roots (golden section search)
@@ -196,9 +202,9 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
 if __name__ == "__main__":
     print(newtonFindNRoots(lambda x: x**2 - 1, 2)) # [-1.0, 1.0]
     print(newtonFindNRoots(lambda x: x**2 - x - 1, 2)) # [-0.6180339887498949, 1.6180339887498947]
-    #from math import sin
-    #A = minimax(sin, 0.0, TAU / 4, 3)
-    #print(f"A(0.0): {polynomial(0.0, A)}")
-    #print(f"A(0.5): {polynomial(0.5, A)}")
-    #print(f"A(1.0): {polynomial(1.0, A)}")
+    from math import sin # TODO: _slowSin by taylor series
+    A = minimax(sin, 0.0, TAU / 4, 2)
+    print(f"A(0.0): {polynomial(0.0, A)}")
+    print(f"A(0.5): {polynomial(0.5, A)}")
+    print(f"A(1.0): {polynomial(1.0, A)}")
     #print(solveLinearSystem([[1, 1, 1, 0], [1, 2, 3, 2], [1, 3, 2, 1]]))
