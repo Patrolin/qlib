@@ -194,7 +194,7 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
     X = [lerp(chebyshevRoot(i, d + 1), start, end) for i in range(d + 1)]
     system = [[0.0] * (d+2) for i in range(d + 1)]
     while True:
-        print(f"X = {X}")
+        #print(f"X = {X}")
         # fit polynomial
         for i, x in enumerate(X):
             for j in range(d):
@@ -207,15 +207,16 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
         solve = solveLinearSystem(system)
         A = solve[:-1]
         E = solve[-1]
-        print(f"A = {A}, E = {E}")
+
+        #print(f"A = {A}, E = {E}")
 
         # find error roots
         def error(x: float) -> float:
             return f(x) - polynomial(x, A)
 
         error_roots = sorted(newtonFindNRoots(error, d))
-        print(f"error_roots = {error_roots}")
-        print(f"errors = {[error(x) for x in error_roots]}")
+        #print(f"error_roots = {error_roots}")
+        #print(f"errors = {[error(x) for x in error_roots]}")
         # find error extrema
         X[0] = goldenFindExtremum(error, start, error_roots[0])
         for i in range(1, d):
@@ -224,7 +225,7 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
             X[d] = goldenFindExtremum(error, error_roots[d - 1], end)
         # if error doesn't change, return
         if all(abs(abs(error(x)) - abs(E)) < 1e-12 for x in X):
-            print(f"X = {X}")
+            #print(f"X = {X}")
             return A
 
 if __name__ == "__main__":
@@ -235,5 +236,5 @@ if __name__ == "__main__":
     print(A)
     print(f"A(0.0): {polynomial(0.0, A)}")
     print(f"A(0.5): {polynomial(0.5, A)}")
-    print(f"A(1.0): {polynomial(1.0, A)}")
+    print(f"A(TAU/4): {polynomial(TAU/4, A)}")
     #print(solveLinearSystem([[1, 1, 1, 0], [1, 2, 3, 2], [1, 3, 2, 1]]))
