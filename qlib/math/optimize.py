@@ -232,7 +232,7 @@ if __name__ == "__main__":
     print(newtonFindNRoots(lambda x: x**2 - 1, 2)) # [-1.0, 1.0]
     print(newtonFindNRoots(lambda x: x**2 - x - 1, 2)) # [-0.6180339887498949, 1.6180339887498947]
     from math import sin # TODO: _slowSin by taylor series
-    A = minimax(sin, 0.0, TAU / 4, 2)
+    A = minimax(sin, 0.0, TAU / 4, 3)
     print(A)
     print(f"A(0.0): {polynomial(0.0, A)}")
     print(f"A(0.5): {polynomial(0.5, A)}")
