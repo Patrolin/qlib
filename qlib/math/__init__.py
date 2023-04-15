@@ -1,5 +1,6 @@
 from .int import *
 from .float import *
+from .random import *
 from .optimize import *
 
 # TODO: try doing path tracing

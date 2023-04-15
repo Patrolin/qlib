@@ -1,5 +1,5 @@
 from qlib.parsing import tokenize
-from qlib.tests import as_not_null, assert_less_than, assert_never
+from qlib.tests import as_not_null, assert_less_than, assert_fail
 
 class MathNode:
     def __init__(self, value: str, left=None, right=None):
@@ -50,7 +50,7 @@ def parseUnaryOp(tokens: list[str]) -> tuple[int, MathNode]:
         i += 1
     assert_less_than(i, len(tokens))
     if tokens[i] in BINARY_OPS:
-        assert_never(f"Invalid token: {tokens[i:]}")
+        assert_fail(f"Invalid token: {tokens[i:]}")
     if tokens[i] == "(":
         j, bracket = _parseMath(tokens[i + 1:])
         acc.right = bracket

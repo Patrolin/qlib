@@ -8,7 +8,7 @@ if __name__ == "__main__":
 
     @test
     def testFailTest():
-        assert_never("Fail test")
+        assert_fail("Fail test")
 
     @test
     def testIntError():

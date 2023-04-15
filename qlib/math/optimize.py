@@ -1,7 +1,9 @@
+from math import isnan, prod
 from pprint import pprint
 from typing import Callable, Iterable, TypeVar
-from qlib.math.float import F64_NORMAL_MIN, TAU, cos, lerp
-from qlib.tests import assert_equals, assert_greater_than_equals, assert_is_close
+from qlib.math.float import F64_NORMAL_MIN, F64_QNAN, TAU, cos, lerp
+from qlib.math.random import rand
+from qlib.tests import assert_equals, assert_greater_than_equals, assert_is_close, assert_fail
 
 # TODO: move to random
 def phi(n: int) -> float:
@@ -102,15 +104,15 @@ def solveLinearSystem(system: list[list[float]]):
         k = 1.0 / x
         for column in range(n + 1):
             system[row][column] *= k
-    pprint(system)
+    #pprint(system)
     for row in range(n - 1, 0, -1):
         # subtract
         for row_above in range(row):
             k = system[row_above][row]
             for column in range(row, n + 1):
                 system[row_above][column] -= k * system[row][column]
-        pprint(system)
-    pprint(system)
+        #pprint(system)
+    #pprint(system)
     for row in range(n):
         for column in range(n):
             assert_is_close(system[row][column], 1.0 if (row == column) or (column == n + 1) else 0.0)
@@ -133,6 +135,36 @@ def polynomial(x: float, A: list[float]) -> float:
 def chebyshevRoot(i: float, n: float) -> float:
     return 0.5 - 0.5 * cos((1 + 2*i) / (2*n) * TAU / 2)
 
+def newtonFindNRoots(f: Callable[[float], float], n: int, acc_x=0.0, max_tries=10_000) -> list[float]:
+    acc_roots = []
+
+    def f1(x: float) -> float:
+        acc_y = f(x)
+        for root in acc_roots:
+            acc_y /= (x - root)
+        return acc_y
+
+    for i in range(n):
+        #print(f"roots = {acc_roots}")
+        for j in range(max_tries):
+            try:
+                y1 = f1(acc_x)
+                y2 = f1(acc_x + 1e-6)
+                dy = (y2-y1) / 1e-6
+                #print(f"{acc_x} .. ({y1}, {y2}), {dy}")
+                if abs(y1) < 1e-13:
+                    break
+                if abs(dy) < 1e-6:
+                    acc_x += 1 - 2 * rand()
+                else:
+                    acc_x -= y1 / dy
+            except ZeroDivisionError:
+                acc_x += 1 - 2 * rand()
+        else:
+            assert_fail(f"Reach max try count, roots={acc_roots}")
+        acc_roots.append(acc_x)
+    return acc_roots
+
 def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> list[float]:
     X = [lerp(chebyshevRoot(i, d + 1), start, end) for i in range(d + 1)]
     system = [[0.0] * (d+2) for i in range(d + 1)]
@@ -146,16 +178,27 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
             system[i][d] = (-1)**i
         for i, x in enumerate(X):
             system[i][d + 1] = f(x)
-        pprint(system)
+        #pprint(system)
         A = solveLinearSystem(system)
         print(A)
+
+        def error(x: float) -> float:
+            return f(x) - polynomial(x, A)
+
+        print(f"error: {[error(x) for x in X]}")
+
         # TODO: find roots of e(x) = f(x) - P(x) # (R2 + nearest root? (Wegstein's Method?))
         # TODO: find local extrema of e(x) between the roots (golden section search)
-        # TODO: if e(X) = E, return, else E may be lower than real error
-        if False:
+        # TODO: if X.every(x => e(x) == E), return
+        if True:
             return A
 
 if __name__ == "__main__":
-    from math import sin
-    minimax(sin, 0.0, TAU / 4, 3)
+    print(newtonFindNRoots(lambda x: x**2 - 1, 2)) # [-1.0, 1.0]
+    print(newtonFindNRoots(lambda x: x**2 - x - 1, 2)) # [-0.6180339887498949, 1.6180339887498947]
+    #from math import sin
+    #A = minimax(sin, 0.0, TAU / 4, 3)
+    #print(f"A(0.0): {polynomial(0.0, A)}")
+    #print(f"A(0.5): {polynomial(0.5, A)}")
+    #print(f"A(1.0): {polynomial(1.0, A)}")
     #print(solveLinearSystem([[1, 1, 1, 0], [1, 2, 3, 2], [1, 3, 2, 1]]))

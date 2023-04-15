@@ -1,6 +1,6 @@
 from qlib.parsing.parse_string import printRelativePath
 from qlib.quiteok import decodeQuiteOK, readQuiteOK, encodeQuiteOK, writeQuiteOK, QoiImage
-from qlib.tests import assert_between, assert_equals, assert_never, run_tests, test
+from qlib.tests import assert_between, assert_equals, assert_fail, run_tests, test
 
 def encode_u8(u8: int) -> bytes:
     assert_between(u8, 0, 255)
@@ -107,16 +107,16 @@ def assertImageMatches(image1: QoiImage, image2: QoiImage):
         for x in range(image1.width):
             i = y * image1.width + x
             if image1.data[i] != image2.data[i]:
-                assert_never(image1.tprint(0, y, image1.width))
+                assert_fail(image1.tprint(0, y, image1.width))
 
 def assertBytesMatch(qoi1: bytes, qoi2: bytes):
     for i in range(len(qoi2)):
         if i >= len(qoi1):
-            assert_never(f"Missing bytes at {i}:\n    expected: {printBytes(qoi2[i:])}")
+            assert_fail(f"Missing bytes at {i}:\n    expected: {printBytes(qoi2[i:])}")
         if qoi1[i] != qoi2[i]:
-            assert_never(f"Bytes differ at {i}:\n    got:      {printBytes(qoi1[:i+1])}\n    expected: {printBytes(qoi2[:i+1])}")
+            assert_fail(f"Bytes differ at {i}:\n    got:      {printBytes(qoi1[:i+1])}\n    expected: {printBytes(qoi2[:i+1])}")
     if len(qoi1) > len(qoi2):
-        assert_never(f"Extra bytes at {len(qoi2)+1}:\n    got: {printBytes(qoi1[len(qoi2)+1:])}")
+        assert_fail(f"Extra bytes at {len(qoi2)+1}:\n    got: {printBytes(qoi1[len(qoi2)+1:])}")
 
 @test
 def testDecodeQuiteOK():

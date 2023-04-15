@@ -1,5 +1,5 @@
 from typing import Callable, Iterable, Generic, TypeVar
-from ..tests import assert_never
+from ..tests import assert_fail
 
 V = TypeVar("V")
 class Slice(Generic[V]):
@@ -15,7 +15,7 @@ class Slice(Generic[V]):
 def find(arr: Iterable[V], matches: Callable[[V], bool]) -> V:
     for v in arr:
         if matches(v): return v
-    assert_never(f"Couldn't find match in {arr}")
+    assert_fail(f"Couldn't find match in {arr}")
 
 def findOrNone(arr: Iterable[V], matches: Callable[[V], bool]) -> V|None:
     for v in arr:
@@ -25,7 +25,7 @@ def findOrNone(arr: Iterable[V], matches: Callable[[V], bool]) -> V|None:
 def findIndex(arr: Iterable[V], matches: Callable[[V], bool]) -> int:
     for i, v in enumerate(arr):
         if matches(v): return i
-    assert_never(f"Couldn't find match in {arr}")
+    assert_fail(f"Couldn't find match in {arr}")
 
 def findIndexOrDefault(arr: Iterable[V], matches: Callable[[V], bool], default: int = -1) -> int:
     for i, v in enumerate(arr):

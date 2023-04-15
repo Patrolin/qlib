@@ -3,7 +3,7 @@ from qlib.collections_ import findIndexOrDefault, reduce
 from qlib.parsing.parse_float import parseFloat64
 from qlib.parsing.parse_int import parseInt
 from qlib.parsing.parse_math import MathNode, parseMath
-from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_never, assert_not_equals
+from .tests import assert_, assert_equals, assert_greater_than_equals, assert_less_than_equals, assert_fail, assert_not_equals
 
 _INT_BASE = 10
 MAX_PRINT_BLADES = 2**16
@@ -182,7 +182,7 @@ def GAlgebra(positive: int, negative=0, zero=0, start_with_zero=False, signs: li
                 str_blades[i] = override
                 break
         else:
-            assert_never(f"Unknown blade {override}")
+            assert_fail(f"Unknown blade {override}")
 
     def denormalize_blade(normalized_blade: "Blade") -> "Blade":
         unit = mask_to_unit[bladeMask(normalized_blade.name)]

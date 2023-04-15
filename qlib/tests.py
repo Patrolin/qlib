@@ -4,7 +4,7 @@ from qlib.vtcodes import TextColor
 from inspect import currentframe as _currentframe, getframeinfo as _getframeinfo
 from os.path import basename as _basename
 
-def assert_never(error: str):
+def assert_fail(error: str):
     raise AssertionError(error)
 
 def _pretty_print(value: Any):
