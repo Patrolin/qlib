@@ -9,7 +9,9 @@ def phi(n: int) -> float:
             return y_next
         y = y_next
 
-RAND1 = 1 / phi(1)
+INV_PHI1 = 1 / phi(1)
+
+RAND1 = INV_PHI1
 rand_state = 0
 
 def rand() -> float:

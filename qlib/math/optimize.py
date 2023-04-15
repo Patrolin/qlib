@@ -2,7 +2,7 @@ from math import isnan, prod
 from pprint import pprint
 from typing import Callable, Iterable, TypeVar
 from qlib.math.float import F64_NORMAL_MIN, F64_QNAN, TAU, cos, lerp
-from qlib.math.random import rand
+from qlib.math.random import INV_PHI1, rand
 from qlib.tests import assert_equals, assert_greater_than_equals, assert_is_close, assert_fail
 
 # TODO: move to random
@@ -167,11 +167,34 @@ def newtonFindNRoots(f: Callable[[float], float], n: int, acc_x=0.0, max_tries=1
         acc_roots.append(acc_x)
     return acc_roots
 
+def goldenFindExtremum(f: Callable[[float], float], a: float, b: float) -> float:
+    c = lerp(INV_PHI1, b, a)
+    fc = f(c)
+    d = lerp(INV_PHI1, a, b)
+    fd = f(d)
+    #print("goldenFindExtrema", a, b)
+    while abs(b - a) >= 1e-13:
+        #print("goldenFindExtrema.1", c, fc, d, fd)
+        if abs(fc) > abs(fd):
+            b = d
+            d = c
+            fd = fc
+            c = lerp(INV_PHI1, b, a)
+            fc = f(c)
+        else:
+            a = c
+            c = d
+            fc = fd
+            d = lerp(INV_PHI1, a, b)
+            fd = f(d)
+    return (a+b) * .5
+
 def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> list[float]:
+    assert_greater_than_equals(end, start)
     X = [lerp(chebyshevRoot(i, d + 1), start, end) for i in range(d + 1)]
     system = [[0.0] * (d+2) for i in range(d + 1)]
-    print(f"X = {X}")
     while True:
+        print(f"X = {X}")
         # fit polynomial
         for i, x in enumerate(X):
             for j in range(d):
@@ -184,18 +207,24 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
         solve = solveLinearSystem(system)
         A = solve[:-1]
         E = solve[-1]
+        print(f"A = {A}, E = {E}")
 
+        # find error roots
         def error(x: float) -> float:
             return f(x) - polynomial(x, A)
 
-        print(f"A = {A}, E = {E}")
-        error_roots = newtonFindNRoots(error, d)
+        error_roots = sorted(newtonFindNRoots(error, d))
         print(f"error_roots = {error_roots}")
         print(f"errors = {[error(x) for x in error_roots]}")
-
-        # TODO: find local extrema of e(x) between the roots (golden section search)
-        # TODO: if X.every(x => e(x) == E), return
-        if True:
+        # find error extrema
+        X[0] = goldenFindExtremum(error, start, error_roots[0])
+        for i in range(1, d):
+            X[i] = goldenFindExtremum(error, error_roots[i - 1], error_roots[i])
+        if d > 1:
+            X[d] = goldenFindExtremum(error, error_roots[d - 1], end)
+        # if error doesn't change, return
+        if all(abs(abs(error(x)) - abs(E)) < 1e-12 for x in X):
+            print(f"X = {X}")
             return A
 
 if __name__ == "__main__":
@@ -203,6 +232,7 @@ if __name__ == "__main__":
     print(newtonFindNRoots(lambda x: x**2 - x - 1, 2)) # [-0.6180339887498949, 1.6180339887498947]
     from math import sin # TODO: _slowSin by taylor series
     A = minimax(sin, 0.0, TAU / 4, 2)
+    print(A)
     print(f"A(0.0): {polynomial(0.0, A)}")
     print(f"A(0.5): {polynomial(0.5, A)}")
     print(f"A(1.0): {polynomial(1.0, A)}")
