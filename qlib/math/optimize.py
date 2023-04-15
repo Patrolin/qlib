@@ -193,7 +193,6 @@ def minimax(f: Callable[[float], float], start: float, end: float, d: int) -> li
         print(f"error_roots = {error_roots}")
         print(f"errors = {[error(x) for x in error_roots]}")
 
-        # TODO: find roots of e(x) = f(x) - P(x) # (R2 + nearest root? (Wegstein's Method?))
         # TODO: find local extrema of e(x) between the roots (golden section search)
         # TODO: if X.every(x => e(x) == E), return
         if True:
