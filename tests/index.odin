@@ -3,7 +3,6 @@ package tests
 import "../src/test"
 import threads_utils "../src/threads"
 import "alloc"
-import "core:thread"
 import "math"
 import "mem"
 import "threads"
