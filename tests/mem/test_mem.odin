@@ -1,24 +1,17 @@
 // odin test tests/mem
 package test_mem
-import "../../src/alloc"
 import "../../src/math"
 import "../../src/mem"
-import "../../src/os"
 import "../../src/test"
 import "../../src/threads"
 import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
 import win "core:sys/windows"
-import "core:testing"
 import "core:time"
 
 @(test)
-test_virtual_alloc :: proc(t: ^testing.T) {
-	test.start_test(t)
-	test.set_fail_timeout(time.Second)
-
-	threads.init()
+test_virtual_alloc :: proc() {
 	data := mem.page_alloc(threads.VIRTUAL_MEMORY_TO_RESERVE, false)
 	test.expectf(
 		data != nil,
@@ -37,14 +30,10 @@ test_virtual_alloc :: proc(t: ^testing.T) {
 		"Failed to page_alloc_aligned(64 kiB, 64 kiB), low_bits: %v",
 		low_bits,
 	)
-
-	test.end_test()
 }
 
 @(test)
-test_pool_alloc :: proc(t: ^testing.T) {
-	test.start_test(t)
-
+test_pool_alloc :: proc() {
 	buffer := mem.page_alloc(mem.PAGE_SIZE)
 	pool_64b := mem.pool_allocator(buffer, 8)
 
@@ -57,14 +46,10 @@ test_pool_alloc :: proc(t: ^testing.T) {
 
 	mem.pool_free(&pool_64b, x)
 	mem.pool_free(&pool_64b, y)
-
-	test.end_test()
 }
 
 @(test)
-test_half_fit_allocator :: proc(t: ^testing.T) {
-	test.start_test(t)
-
+test_half_fit_allocator :: proc() {
 	buffer := mem.page_alloc(mem.PAGE_SIZE)
 	assert(uintptr(raw_data(buffer)) & uintptr(63) == 0)
 	half_fit: mem.HalfFitAllocator
@@ -106,13 +91,10 @@ test_half_fit_allocator :: proc(t: ^testing.T) {
 	}
 
 	mem.page_free(raw_data(buffer))
-	test.end_test()
 }
 
 @(test)
-test_arena_allocator :: proc(t: ^testing.T) {
-	test.start_test(t)
-
+test_arena_allocator :: proc() {
 	buffer := mem.page_alloc(mem.PAGE_SIZE)
 	arena_allocator := mem.arena_allocator(buffer)
 	context.allocator = runtime.Allocator{mem.arena_allocator_proc, &arena_allocator}
@@ -126,6 +108,4 @@ test_arena_allocator :: proc(t: ^testing.T) {
 
 	free(x)
 	free(y)
-
-	test.end_test()
 }

@@ -1,4 +1,5 @@
 package test_utils
+import "core:fmt"
 import win "core:sys/windows"
 
 @(private)
@@ -26,9 +27,10 @@ _create_thread :: proc(
 }
 @(private)
 _wait_for_thread :: proc(os_thread_info: _OsThreadInfo, milliseconds: u32) -> bool {
-	return win.WaitForSingleObject(os_thread_info.handle, milliseconds) == win.WAIT_OBJECT_0
+	result := win.WaitForSingleObject(os_thread_info.handle, milliseconds)
+	return result == win.WAIT_OBJECT_0
 }
 @(private)
-_stop_thread :: proc(os_thread_info: _OsThreadInfo) {
-	win.TerminateThread(os_thread_info.handle, 1)
+_exit :: proc(exit_code: u32) {
+	win.ExitProcess(exit_code)
 }

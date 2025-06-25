@@ -2,7 +2,6 @@ package time_utils
 import "../mem"
 import "base:intrinsics"
 import "core:fmt"
-import "core:testing"
 import core_time "core:time"
 
 // constants

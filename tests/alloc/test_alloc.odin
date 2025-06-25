@@ -9,17 +9,12 @@ import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
 import win "core:sys/windows"
-import "core:testing"
 import "core:time"
 
 // !TODO: get -no-crt -no-thread-local -default-to-nil-allocator -radlink to work
 
 @(test)
-test_default_context :: proc(t: ^testing.T) {
-	test.start_test(t)
-	context = threads.init()
-	ctx := context
-
+test_default_context :: proc() {
 	// allocator
 	x := new(int)
 	test.expect_was_allocated(x, "x", 13)
@@ -27,7 +22,6 @@ test_default_context :: proc(t: ^testing.T) {
 
 	// temp_allocator
 	arena := (^mem.ArenaAllocator)(context.temp_allocator.data)
-	fmt.printfln("context.temp_allocator.data: %v", len(arena.buffer))
 	y := new(int, allocator = context.temp_allocator)
 	test.expect_was_allocated(y, "y", 7)
 	free(y, allocator = context.temp_allocator)
@@ -35,16 +29,10 @@ test_default_context :: proc(t: ^testing.T) {
 	// reserve on page fault
 	ptr := ([^]byte)(win.VirtualAlloc(nil, 4096, win.MEM_RESERVE, win.PAGE_READWRITE))
 	test.expect_was_allocated((^int)(ptr), "ptr", 13)
-
-	threads.free_all_for_tests()
-	test.end_test()
 }
 
 @(test)
-test_map :: proc(t: ^testing.T) {
-	test.start_test(t)
-
-	context = threads.init()
+test_map :: proc() {
 	m: alloc.Map(string, int) = {}
 
 	alloc.add_key(&m, "a")^ = 1
@@ -67,16 +55,10 @@ test_map :: proc(t: ^testing.T) {
 	test.expectf(!okA && (valueC^ == {}), "m[\"c\"] = %v", valueC^)
 
 	alloc.delete_map_like(&m)
-
-	threads.free_all_for_tests()
-	test.end_test()
 }
 
 @(test)
-test_set :: proc(t: ^testing.T) {
-	test.start_test(t)
-
-	context = threads.init()
+test_set :: proc() {
 	m: alloc.Set(string) = {}
 
 	alloc.add_key(&m, "a")
@@ -98,7 +80,4 @@ test_set :: proc(t: ^testing.T) {
 	okC = alloc.get_key(&m, "c")
 	test.expectf(!okC, "m[\"c\"] = %v", okC)
 	alloc.delete_map_like(&m)
-
-	threads.free_all_for_tests()
-	test.end_test()
 }

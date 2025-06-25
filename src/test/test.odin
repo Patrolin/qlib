@@ -5,7 +5,7 @@ import "core:strings"
 import "core:time"
 
 // constants
-TEST_TIMEOUT_MS :: 100
+TEST_TIMEOUT_MS :: 1000
 
 // types
 @(private)
@@ -58,8 +58,8 @@ run_tests :: proc(group_name: string, tests: []Test) {
 			test_context.passed_count += 1
 		} else {
 			test_context.failed_count += 1
-			_stop_thread(os_thread_info)
 			if !test_context.failed {fmt.printfln("Timed out. (%v ms)", TEST_TIMEOUT_MS)}
+			_exit(1)
 		}
 	}
 	if test_context.failed_count == 0 {

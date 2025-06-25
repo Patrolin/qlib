@@ -5,7 +5,6 @@ import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
 import "core:mem"
-import "core:strings"
 
 // constants
 DEBUG :: false
@@ -50,7 +49,7 @@ HalfFitFreeList :: struct {
 }
 #assert(align_of(HalfFitFreeList) == 8)
 
-HalfFitBlockHeader :: struct #align(CACHE_LINE_SIZE) {
+HalfFitBlockHeader :: struct #align (CACHE_LINE_SIZE) {
 	// used by free blocks
 	using _:        HalfFitFreeList,
 	// shared
@@ -65,7 +64,14 @@ HalfFitBlockHeader :: struct #align(CACHE_LINE_SIZE) {
 _half_fit_block_index :: proc(size: uint) -> int {
 	return int(math.log2_floor(size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 }
-_half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: uint) -> (size_index: uint, list_index: uint, none_available: bool) {
+_half_fit_data_index :: proc(
+	half_fit: ^HalfFitAllocator,
+	data_size: uint,
+) -> (
+	size_index: uint,
+	list_index: uint,
+	none_available: bool,
+) {
 	raw_size_index := math.log2_ceil(data_size) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 	size_index = raw_size_index < 64 ? raw_size_index : 0
 	size_mask := ~uint(0) >> uint(size_index)
@@ -74,7 +80,13 @@ _half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: uint) -> (s
 	none_available = available_mask == 0
 	return
 }
-_half_fit_split_size_and_flags :: proc(size_and_flags: uint) -> (is_used: bool, is_last: bool, size: int) {
+_half_fit_split_size_and_flags :: proc(
+	size_and_flags: uint,
+) -> (
+	is_used: bool,
+	is_last: bool,
+	size: int,
+) {
 	is_used = (size_and_flags >> 63) != 0
 	is_last = ((size_and_flags >> 62) & 1) != 0
 	size = transmute(int)((size_and_flags << 2) >> 2)
@@ -98,7 +110,15 @@ half_fit_allocator_proc :: proc(
 	get_lock(&half_fit.lock)
 	defer release_lock(&half_fit.lock)
 	when DEBUG {
-		fmt.printfln("mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v, loc: %v", mode, size, _alignment, old_ptr, old_size, loc)
+		fmt.printfln(
+			"mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v, loc: %v",
+			mode,
+			size,
+			_alignment,
+			old_ptr,
+			old_size,
+			loc,
+		)
 	}
 
 	#partial switch mode {
@@ -140,13 +160,25 @@ half_fit_allocator_proc :: proc(
 	return
 }
 
-_half_fit_create_new_block :: proc(half_fit: ^HalfFitAllocator, prev_block: ^HalfFitBlockHeader, is_last: bool, block: []u8) {
+_half_fit_create_new_block :: proc(
+	half_fit: ^HalfFitAllocator,
+	prev_block: ^HalfFitBlockHeader,
+	is_last: bool,
+	block: []u8,
+) {
 	block_header := (^HalfFitBlockHeader)(&block[0])
 	block_header.prev_block = prev_block
-	block_header.size_and_flags = _half_fit_merge_size_and_flags(false, is_last, len(block) - size_of(HalfFitBlockHeader))
+	block_header.size_and_flags = _half_fit_merge_size_and_flags(
+		false,
+		is_last,
+		len(block) - size_of(HalfFitBlockHeader),
+	)
 	_half_fit_mark_block_as_free(half_fit, block_header)
 }
-_half_fit_mark_block_as_free :: proc(half_fit: ^HalfFitAllocator, block_header: ^HalfFitBlockHeader) {
+_half_fit_mark_block_as_free :: proc(
+	half_fit: ^HalfFitAllocator,
+	block_header: ^HalfFitBlockHeader,
+) {
 	data_size := (block_header.size_and_flags << 2) >> 2
 	list_index := _half_fit_block_index(data_size)
 	free_list := &half_fit.free_lists[list_index]
@@ -176,7 +208,10 @@ half_fit_alloc :: proc(
 	err: runtime.Allocator_Error,
 ) {
 	// get next free block
-	size_index, list_index, none_available := _half_fit_data_index(half_fit, transmute(uint)data_size)
+	size_index, list_index, none_available := _half_fit_data_index(
+		half_fit,
+		transmute(uint)data_size,
+	)
 	data_size := HALF_FIT_MIN_BLOCK_DATA_SIZE << size_index
 	free_list := &half_fit.free_lists[list_index]
 	block_header := (^HalfFitBlockHeader)(free_list.next_free)
@@ -196,7 +231,12 @@ half_fit_alloc :: proc(
 	if intrinsics.expect(prev_size >= data_size + HALF_FIT_MIN_BLOCK_SIZE, true) {
 		next_block := math.ptr_add(ptr, data_size)
 		block_header.size_and_flags = transmute(uint)data_size
-		_half_fit_create_new_block(half_fit, block_header, is_last, next_block[:prev_size - data_size])
+		_half_fit_create_new_block(
+			half_fit,
+			block_header,
+			is_last,
+			next_block[:prev_size - data_size],
+		)
 	}
 	// set is_used flag
 	block_header.size_and_flags |= uint(1) << 63
@@ -208,8 +248,12 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	block_header := (^HalfFitBlockHeader)(math.ptr_add(old_ptr, -size_of(HalfFitBlockHeader)))
 	is_used, is_last, size := _half_fit_split_size_and_flags(block_header.size_and_flags)
 	fmt.assertf(is_used, "Cannot free an unused block: %p", block_header, loc = loc)
-	next_block := (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + size))
-	next_is_used, next_is_last, next_size := _half_fit_split_size_and_flags(next_block.size_and_flags)
+	next_block := (^HalfFitBlockHeader)(
+		math.ptr_add(block_header, size_of(HalfFitBlockHeader) + size),
+	)
+	next_is_used, next_is_last, next_size := _half_fit_split_size_and_flags(
+		next_block.size_and_flags,
+	)
 	if intrinsics.expect(!next_is_used, true) {
 		when DEBUG {
 			fmt.printfln("MERGE with next_block:")
@@ -224,7 +268,9 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	// merge with prev_block
 	prev_block := block_header.prev_block
 	if intrinsics.expect(prev_block != nil, true) {
-		prev_is_used, prev_is_last, prev_size := _half_fit_split_size_and_flags(prev_block.size_and_flags)
+		prev_is_used, prev_is_last, prev_size := _half_fit_split_size_and_flags(
+			prev_block.size_and_flags,
+		)
 		if intrinsics.expect(!prev_is_used, true) {
 			when DEBUG {
 				fmt.printfln("MERGE with prev_block:")
@@ -239,13 +285,19 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	}
 	// fix up next_block.prev_block
 	if intrinsics.expect(!is_last, true) {
-		next_block = (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + size))
+		next_block = (^HalfFitBlockHeader)(
+			math.ptr_add(block_header, size_of(HalfFitBlockHeader) + size),
+		)
 		next_block.prev_block = block_header
 	}
 	// mark block as free
 	_half_fit_mark_block_as_free(half_fit, block_header)
 }
-half_fit_check_blocks :: proc(prefix: string, half_fit: ^HalfFitAllocator, loc := #caller_location) {
+half_fit_check_blocks :: proc(
+	prefix: string,
+	half_fit: ^HalfFitAllocator,
+	loc := #caller_location,
+) {
 	when DEBUG {fmt.println(prefix)}
 	sum_of_block_sizes := int(0)
 	offset := 0
@@ -259,7 +311,12 @@ half_fit_check_blocks :: proc(prefix: string, half_fit: ^HalfFitAllocator, loc :
 		// check for invalid block
 		if data_size == 0 {break}
 		// check prev_block
-		test.expectf(block_header.prev_block == prev_block, "prev_block: %p, expected: %p", block_header.prev_block, prev_block)
+		test.expectf(
+			block_header.prev_block == prev_block,
+			"prev_block: %p, expected: %p",
+			block_header.prev_block,
+			prev_block,
+		)
 		prev_block = block_header
 		// loop
 		sum_of_block_sizes += size_of(HalfFitBlockHeader) + data_size
@@ -268,9 +325,19 @@ half_fit_check_blocks :: proc(prefix: string, half_fit: ^HalfFitAllocator, loc :
 	}
 	when DEBUG {
 		_half_fit_print_free_lists(half_fit)
-		fmt.printfln("  sum_of_block_sizes: %v, len(buffer): %v\n", sum_of_block_sizes, len(buffer))
+		fmt.printfln(
+			"  sum_of_block_sizes: %v, len(buffer): %v\n",
+			sum_of_block_sizes,
+			len(buffer),
+		)
 	}
-	test.expectf(sum_of_block_sizes == len(buffer), "sum_of_block_sizes: %v, expected: %v", sum_of_block_sizes, len(buffer), loc = loc)
+	test.expectf(
+		sum_of_block_sizes == len(buffer),
+		"sum_of_block_sizes: %v, expected: %v",
+		sum_of_block_sizes,
+		len(buffer),
+		loc = loc,
+	)
 	return
 }
 _half_fit_print_block :: proc(block_header: ^HalfFitBlockHeader) {

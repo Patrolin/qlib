@@ -6,16 +6,10 @@ import "../../src/test"
 import "../../src/threads"
 import "base:intrinsics"
 import "core:fmt"
-import "core:testing"
 import "core:time"
 
 @(test)
-tests_work_queue :: proc(t: ^testing.T) {
-	test.start_test(t)
-	test.set_fail_timeout(time.Second)
-	threads.init() // NOTE: something about setting our own context breaks the testing.expectf() when we have multiple threads..
-	/* NOTE: don't start the threads yet */
-
+tests_work_queue :: proc() {
 	// the work
 	work_1 :: proc(data: rawptr) {
 		//fmt.printfln("thread %v: work_1", context.user_index)
@@ -48,8 +42,10 @@ tests_work_queue :: proc(t: ^testing.T) {
 		)
 	}
 
-	// then run normally
+	// start the threads
 	threads.init_thread_pool(threads.work_queue_thread_proc)
+
+	// then run normally
 	for i in M ..< N {
 		threads.append_work(
 			&threads.work_queue,
@@ -70,7 +66,4 @@ tests_work_queue :: proc(t: ^testing.T) {
 	// assert on checksum
 	got_checksum := intrinsics.atomic_load(&checksum)
 	test.expectf(got_checksum == 0, "checksum should be 0, got: %v", got_checksum)
-
-	threads.free_all_for_tests()
-	test.end_test()
 }
