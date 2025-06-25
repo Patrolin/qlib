@@ -1,4 +1,5 @@
-// odin run tests -no-crt -default-to-nil-allocator -no-thread-local -linker:radlink
+// odin run tests -no-crt -default-to-nil-allocator -no-thread-local -linker:radlink -vet-unused
+// TODO: use -vet instead
 package tests
 import "../src/test"
 import "../src/threads"
