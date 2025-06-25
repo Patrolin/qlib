@@ -6,35 +6,40 @@ import "../src/threads"
 
 main :: proc() {
 	// fmt, math, test
-	test.run_tests("fmt", {{"test_fmt", test_fmt}})
-	test.run_tests(
-		"math",
-		{
-			{"test_count_leading_zeros", test_count_leading_zeros},
-			{"test_log2_floor", test_log2_floor},
-			{"test_log2_ceil", test_log2_ceil},
-			{"test_round_floor_ceil", test_round_floor_ceil},
-		},
-	)
+	test.group("fmt")
+	test.run_test(test_fmt)
+	test.group_end()
+
+	test.group("math")
+	test.run_test(test_count_leading_zeros)
+	test.run_test(test_log2_floor)
+	test.run_test(test_log2_ceil)
+	test.run_test(test_round_floor_ceil)
+	test.group_end()
 
 	// mem, os
 	context = threads.init()
-	test.run_tests(
-		"mem",
-		{
-			{"test_virtual_alloc", test_virtual_alloc},
-			{"test_arena_allocator", test_arena_allocator},
-			{"test_pool_alloc", test_pool_alloc},
-			{"test_half_fit_allocator", test_half_fit_allocator},
-		},
-	)
+	test.group("mem")
+	test.run_test(test_virtual_alloc)
+	test.run_test(test_arena_allocator)
+	test.run_test(test_pool_alloc)
+	test.run_test(test_half_fit_allocator)
+	test.group_end()
+
 	// threads, alloc, time
-	test.run_tests(
-		"threads",
-		{{"test_default_context", test_default_context}, {"test_work_queue", test_work_queue}},
-	)
-	test.run_tests("alloc", {{"test_map", test_map}, {"test_set", test_set}})
-	test.run_tests("time", {{"test_sleep_ns", test_sleep_ns}})
+	test.group("threads")
+	test.run_test(test_default_context)
+	test.run_test(test_work_queue)
+	test.group_end()
+
+	test.group("alloc")
+	test.run_test(test_map)
+	test.run_test(test_set)
+	test.group_end()
+
+	test.group("time")
+	test.run_test(test_sleep_ns)
+	test.group_end()
 
 	// cleanup
 	for &thread_info in threads.thread_infos {

@@ -5,6 +5,9 @@ import "core:fmt"
 // constants
 TEST_TIMEOUT_MS :: 1000
 
+// globals
+test_context: _TestContext
+
 // types
 @(private)
 _TestProcParams :: struct {
@@ -41,25 +44,26 @@ _test_failure_proc :: proc(prefix, message: string, loc: runtime.Source_Code_Loc
 	runtime.default_assertion_contextless_failure_proc(prefix, message, loc)
 }
 
-test_context: _TestContext
-run_tests :: proc(group_name: string, tests: []Test) {
+group :: proc(group_name: string) {
 	fmt.println(group_name)
+	test_context = _TestContext{}
+}
+run_test :: proc(test: proc(), test_name := #caller_expression(test)) {
 	ctx := context
 	ctx.assertion_failure_proc = _test_failure_proc
-	test_context = {}
-	for test in tests {
-		fmt.printfln("  - %v", test.name)
-		test_params := _TestProcParams{test.procedure, &ctx}
-		os_thread_info := _create_thread(1 << 16, _test_thread_proc, &test_params)
-		ok := _wait_for_thread(os_thread_info, TEST_TIMEOUT_MS)
-		if ok {
-			test_context.passed_count += 1
-		} else {
-			test_context.failed_count += 1
-			if !test_context.failed {fmt.printfln("Timed out. (%v ms)", TEST_TIMEOUT_MS)}
-			_exit(1)
-		}
+	fmt.printfln("  - %v", test_name)
+	test_params := _TestProcParams{test, &ctx}
+	os_thread_info := _create_thread(1 << 16, _test_thread_proc, &test_params)
+	ok := _wait_for_thread(os_thread_info, TEST_TIMEOUT_MS)
+	if ok {
+		test_context.passed_count += 1
+	} else {
+		test_context.failed_count += 1
+		if !test_context.failed {fmt.printfln("Timed out. (%v ms)", TEST_TIMEOUT_MS)}
+		_exit(1)
 	}
+}
+group_end :: proc() {
 	if test_context.failed_count == 0 {
 		fmt.printfln("  %v passed.", test_context.passed_count)
 	} else {
