@@ -1,8 +1,15 @@
 package os_utils
+import "../math"
 import "base:runtime"
 import "core:fmt"
 import core_os "core:os"
 import win "core:sys/windows"
+
+// constants
+ATTACH_PARENT_PROCESS :: transmute(win.DWORD)i32(-1)
+STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)
+STD_OUTPUT_HANDLE :: transmute(win.DWORD)i32(-11)
+STD_ERROR_HANDLE :: transmute(win.DWORD)i32(-12)
 
 // imports
 foreign import kernel32 "system:kernel32.lib"
@@ -20,10 +27,6 @@ init :: #force_inline proc "contextless" () -> runtime.Context {
 	ctx := empty_context()
 	context = ctx
 	// console
-	ATTACH_PARENT_PROCESS :: transmute(win.DWORD)i32(-1)
-	STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)
-	STD_OUTPUT_HANDLE :: transmute(win.DWORD)i32(-11)
-	STD_ERROR_HANDLE :: transmute(win.DWORD)i32(-12)
 	AttachConsole(ATTACH_PARENT_PROCESS)
 	core_os.stdin = core_os.Handle(win.GetStdHandle(STD_INPUT_HANDLE))
 	core_os.stdout = core_os.Handle(win.GetStdHandle(STD_OUTPUT_HANDLE))
@@ -46,7 +49,12 @@ init :: #force_inline proc "contextless" () -> runtime.Context {
 	// window_border
 	window_border: win.RECT
 	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, false, 0)
-	info.window_border = {-window_border.left, -window_border.top, window_border.right, window_border.bottom}
+	info.window_border = math.AbsoluteRect {
+		-window_border.left,
+		-window_border.top,
+		window_border.right,
+		window_border.bottom,
+	}
 
 	return ctx
 }
