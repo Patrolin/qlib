@@ -10,7 +10,6 @@ import "core:fmt"
 import win "core:sys/windows"
 import "core:time"
 
-@(test)
 test_virtual_alloc :: proc() {
 	data := mem.page_alloc(threads.VIRTUAL_MEMORY_TO_RESERVE, false)
 	test.expectf(
@@ -32,7 +31,6 @@ test_virtual_alloc :: proc() {
 	)
 }
 
-@(test)
 test_pool_alloc :: proc() {
 	buffer := mem.page_alloc(mem.PAGE_SIZE)
 	pool_64b := mem.pool_allocator(buffer, 8)
@@ -48,7 +46,6 @@ test_pool_alloc :: proc() {
 	mem.pool_free(&pool_64b, y)
 }
 
-@(test)
 test_half_fit_allocator :: proc() {
 	buffer := mem.page_alloc(mem.PAGE_SIZE)
 	assert(uintptr(raw_data(buffer)) & uintptr(63) == 0)
@@ -93,7 +90,6 @@ test_half_fit_allocator :: proc() {
 	mem.page_free(raw_data(buffer))
 }
 
-@(test)
 test_arena_allocator :: proc() {
 	buffer := mem.page_alloc(mem.PAGE_SIZE)
 	arena_allocator := mem.arena_allocator(buffer)

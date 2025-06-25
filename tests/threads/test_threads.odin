@@ -1,15 +1,32 @@
 // odin test tests/utils/threads
 package test_threads_utils
 import "../../src/alloc"
+import "../../src/mem"
 import "../../src/os"
 import "../../src/test"
 import "../../src/threads"
 import "base:intrinsics"
 import "core:fmt"
+import win "core:sys/windows"
 import "core:time"
 
-@(test)
-tests_work_queue :: proc() {
+test_default_context :: proc() {
+	// allocator
+	x := new(int)
+	test.expect_was_allocated(x, "x", 13)
+	free(x)
+
+	// temp_allocator
+	y := new(int, allocator = context.temp_allocator)
+	test.expect_was_allocated(y, "y", 7)
+	free(y, allocator = context.temp_allocator)
+
+	// reserve on page fault
+	ptr := ([^]byte)(win.VirtualAlloc(nil, 4096, win.MEM_RESERVE, win.PAGE_READWRITE))
+	test.expect_was_allocated((^int)(ptr), "ptr", 13)
+}
+
+test_work_queue :: proc() {
 	// the work
 	work_1 :: proc(data: rawptr) {
 		//fmt.printfln("thread %v: work_1", context.user_index)

@@ -1,4 +1,4 @@
-// odin run tests -no-crt -default-to-nil-allocator -no-thread-local
+// odin run tests -no-crt -default-to-nil-allocator -no-thread-local -linker:radlink
 package tests
 import "../src/test"
 import threads_utils "../src/threads"
@@ -30,16 +30,15 @@ main :: proc() {
 			{"test_half_fit_allocator", mem.test_half_fit_allocator},
 		},
 	)
-	// alloc, threads, time
+	// threads, alloc, time
 	test.run_tests(
-		"alloc",
+		"threads",
 		{
-			{"test_default_context", alloc.test_default_context},
-			{"test_map", alloc.test_map},
-			{"test_set", alloc.test_set},
+			{"test_default_context", threads.test_default_context},
+			{"test_work_queue", threads.test_work_queue},
 		},
 	)
-	test.run_tests("threads", {{"tests_work_queue", threads.tests_work_queue}})
+	test.run_tests("alloc", {{"test_map", alloc.test_map}, {"test_set", alloc.test_set}})
 	test.run_tests("time", {{"test_sleep_ns", time.test_sleep_ns}})
 	// cleanup
 	for &thread_info in threads_utils.thread_infos {

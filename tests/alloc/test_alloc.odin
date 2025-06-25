@@ -1,37 +1,7 @@
 package test_alloc
 import "../../src/alloc"
-import "../../src/math"
-import "../../src/mem"
-import "../../src/os"
 import "../../src/test"
-import "../../src/threads"
-import "base:intrinsics"
-import "base:runtime"
-import "core:fmt"
-import win "core:sys/windows"
-import "core:time"
 
-// !TODO: get -no-crt -no-thread-local -default-to-nil-allocator -radlink to work
-
-@(test)
-test_default_context :: proc() {
-	// allocator
-	x := new(int)
-	test.expect_was_allocated(x, "x", 13)
-	free(x)
-
-	// temp_allocator
-	arena := (^mem.ArenaAllocator)(context.temp_allocator.data)
-	y := new(int, allocator = context.temp_allocator)
-	test.expect_was_allocated(y, "y", 7)
-	free(y, allocator = context.temp_allocator)
-
-	// reserve on page fault
-	ptr := ([^]byte)(win.VirtualAlloc(nil, 4096, win.MEM_RESERVE, win.PAGE_READWRITE))
-	test.expect_was_allocated((^int)(ptr), "ptr", 13)
-}
-
-@(test)
 test_map :: proc() {
 	m: alloc.Map(string, int) = {}
 
@@ -57,7 +27,6 @@ test_map :: proc() {
 	alloc.delete_map_like(&m)
 }
 
-@(test)
 test_set :: proc() {
 	m: alloc.Set(string) = {}
 

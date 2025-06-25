@@ -30,10 +30,10 @@ arena_allocator_proc :: proc(
 	DEBUG :: false
 	when DEBUG {fmt.printfln("mode: %v, size: %v, loc: %v", mode, size, loc)}
 
-	// !TODO: turn this into assert_single_threaded(lock: ^Lock)?
 	arena_allocator := (^ArenaAllocator)(allocator)
-	assert(arena_allocator.lock == false, loc = loc)
-	get_lock(&arena_allocator.lock)
+	// assert single threaded
+	ok := get_lock_or_error(&arena_allocator.lock)
+	assert(ok, loc = loc)
 	defer release_lock(&arena_allocator.lock)
 
 	#partial switch mode {
