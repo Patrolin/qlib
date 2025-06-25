@@ -1,10 +1,9 @@
-// odin run tests/fmt -default-to-nil-allocator
-package test_fmt
-import "../../src/fmt"
+package tests
+import "../src/fmt"
 import "base:runtime"
 import core_fmt "core:fmt"
 
-main :: proc() {
+test_fmt :: proc() {
 	context.allocator = runtime.nil_allocator()
 	context.temp_allocator = runtime.nil_allocator()
 	fmt.printf("test: %v", 13)

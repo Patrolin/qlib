@@ -1,6 +1,6 @@
-package test_time
-import "../../src/os"
-import "../../src/time"
+package tests
+import "../src/os"
+import "../src/time"
 import "core:fmt"
 
 test_sleep_ns :: proc() {

@@ -1,10 +1,9 @@
-// odin test tests/utils/threads
-package test_threads_utils
-import "../../src/alloc"
-import "../../src/mem"
-import "../../src/os"
-import "../../src/test"
-import "../../src/threads"
+package tests
+import "../src/alloc"
+import "../src/mem"
+import "../src/os"
+import "../src/test"
+import "../src/threads"
 import "base:intrinsics"
 import "core:fmt"
 import win "core:sys/windows"

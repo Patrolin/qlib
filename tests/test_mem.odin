@@ -1,9 +1,8 @@
-// odin test tests/mem
-package test_mem
-import "../../src/math"
-import "../../src/mem"
-import "../../src/test"
-import "../../src/threads"
+package tests
+import "../src/math"
+import "../src/mem"
+import "../src/test"
+import "../src/threads"
 import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"

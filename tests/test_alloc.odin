@@ -1,6 +1,6 @@
-package test_alloc
-import "../../src/alloc"
-import "../../src/test"
+package tests
+import "../src/alloc"
+import "../src/test"
 
 test_map :: proc() {
 	m: alloc.Map(string, int) = {}

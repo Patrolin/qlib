@@ -1,7 +1,6 @@
-// odin test tests/math
-package test_math
-import "../../src/math"
-import "../../src/test"
+package tests
+import "../src/math"
+import "../src/test"
 import "core:fmt"
 
 test_round_floor_ceil :: proc() {
