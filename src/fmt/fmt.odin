@@ -8,9 +8,8 @@ import "core:os"
 print :: proc(args: ..any, separator := " ", flush := true, newline := true) {
 	buf: [1024]byte
 	b: bufio.Writer
-	defer bufio.writer_flush(&b)
-
 	bufio.writer_init_with_buf(&b, os.stream_from_handle(os.stdout), buf[:])
+	defer bufio.writer_flush(&b)
 
 	// mostly copy paste from fmt.wprint()
 	w := bufio.writer_to_writer(&b)
@@ -28,9 +27,8 @@ print :: proc(args: ..any, separator := " ", flush := true, newline := true) {
 printf :: proc(format: string, args: ..any, flush := true, newline := true) {
 	buf: [1024]byte
 	b: bufio.Writer
-	defer bufio.writer_flush(&b)
-
 	bufio.writer_init_with_buf(&b, os.stream_from_handle(os.stdout), buf[:])
+	defer bufio.writer_flush(&b)
 
 	w := bufio.writer_to_writer(&b)
 	fmt.wprintf(w, format, ..args, flush = flush, newline = newline)
