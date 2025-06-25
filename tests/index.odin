@@ -15,6 +15,7 @@ main :: proc() {
 			{"test_round_floor_ceil", test_round_floor_ceil},
 		},
 	)
+
 	// mem, os
 	context = threads.init()
 	test.run_tests(
@@ -33,6 +34,7 @@ main :: proc() {
 	)
 	test.run_tests("alloc", {{"test_map", test_map}, {"test_set", test_set}})
 	test.run_tests("time", {{"test_sleep_ns", test_sleep_ns}})
+
 	// cleanup
 	for &thread_info in threads.thread_infos {
 		if thread_info.os_info.handle != nil {
