@@ -1,8 +1,5 @@
 package mem_utils
 import "../math"
-import "base:runtime"
-import "core:fmt"
-import "core:mem"
 import win "core:sys/windows"
 
 // procedures
@@ -19,26 +16,47 @@ _page_fault_exception_handler :: proc "system" (exception: ^win.EXCEPTION_POINTE
 		commited_ptr := win.VirtualAlloc(ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
 		when DEBUG {
 			//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", exception.ExceptionRecord)
-			fmt.printfln("EXCEPTION_ACCESS_VIOLATION, ptr: %v, commited_ptr: %v", ptr, commited_ptr)
+			fmt.printfln(
+				"EXCEPTION_ACCESS_VIOLATION, ptr: %v, commited_ptr: %v",
+				ptr,
+				commited_ptr,
+			)
 		}
 
 		ERROR_INVALID_ADDRESS :: 487
-		return ptr != nil && commited_ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER
+		return(
+			ptr != nil && commited_ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER \
+		)
 	}
 	return win.EXCEPTION_EXECUTE_HANDLER
 }
 // TODO: don't use page_alloc() outside of utils/alloc
 page_alloc :: proc(size: math.Size, commit_immediately := true) -> []byte {
-	ptr := VirtualAlloc2(nil, nil, win.SIZE_T(size), win.MEM_RESERVE | (commit_immediately ? win.MEM_COMMIT : 0), win.PAGE_READWRITE, nil, 0)
+	ptr := VirtualAlloc2(
+		nil,
+		nil,
+		win.SIZE_T(size),
+		win.MEM_RESERVE | (commit_immediately ? win.MEM_COMMIT : 0),
+		win.PAGE_READWRITE,
+		nil,
+		0,
+	)
 	return (cast([^]byte)ptr)[:size]
 }
 // ?TODO: remove this
-page_alloc_aligned :: proc(size: math.Size, alignment: math.Size, loc := #caller_location) -> []byte {
+page_alloc_aligned :: proc(
+	size: math.Size,
+	alignment: math.Size,
+	loc := #caller_location,
+) -> []byte {
 	address_requirement := MEM_ADDRESS_REQUIREMENTS {
 		Alignment = win.SIZE_T(alignment),
 	}
 	alloc_params: []MEM_EXTENDED_PARAMETER = {
-		MEM_EXTENDED_PARAMETER{Type = .MemExtendedParameterAddressRequirements, Pointer = &address_requirement},
+		MEM_EXTENDED_PARAMETER {
+			Type = .MemExtendedParameterAddressRequirements,
+			Pointer = &address_requirement,
+		},
 	}
 	ptr := VirtualAlloc2(
 		nil,

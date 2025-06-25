@@ -1,6 +1,5 @@
 package os_utils
 import "../math"
-import "core:fmt"
 import "core:strings"
 import win "core:sys/windows"
 
@@ -17,11 +16,14 @@ MAKEWORD :: #force_inline proc "contextless" (hi, lo: u32) -> u32 {return (hi <<
 // TODO: can we just use -A functions instead?
 win_string_to_wstring :: win.utf8_to_wstring
 win_wstring_to_string :: proc(str: []win.WCHAR, allocator := context.temp_allocator) -> string {
-	res, err := win.wstring_to_utf8(raw_data(str), len(str), allocator = allocator)
+	res, _ := win.wstring_to_utf8(raw_data(str), len(str), allocator = allocator)
 	return res
 }
-win_null_terminated_wstring_to_string :: proc(str: [^]win.WCHAR, allocator := context.temp_allocator) -> string {
-	res, err := win.wstring_to_utf8(str, -1, allocator = allocator)
+win_null_terminated_wstring_to_string :: proc(
+	str: [^]win.WCHAR,
+	allocator := context.temp_allocator,
+) -> string {
+	res, _ := win.wstring_to_utf8(str, -1, allocator = allocator)
 	return res
 }
 win_get_last_error_message :: proc() -> (error: u32, error_message: string) {
@@ -48,20 +50,30 @@ win_get_last_error_message :: proc() -> (error: u32, error_message: string) {
 	return
 }
 win_get_monitor_rect :: proc(window_handle: win.HWND) -> math.RelativeRect {
-	monitor := win.MonitorFromWindow(window_handle, win.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST)
+	monitor := win.MonitorFromWindow(
+		window_handle,
+		win.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST,
+	)
 	info := win.MONITORINFO {
 		cbSize = size_of(win.MONITORINFO),
 	}
 	assert(bool(win.GetMonitorInfoW(monitor, &info)))
 	monitor_rect := info.rcMonitor
-	return math.relative_rect({monitor_rect.left, monitor_rect.top, monitor_rect.right, monitor_rect.bottom})
+	return math.relative_rect(
+		{monitor_rect.left, monitor_rect.top, monitor_rect.right, monitor_rect.bottom},
+	)
 }
 win_get_window_rect :: proc(window_handle: win.HWND) -> math.RelativeRect {
 	window_rect: win.RECT
 	win.GetWindowRect(window_handle, &window_rect)
-	return math.relative_rect({window_rect.left, window_rect.top, window_rect.right, window_rect.bottom})
+	return math.relative_rect(
+		{window_rect.left, window_rect.top, window_rect.right, window_rect.bottom},
+	)
 }
-win_get_client_rect :: proc(window_handle: win.HWND, window_rect: math.RelativeRect) -> math.RelativeRect {
+win_get_client_rect :: proc(
+	window_handle: win.HWND,
+	window_rect: math.RelativeRect,
+) -> math.RelativeRect {
 	win_client_rect: win.RECT
 	win.GetClientRect(window_handle, &win_client_rect)
 	window_border := info.window_border

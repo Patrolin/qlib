@@ -70,14 +70,13 @@ _half_fit_data_index :: proc(
 ) -> (
 	size_index: uint,
 	list_index: uint,
-	none_available: bool,
 ) {
 	raw_size_index := math.log2_ceil(data_size) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 	size_index = raw_size_index < 64 ? raw_size_index : 0
 	size_mask := ~uint(0) >> uint(size_index)
 	available_mask := uint(half_fit.available_bitfield) & size_mask
 	list_index = math.log2_floor(available_mask)
-	none_available = available_mask == 0
+	//none_available = available_mask == 0
 	return
 }
 _half_fit_split_size_and_flags :: proc(
@@ -208,10 +207,7 @@ half_fit_alloc :: proc(
 	err: runtime.Allocator_Error,
 ) {
 	// get next free block
-	size_index, list_index, none_available := _half_fit_data_index(
-		half_fit,
-		transmute(uint)data_size,
-	)
+	size_index, list_index := _half_fit_data_index(half_fit, transmute(uint)data_size)
 	data_size := HALF_FIT_MIN_BLOCK_DATA_SIZE << size_index
 	free_list := &half_fit.free_lists[list_index]
 	block_header := (^HalfFitBlockHeader)(free_list.next_free)
@@ -268,9 +264,7 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	// merge with prev_block
 	prev_block := block_header.prev_block
 	if intrinsics.expect(prev_block != nil, true) {
-		prev_is_used, prev_is_last, prev_size := _half_fit_split_size_and_flags(
-			prev_block.size_and_flags,
-		)
+		prev_is_used, _, prev_size := _half_fit_split_size_and_flags(prev_block.size_and_flags)
 		if intrinsics.expect(!prev_is_used, true) {
 			when DEBUG {
 				fmt.printfln("MERGE with prev_block:")
@@ -307,7 +301,7 @@ half_fit_check_blocks :: proc(
 		// get next block header
 		block_header := (^HalfFitBlockHeader)(&buffer[offset])
 		when DEBUG {_half_fit_print_block(block_header)}
-		is_used, is_last, data_size := _half_fit_split_size_and_flags(block_header.size_and_flags)
+		_, is_last, data_size := _half_fit_split_size_and_flags(block_header.size_and_flags)
 		// check for invalid block
 		if data_size == 0 {break}
 		// check prev_block

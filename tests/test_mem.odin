@@ -5,9 +5,6 @@ import "../src/test"
 import "../src/threads"
 import "base:intrinsics"
 import "base:runtime"
-import "core:fmt"
-import win "core:sys/windows"
-import "core:time"
 
 test_virtual_alloc :: proc() {
 	data := mem.page_alloc(threads.VIRTUAL_MEMORY_TO_RESERVE, false)

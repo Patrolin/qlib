@@ -1,6 +1,5 @@
 package math_utils
 import intrinsics "base:intrinsics"
-import "core:fmt"
 import bits "core:math/bits"
 
 // constants
@@ -30,25 +29,39 @@ count_leading_zeros :: bits.count_leading_zeros
 count_trailing_zeros :: bits.count_trailing_zeros
 count_ones :: bits.count_ones
 count_zeros :: bits.count_zeros
-is_power_of_two :: #force_inline proc "contextless" (x: $T) -> bool where intrinsics.type_is_integer(T) {
+is_power_of_two :: #force_inline proc "contextless" (
+	x: $T,
+) -> bool where intrinsics.type_is_integer(T) {
 	return count_ones(x) == 1
 }
-low_mask :: #force_inline proc "contextless" (power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
+low_mask :: #force_inline proc "contextless" (
+	power_of_two: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	return power_of_two - 1
 }
-high_mask :: #force_inline proc "contextless" (power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
+high_mask :: #force_inline proc "contextless" (
+	power_of_two: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	return ~(power_of_two - 1)
 }
-get_bit :: #force_inline proc "contextless" (x, bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
+get_bit :: #force_inline proc "contextless" (
+	x, bit_index: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	return (x >> bit_index) & 1
 }
-set_bit_one :: #force_inline proc "contextless" (x, bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
+set_bit_one :: #force_inline proc "contextless" (
+	x, bit_index: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	return x | (1 << bit_index)
 }
-set_bit_zero :: #force_inline proc "contextless" (x, bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
+set_bit_zero :: #force_inline proc "contextless" (
+	x, bit_index: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	return x & ~(1 << bit_index)
 }
-set_bit :: #force_inline proc "contextless" (x, bit_index, bit_value: $T) -> T where intrinsics.type_is_unsigned(T) {
+set_bit :: #force_inline proc "contextless" (
+	x, bit_index, bit_value: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	x_without_bit := x & ~(1 << bit_index)
 	bit := ((bit_value & 1) << bit_index)
 	return x | bit

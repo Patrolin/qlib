@@ -1,10 +1,7 @@
 package threads_utils
 import "../math"
-import "../mem"
 import "../os"
 import "base:intrinsics"
-import "core:fmt"
-import "core:time"
 
 // globals
 work_queue: WorkQueue

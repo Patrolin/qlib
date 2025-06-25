@@ -1,7 +1,6 @@
 package os_utils
 import "../math"
 import "base:runtime"
-import "core:fmt"
 import core_os "core:os"
 import win "core:sys/windows"
 

@@ -1,8 +1,6 @@
 package test_utils
 import "base:runtime"
 import "core:fmt"
-import "core:strings"
-import "core:time"
 
 // constants
 TEST_TIMEOUT_MS :: 1000
@@ -84,10 +82,6 @@ expectf :: #force_inline proc(condition: bool, f: string, args: ..any, loc := #c
 	fmt.assertf(condition, f, ..args, loc = loc)
 }
 expect_case :: proc(test_case: Case($K, $V), got: V, got_expression := #caller_expression(got)) {
-	buffer: [64]u8
-	sb := strings.builder_from_slice(buffer[:])
-	key_string := fmt.sbprint(&sb, test_case.key)
-
 	fmt.assertf(
 		got == test_case.expected,
 		"%v: %v, expected: %v",

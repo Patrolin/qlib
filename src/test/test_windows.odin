@@ -1,5 +1,4 @@
 package test_utils
-import "core:fmt"
 import win "core:sys/windows"
 
 @(private)

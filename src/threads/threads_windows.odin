@@ -1,9 +1,6 @@
 package threads_utils
 import "../math"
-import "../mem"
 import "base:intrinsics"
-import "base:runtime"
-import "core:fmt"
 import win "core:sys/windows"
 
 // types

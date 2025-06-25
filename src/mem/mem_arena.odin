@@ -1,7 +1,6 @@
 package mem_utils
 import "../math"
 import "base:intrinsics"
-import "core:fmt"
 import "core:mem"
 
 // types

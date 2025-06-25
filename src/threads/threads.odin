@@ -3,7 +3,6 @@ import "../mem"
 import "../os"
 import "base:intrinsics"
 import "base:runtime"
-import "core:fmt"
 
 /* What I want out of a threading api:
 	1) framerate independent inputs

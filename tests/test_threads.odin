@@ -1,12 +1,8 @@
 package tests
-import "../src/alloc"
 import "../src/mem"
-import "../src/os"
 import "../src/test"
 import "../src/threads"
 import "base:intrinsics"
-import "core:fmt"
-import win "core:sys/windows"
 import "core:time"
 
 test_default_context :: proc() {
@@ -21,7 +17,7 @@ test_default_context :: proc() {
 	free(y, allocator = context.temp_allocator)
 
 	// reserve on page fault
-	ptr := ([^]byte)(win.VirtualAlloc(nil, 4096, win.MEM_RESERVE, win.PAGE_READWRITE))
+	ptr := raw_data(mem.page_alloc(4096, false))
 	test.expect_was_allocated((^int)(ptr), "ptr", 13)
 }
 
@@ -43,7 +39,7 @@ test_work_queue :: proc() {
 	// artificially fill up queue
 	M :: len(threads.WaitFreeQueueData) / 3 + 7
 	assert(M <= N)
-	for i in 0 ..< M {
+	for _ in 0 ..< M {
 		threads.append_work(
 			&threads.work_queue,
 			threads.Work{procedure = work_1, data = &checksum},
@@ -62,7 +58,7 @@ test_work_queue :: proc() {
 	threads.init_thread_pool(threads.work_queue_thread_proc)
 
 	// then run normally
-	for i in M ..< N {
+	for _ in M ..< N {
 		threads.append_work(
 			&threads.work_queue,
 			threads.Work{procedure = work_1, data = &checksum},

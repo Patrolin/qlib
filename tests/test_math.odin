@@ -1,7 +1,6 @@
 package tests
 import "../src/math"
 import "../src/test"
-import "core:fmt"
 
 test_round_floor_ceil :: proc() {
 	// TODO: also test negative numbers
