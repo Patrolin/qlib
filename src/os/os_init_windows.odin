@@ -1,5 +1,6 @@
 package os_utils
 import "../math"
+import "../mem"
 import "base:runtime"
 import core_os "core:os"
 import win "core:sys/windows"
@@ -25,6 +26,8 @@ empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 init :: #force_inline proc "contextless" () -> runtime.Context {
 	ctx := empty_context()
 	context = ctx
+	// page fault handler
+	mem.init_page_fault_handler()
 	// console
 	AttachConsole(ATTACH_PARENT_PROCESS)
 	core_os.stdin = core_os.Handle(win.GetStdHandle(STD_INPUT_HANDLE))

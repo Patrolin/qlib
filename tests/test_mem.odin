@@ -1,56 +1,48 @@
 package tests
-import "../src/math"
 import "../src/mem"
 import "../src/test"
-import "../src/threads"
 import "base:intrinsics"
-import "base:runtime"
+import "core:fmt"
 
 test_virtual_alloc :: proc() {
-	data := mem.page_alloc(threads.VIRTUAL_MEMORY_TO_RESERVE, false)
+	data := mem.page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE)
+	// check not null
 	test.expectf(
 		data != nil,
-		"Failed to page_alloc(threads.VIRTUAL_MEMORY_TO_RESERVE), data: %v",
+		"Failed to page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE), data: %v",
 		data,
 	)
-	for offset := 0; offset < threads.VIRTUAL_MEMORY_TO_RESERVE; offset += mem.PAGE_SIZE {
+	// check commit on page fault
+	for offset := 0; offset < mem.VIRTUAL_MEMORY_TO_RESERVE; offset += mem.PAGE_SIZE {
 		raw_data(data)[offset] = 13
 	}
-	data = mem.page_alloc_aligned(64 * math.KIBI_BYTES, 64 * math.KIBI_BYTES)
-	test.expectf(data != nil, "Failed to page_alloc_aligned(64 kiB, 64 kiB), data: %v", data)
-	data_ptr := &data[0]
-	low_bits := uintptr(data_ptr) & math.low_mask(uintptr(16))
-	test.expectf(
-		low_bits == 0,
-		"Failed to page_alloc_aligned(64 kiB, 64 kiB), low_bits: %v",
-		low_bits,
+	// check is aligned to mem.PAGE_SIZE
+	test.expect(
+		uintptr(raw_data(data)) & uintptr(mem.PAGE_SIZE - 1) == 0,
+		"page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE) is not aligned to mem.PAGE_SIZE",
 	)
 }
 
 test_pool_alloc :: proc() {
-	buffer := mem.page_alloc(mem.PAGE_SIZE)
-	pool_64b := mem.pool_allocator(buffer, 8)
+	pool_allocator_8B: mem.PoolAllocator
+	mem.pool_allocator(&pool_allocator_8B, mem.page_reserve(mem.PAGE_SIZE), 8)
 
-	x := (^int)(mem.pool_alloc(&pool_64b))
+	x := (^int)(mem.pool_alloc(&pool_allocator_8B))
 	test.expect_was_allocated(x, "x", 13)
 
-	y := (^int)(mem.pool_alloc(&pool_64b))
+	y := (^int)(mem.pool_alloc(&pool_allocator_8B))
 	test.expect_was_allocated(y, "y", 7)
 	test.expect_still_allocated(x, "x", 13)
 
-	mem.pool_free(&pool_64b, x)
-	mem.pool_free(&pool_64b, y)
+	mem.pool_free(&pool_allocator_8B, x)
+	mem.pool_free(&pool_allocator_8B, y)
 }
 
 test_half_fit_allocator :: proc() {
-	buffer := mem.page_alloc(mem.PAGE_SIZE)
-	assert(uintptr(raw_data(buffer)) & uintptr(63) == 0)
 	half_fit: mem.HalfFitAllocator
-	mem.half_fit_allocator_init(&half_fit, buffer)
-	context.allocator = runtime.Allocator {
-		data      = &half_fit,
-		procedure = mem.half_fit_allocator_proc,
-	}
+	buffer := mem.page_reserve(mem.PAGE_SIZE)
+	assert(uintptr(raw_data(buffer)) & uintptr(mem.PAGE_SIZE - 1) == 0)
+	context.allocator = mem.half_fit_allocator(&half_fit, buffer)
 	mem.half_fit_check_blocks("1.", &half_fit)
 
 	x_raw := new([2]int)
@@ -87,9 +79,8 @@ test_half_fit_allocator :: proc() {
 }
 
 test_arena_allocator :: proc() {
-	buffer := mem.page_alloc(mem.PAGE_SIZE)
-	arena_allocator := mem.arena_allocator(buffer)
-	context.allocator = runtime.Allocator{mem.arena_allocator_proc, &arena_allocator}
+	arena_allocator: mem.ArenaAllocator
+	context.allocator = mem.arena_allocator(&arena_allocator, mem.page_reserve(mem.PAGE_SIZE))
 
 	x := new(int)
 	test.expect_was_allocated(x, "x", 13)
@@ -100,4 +91,16 @@ test_arena_allocator :: proc() {
 
 	free(x)
 	free(y)
+}
+
+test_default_context :: proc() {
+	// allocator
+	x := new(int)
+	test.expect_was_allocated(x, "x", 13)
+	free(x)
+
+	// temp_allocator
+	y := new(int, allocator = context.temp_allocator)
+	test.expect_was_allocated(y, "y", 7)
+	free(y, allocator = context.temp_allocator)
 }

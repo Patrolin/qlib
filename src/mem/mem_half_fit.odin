@@ -27,21 +27,6 @@ HalfFitAllocator :: struct {
 	_buffer:            []u8,
 }
 #assert(size_of(HalfFitAllocator) <= 16 * 32)
-/* NOTE: HalfFitAllocator can't be easily copied, since there's a doubly linked list pointing to it, so we initialize it in-place */
-half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
-	half_fit.available_bitfield = 0
-	for i in 0 ..< HALF_FIT_FREE_LIST_COUNT {
-		free_list := &half_fit.free_lists[i]
-		free_list^ = {
-			next_free = free_list,
-			prev_free = free_list,
-		}
-	}
-	assert(len(buffer) >= HALF_FIT_MIN_BLOCK_SIZE)
-	assert(uintptr(raw_data(buffer)) & 63 == 0)
-	_half_fit_create_new_block(half_fit, nil, true, buffer)
-	half_fit._buffer = buffer
-}
 
 HalfFitFreeList :: struct {
 	next_free: ^HalfFitFreeList,
@@ -61,38 +46,22 @@ HalfFitBlockHeader :: struct #align (CACHE_LINE_SIZE) {
 #assert(size_of(HalfFitBlockHeader) == CACHE_LINE_SIZE)
 
 // procedures
-_half_fit_block_index :: proc(size: uint) -> int {
-	return int(math.log2_floor(size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
-}
-_half_fit_data_index :: proc(
-	half_fit: ^HalfFitAllocator,
-	data_size: uint,
-) -> (
-	size_index: uint,
-	list_index: uint,
-) {
-	raw_size_index := math.log2_ceil(data_size) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
-	size_index = raw_size_index < 64 ? raw_size_index : 0
-	size_mask := ~uint(0) >> uint(size_index)
-	available_mask := uint(half_fit.available_bitfield) & size_mask
-	list_index = math.log2_floor(available_mask)
-	//none_available = available_mask == 0
-	return
-}
-_half_fit_split_size_and_flags :: proc(
-	size_and_flags: uint,
-) -> (
-	is_used: bool,
-	is_last: bool,
-	size: int,
-) {
-	is_used = (size_and_flags >> 63) != 0
-	is_last = ((size_and_flags >> 62) & 1) != 0
-	size = transmute(int)((size_and_flags << 2) >> 2)
-	return
-}
-_half_fit_merge_size_and_flags :: proc(is_used: bool, is_last: bool, size: int) -> uint {
-	return (uint(is_used) << 63) | (uint(is_last) << 62) | transmute(uint)((size << 2) >> 2)
+half_fit_allocator :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) -> mem.Allocator {
+	/* NOTE: HalfFitAllocator can't be easily copied, since there's a doubly linked list pointing to it, so we initialize it in-place */
+	half_fit.available_bitfield = 0
+	for i in 0 ..< HALF_FIT_FREE_LIST_COUNT {
+		free_list := &half_fit.free_lists[i]
+		free_list^ = {
+			next_free = free_list,
+			prev_free = free_list,
+		}
+	}
+	assert(len(buffer) >= HALF_FIT_MIN_BLOCK_SIZE)
+	assert(uintptr(raw_data(buffer)) & 63 == 0)
+	_half_fit_create_new_block(half_fit, nil, true, buffer)
+	half_fit._buffer = buffer
+
+	return mem.Allocator{half_fit_allocator_proc, half_fit}
 }
 half_fit_allocator_proc :: proc(
 	allocator_data: rawptr,
@@ -157,6 +126,40 @@ half_fit_allocator_proc :: proc(
 		half_fit_check_blocks("", half_fit)
 	}
 	return
+}
+
+_half_fit_block_index :: proc(size: uint) -> int {
+	return int(math.log2_floor(size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
+}
+_half_fit_data_index :: proc(
+	half_fit: ^HalfFitAllocator,
+	data_size: uint,
+) -> (
+	size_index: uint,
+	list_index: uint,
+) {
+	raw_size_index := math.log2_ceil(data_size) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
+	size_index = raw_size_index < 64 ? raw_size_index : 0
+	size_mask := ~uint(0) >> uint(size_index)
+	available_mask := uint(half_fit.available_bitfield) & size_mask
+	list_index = math.log2_floor(available_mask)
+	//none_available = available_mask == 0
+	return
+}
+_half_fit_split_size_and_flags :: proc(
+	size_and_flags: uint,
+) -> (
+	is_used: bool,
+	is_last: bool,
+	size: int,
+) {
+	is_used = (size_and_flags >> 63) != 0
+	is_last = ((size_and_flags >> 62) & 1) != 0
+	size = transmute(int)((size_and_flags << 2) >> 2)
+	return
+}
+_half_fit_merge_size_and_flags :: proc(is_used: bool, is_last: bool, size: int) -> uint {
+	return (uint(is_used) << 63) | (uint(is_last) << 62) | transmute(uint)((size << 2) >> 2)
 }
 
 _half_fit_create_new_block :: proc(

@@ -1,5 +1,4 @@
 package threads_utils
-import "../math"
 import "../os"
 import "base:intrinsics"
 
@@ -22,6 +21,7 @@ init_thread_pool :: proc(thread_proc: ThreadProc, loc := #caller_location) {
 	assert(new_thread_count > 0, loc = loc)
 
 	semaphore = _create_semaphore(i32(max(0, new_thread_count)))
+	/* TODO: threads - how to init threads?
 	for i in thread_index_start ..< thread_index_end {
 		thread_infos[i].os_info = launch_os_thread(
 			64 * math.KIBI_BYTES,
@@ -29,11 +29,9 @@ init_thread_pool :: proc(thread_proc: ThreadProc, loc := #caller_location) {
 			&thread_infos[i],
 		)
 	}
+	*/
 }
-work_queue_thread_proc :: proc "std" (thread_info: rawptr) -> u32 {
-	thread_info := cast(^ThreadInfo)thread_info
-	context = thread_context(int(thread_info.index))
-
+work_queue_thread_proc :: proc() -> u32 {
 	for {
 		intrinsics.atomic_add(&running_thread_count, 1)
 		join_queue(&work_queue)
@@ -55,7 +53,5 @@ do_next_work :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 }
 // make sure that all queued work has started running
 join_queue :: #force_inline proc(queue: ^WorkQueue) {
-	for do_next_work(queue) {
-		//fmt.printfln("queue: %v", queue)
-	}
+	for do_next_work(queue) {}
 }

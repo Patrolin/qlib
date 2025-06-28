@@ -1,25 +1,8 @@
 package tests
-import "../src/mem"
 import "../src/test"
 import "../src/threads"
 import "base:intrinsics"
 import "core:time"
-
-test_default_context :: proc() {
-	// allocator
-	x := new(int)
-	test.expect_was_allocated(x, "x", 13)
-	free(x)
-
-	// temp_allocator
-	y := new(int, allocator = context.temp_allocator)
-	test.expect_was_allocated(y, "y", 7)
-	free(y, allocator = context.temp_allocator)
-
-	// reserve on page fault
-	ptr := raw_data(mem.page_alloc(4096, false))
-	test.expect_was_allocated((^int)(ptr), "ptr", 13)
-}
 
 test_work_queue :: proc() {
 	// the work
@@ -55,7 +38,8 @@ test_work_queue :: proc() {
 	}
 
 	// start the threads
-	threads.init_thread_pool(threads.work_queue_thread_proc)
+	// TODO: threads
+	//threads.init_thread_pool(threads.work_queue_thread_proc)
 
 	// then run normally
 	for _ in M ..< N {

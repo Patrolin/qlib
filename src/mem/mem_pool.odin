@@ -12,10 +12,6 @@ PoolAllocator :: struct {
 	slot_size:       int,
 }
 #assert(size_of(PoolAllocator) <= 64)
-pool_allocator :: proc(buffer: []byte, slot_size: int) -> PoolAllocator {
-	assert(slot_size >= size_of(^FreePoolSlot))
-	return PoolAllocator{false, nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
-}
 
 FreePoolSlot :: struct {
 	next_free_slot: ^FreePoolSlot,
@@ -23,6 +19,10 @@ FreePoolSlot :: struct {
 #assert(size_of(FreePoolSlot) <= 8)
 
 // procedures
+pool_allocator :: proc(pool_allocator: ^PoolAllocator, buffer: []byte, slot_size: int) {
+	assert(slot_size >= size_of(^FreePoolSlot))
+	pool_allocator^ = PoolAllocator{false, nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
+}
 pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
 	get_lock(&pool.lock)
 	defer release_lock(&pool.lock)
@@ -33,7 +33,9 @@ pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
 	slot := have_free_slot ? next_free_slot : next_empty_slot
 	// update pool
 	pool.next_free_slot = have_free_slot ? slot.next_free_slot : next_free_slot
-	pool.next_empty_slot = (^FreePoolSlot)(math.ptr_add(next_empty_slot, have_free_slot ? 0 : pool.slot_size))
+	pool.next_empty_slot = (^FreePoolSlot)(
+		math.ptr_add(next_empty_slot, have_free_slot ? 0 : pool.slot_size),
+	)
 	return ([^]byte)(slot)
 }
 pool_free :: proc(pool: ^PoolAllocator, old_ptr: rawptr) {

@@ -12,6 +12,8 @@ PAGE_SIZE :: 1 << PAGE_SIZE_EXPONENT
 HUGE_PAGE_SIZE_EXPONENT :: 21
 HUGE_PAGE_SIZE :: 1 << HUGE_PAGE_SIZE_EXPONENT
 
+VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
+
 // procedures
 zero_simd_64B :: proc(dest: rawptr, size: int) {
 	dest := uintptr(dest)
