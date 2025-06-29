@@ -20,9 +20,6 @@ foreign kernel32 {
 }
 
 // procedures
-empty_context :: #force_inline proc "contextless" () -> runtime.Context {
-	return runtime.Context{assertion_failure_proc = runtime.default_assertion_failure_proc}
-}
 init :: #force_inline proc "contextless" () -> runtime.Context {
 	ctx := empty_context()
 	context = ctx
