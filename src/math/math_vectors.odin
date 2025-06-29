@@ -1,10 +1,10 @@
 package math_utils
 import "base:intrinsics"
-import core_math "core:math"
+import odin_math "core:math"
 
 // constants
-PI :: core_math.PI
-TAU :: core_math.TAU
+PI :: odin_math.PI
+TAU :: odin_math.TAU
 
 // types
 /* NOTE: Odin vector types (.xyzw, .rgba)
@@ -24,18 +24,18 @@ RelativeRect :: struct {
 }
 
 // procedures
-sin :: core_math.sin
-cos :: core_math.cos
-mod :: core_math.mod
-sqrt :: core_math.sqrt
-exp :: core_math.exp
-pow :: core_math.pow
+sin :: odin_math.sin
+cos :: odin_math.cos
+mod :: odin_math.mod
+sqrt :: odin_math.sqrt
+exp :: odin_math.exp
+pow :: odin_math.pow
 norm :: proc(vector: [$N]$T) -> f32 {
 	acc := f32(0)
 	for v in vector {acc += f32(v * v)}
 	return sqrt(acc)
 }
-sincos :: core_math.sincos
+sincos :: odin_math.sincos
 absolute_rect :: #force_inline proc "contextless" (rect: RelativeRect) -> AbsoluteRect {
 	return {rect.left, rect.top, rect.left + rect.width, rect.top + rect.height}
 }

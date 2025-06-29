@@ -1,9 +1,0 @@
-package tests
-import "../src/time"
-
-test_sleep_ns :: proc() {
-	// TODO: test random amounts to sleep?
-	for i := 0; i < 5; i += 1 {
-		time.sleep_ns(4 * time.MILLISECOND)
-	}
-}

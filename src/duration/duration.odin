@@ -1,10 +1,7 @@
 package duration_utils
 import "../math"
-import "../os"
 import "base:intrinsics"
-import "core:fmt"
-import win "core:sys/windows"
-import core_time "core:time"
+import odin_time "core:time"
 
 // constants
 NANOSECOND :: Duration(1)
@@ -13,28 +10,18 @@ MILLISECOND :: Duration(1e6)
 SECOND :: Duration(1e9)
 
 // types
-Time :: core_time.Time
-Duration :: core_time.Duration
+Time :: odin_time.Time
+Duration :: odin_time.Duration
 Cycles :: distinct i64
 
 // procedures
-now :: proc "contextless" () -> Time {
-	when ODIN_OS == .Windows {
-		counter: win.LARGE_INTEGER
-		win.QueryPerformanceCounter(&counter)
-		ns := i64(counter) * os.info._time_multiplier
-	} else {
-		#assert(false, "Not implemented")
-	}
-	return Time{ns}
-}
 now_cycles :: #force_inline proc "contextless" () -> Cycles {
 	// NOTE: QueryThreadCycleTime(), GetThreadTimes() and similar are completely broken
 	return Cycles(intrinsics.read_cycle_counter())
 }
 
-add :: #force_inline proc "contextless" (time: Time, offset: Duration) -> Time {
-	return Time{time._nsec + i64(offset)}
+add :: #force_inline proc "contextless" (time: Time, ns: Duration) -> Time {
+	return Time{time._nsec + i64(ns)}
 }
 
 sub_time :: #force_inline proc "contextless" (end, start: Time) -> Duration {
@@ -57,28 +44,4 @@ div_cycles :: #force_inline proc "contextless" (a: Cycles, n: i64) -> Cycles {
 div :: proc {
 	div_duration,
 	div_cycles,
-}
-
-sleep_ns :: proc(ns: Duration) {
-	when ODIN_OS == .Windows {
-		end_time := add(now(), ns)
-		diff := sub(end_time, now())
-		//fmt.printfln("  0: %v ns", diff)
-		OS_PREEMPT_FREQUENCY :: 500 * MICROSECOND
-		MAX_OS_THREAD_WAIT :: 3 * OS_PREEMPT_FREQUENCY
-		for diff > MAX_OS_THREAD_WAIT {
-			ms_to_sleep := max(0, diff / MILLISECOND - 2)
-			win.Sleep(u32(ms_to_sleep))
-			diff = sub(end_time, now())
-			//fmt.printfln("1.a: %v ns (slept for %v ms)", diff, ms_to_sleep)
-		}
-		for diff > 0 {
-			intrinsics.cpu_relax()
-			diff = sub(end_time, now())
-		}
-		//fmt.printfln("  2: %v ns", diff)
-		fmt.assertf(diff == 0, "diff: %v", diff)
-	} else {
-		#assert(false, "Not implemented")
-	}
 }

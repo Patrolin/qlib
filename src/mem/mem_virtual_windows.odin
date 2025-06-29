@@ -1,7 +1,5 @@
 package mem_utils
 import "../math"
-import "base:runtime"
-import "core:fmt"
 import win "core:sys/windows"
 
 DEBUG_VIRTUAL :: false

@@ -54,6 +54,7 @@ main :: proc() {
 	test.group_end()
 
 	test.group("time")
+	test.run_test(test_now)
 	test.run_test(test_sleep_ns)
 	test.group_end()
 }

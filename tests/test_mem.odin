@@ -2,7 +2,6 @@ package tests
 import "../src/mem"
 import "../src/test"
 import "base:intrinsics"
-import "core:fmt"
 
 test_virtual_alloc :: proc() {
 	data := mem.page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE)

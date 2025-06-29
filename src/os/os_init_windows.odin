@@ -2,7 +2,7 @@ package os_utils
 import "../math"
 import "../mem"
 import "base:runtime"
-import core_os "core:os"
+import odin_os "core:os"
 import win "core:sys/windows"
 
 // constants
@@ -30,9 +30,9 @@ init :: #force_inline proc "contextless" () -> runtime.Context {
 	mem.init_page_fault_handler()
 	// console
 	AttachConsole(ATTACH_PARENT_PROCESS)
-	core_os.stdin = core_os.Handle(win.GetStdHandle(STD_INPUT_HANDLE))
-	core_os.stdout = core_os.Handle(win.GetStdHandle(STD_OUTPUT_HANDLE))
-	core_os.stderr = core_os.Handle(win.GetStdHandle(STD_ERROR_HANDLE))
+	odin_os.stdin = odin_os.Handle(win.GetStdHandle(STD_INPUT_HANDLE))
+	odin_os.stdout = odin_os.Handle(win.GetStdHandle(STD_OUTPUT_HANDLE))
+	odin_os.stderr = odin_os.Handle(win.GetStdHandle(STD_ERROR_HANDLE))
 	win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
 	// _time_divisor
 	query_performance_frequency: win.LARGE_INTEGER
