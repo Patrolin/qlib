@@ -137,15 +137,15 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 
 		cycles_string := ""
 		if has_init_proc {
-			cycles_string = fmt.tprintf("%v / %v", d_init_cycles, d_cycles)
+			cycles_string = fmt.tprintf("%v cy / %v cy", d_init_cycles, d_cycles)
 		} else {
-			cycles_string = fmt.tprint(d_cycles)
+			cycles_string = fmt.tprintf("%v cy", d_cycles)
 		}
 
 		runs := fmt.tprint(benchmark.runs)
 
 		fmt.table_append(&tb, benchmark_name, time_string, cycles_string, runs)
 	}
-	fmt.print_table(&tb, "  %v: %v, %v cy, n: %v")
+	fmt.print_table(&tb, "  %v: %v, %v, runs: %v")
 	// clear queued benchmarks
 }
