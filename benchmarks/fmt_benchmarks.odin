@@ -6,16 +6,14 @@ import "core:sys/linux"
 import win "core:sys/windows"
 
 // benchmarks
-assert_by_odin_fmt_assertf :: proc() {
-	odin_fmt.assertf(true, "foo: %v", 13)
-}
+do_nothing :: proc() {}
 assert_by_fmt_assertf :: proc() {
 	fmt.assertf(true, "foo: %v", 13)
 }
-
-print_by_odin_fmt :: proc() {
-	odin_fmt.print("hi")
+assert_by_odin_fmt_assertf :: proc() {
+	odin_fmt.assertf(true, "foo: %v", 13)
 }
+
 print_by_write_syscall :: proc() {
 	buf: [1024]byte
 	buf[0] = 'h'
@@ -28,4 +26,7 @@ print_by_write_syscall :: proc() {
 	} else {
 		#assert(false, "not implemented")
 	}
+}
+print_by_odin_fmt :: proc() {
+	odin_fmt.print("hi")
 }

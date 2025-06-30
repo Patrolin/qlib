@@ -15,10 +15,16 @@ main :: proc() {
 	benchmarks: duration.Benchmarks
 
 	// fmt benchmarks
+	/* NOTE: first runs are prone to not being in cache (resulting in 1000x slowdown)
+		and to being relocated in the executable when changing the procedure name, e.g. "assertf" -> "assertf2"
+		(resulting in a 2x slowdown), and thus should never be used.
+	*/
+	duration.append_benchmark(&benchmarks, do_nothing, timeout = 0)
 	duration.append_benchmark(&benchmarks, assert_by_fmt_assertf, timeout = 0)
 	duration.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf, timeout = 0)
 	duration.append_benchmark_group(&benchmarks)
 
+	duration.append_benchmark(&benchmarks, do_nothing)
 	duration.append_benchmark(&benchmarks, assert_by_fmt_assertf)
 	duration.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf)
 	duration.append_benchmark_group(&benchmarks)

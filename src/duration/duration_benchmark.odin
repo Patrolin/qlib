@@ -62,7 +62,7 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 			runs: i64 = 0
 			total_init_time: Duration
 			total_init_cycles: Cycles
-			for sub(time, start_time) <= timeout {
+			for {
 				// init
 				runs += 1
 				init_procedure()
@@ -78,6 +78,8 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 				time = now()
 				cycles = now_cycles()
 				mem.mfence()
+
+				if sub(time, start_time) >= timeout {break}
 			}
 			benchmark.d_total_time = div(sub(time, start_time), runs)
 			benchmark.d_total_cycles = div(sub(cycles, start_cycles), runs)
@@ -90,10 +92,11 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 			time := start_time
 			cycles: Cycles
 			runs: i64 = 0
-			for sub(time, start_time) <= timeout {
+			for {
 				runs += 1
 				procedure()
 				time = now()
+				if sub(time, start_time) >= timeout {break}
 			}
 			cycles = now_cycles()
 			benchmark.d_total_time = div(sub(time, start_time), runs)
