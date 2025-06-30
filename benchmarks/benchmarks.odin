@@ -1,33 +1,27 @@
-// odin run benchmarks
-package main
+// odin run benchmarks -o:speed
+package benchmarks
 import "../src/duration"
 import "../src/os"
 import "core:fmt"
 import odin_os "core:os"
+import "core:strings"
 import "core:sys/linux"
 import win "core:sys/windows"
 
-print_by_odin_fmt :: proc() {
-	fmt.print("hi")
-}
-print_by_write_syscall :: proc() {
-	buf: [1024]byte
-	buf[0] = 'h'
-	buf[1] = 'i'
-	buf[2] = 0
-	when ODIN_OS == .Windows {
-		win.WriteFile(win.HANDLE(odin_os.stdout), &buf, 2, nil, nil)
-	} else when ODIN_OS == .Linux {
-		linux.write(linux.STDOUT_FILENO, buf[:2])
-	} else {
-		#assert(false, "not implemented")
-	}
-}
-
 main :: proc() {
 	os.init()
+	odin_os.make_directory("benchmarks/data")
+	file_to_write = strings.repeat("abc\n", 4096 / 4)
+
 	benchmarks: duration.Benchmarks
+	// fmt
 	duration.append_benchmark(&benchmarks, print_by_odin_fmt)
 	duration.append_benchmark(&benchmarks, print_by_write_syscall)
+	// write
+	duration.append_benchmark(&benchmarks, write_by_syscall)
+	duration.append_benchmark(&benchmarks, write_by_syscall, delete_file, 0)
+	duration.append_benchmark(&benchmarks, write_by_odin_stdlib)
+	duration.append_benchmark(&benchmarks, write_by_odin_stdlib, delete_file, 0)
+
 	duration.run_benchmarks(&benchmarks)
 }

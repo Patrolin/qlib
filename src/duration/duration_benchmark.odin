@@ -1,29 +1,53 @@
 package duration_utils
-import "core:fmt"
+import "../fmt"
+import "core:strings"
 
 Benchmark :: struct {
-	procedure:      proc(),
-	procedure_name: string,
-	timeout:        Duration,
-	d_time:         Duration,
-	d_cycles:       Cycles,
-	n:              i64,
+	procedure:           proc(),
+	procedure_name:      string,
+	timeout:             Duration,
+	init_procedure:      proc(),
+	init_procedure_name: string,
+	d_time:              Duration,
+	d_cycles:            Cycles,
+	n:                   i64,
 }
 Benchmarks :: [dynamic]Benchmark
 append_benchmark :: proc(
 	benchmarks: ^Benchmarks,
 	procedure: proc(),
+	init_procedure: proc() = nil,
 	timeout := 100 * MILLISECOND,
 	procedure_name := #caller_expression(procedure),
+	init_procedure_name := #caller_expression(init_procedure),
 ) {
-	append(benchmarks, Benchmark{procedure, procedure_name, timeout, 0, 0, 0})
+	append(
+		benchmarks,
+		Benchmark {
+			procedure,
+			procedure_name,
+			timeout,
+			init_procedure,
+			init_procedure_name,
+			0,
+			0,
+			0,
+		},
+	)
 }
 run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 	// run benchmarks
 	for &benchmark in benchmarks {
-		fmt.printfln("  %v()", benchmark.procedure_name)
 		procedure := benchmark.procedure
 		timeout := benchmark.timeout
+		init_procedure := benchmark.init_procedure
+
+		if init_procedure != nil {
+			fmt.printfln("  %v() + %v()", benchmark.init_procedure_name, benchmark.procedure_name)
+			init_procedure()
+		} else {
+			fmt.printfln("  %v()", benchmark.procedure_name)
+		}
 		start_time := now()
 		start_cycles := now_cycles()
 		time := start_time
@@ -40,13 +64,12 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 		fmt.println()
 	}
 	// print results
+	tb: fmt.TableBuilder
 	for benchmark in benchmarks {
-		fmt.printfln(
-			"%v(): %v, %v cy, n: %v",
-			benchmark.procedure_name,
-			benchmark.d_time,
-			benchmark.d_cycles,
-			benchmark.n,
-		)
+		benchmark_name :=
+			benchmark.init_procedure != nil ? strings.concatenate({benchmark.init_procedure_name, "(); "}) : ""
+		benchmark_name = strings.concatenate({benchmark_name, benchmark.procedure_name, "()"})
+		fmt.table_append(&tb, benchmark_name, benchmark.d_time, benchmark.d_cycles, benchmark.n)
 	}
+	fmt.print_table(&tb, "%v: %v, %v cy, n: %v")
 }
