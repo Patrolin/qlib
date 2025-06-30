@@ -1,16 +1,17 @@
 package duration_utils
 import "../fmt"
+import "../mem"
 import "core:strings"
 
 Benchmark :: struct {
-	procedure:           proc(),
-	procedure_name:      string,
-	timeout:             Duration,
-	init_procedure:      proc(),
-	init_procedure_name: string,
-	d_time:              Duration,
-	d_cycles:            Cycles,
-	n:                   i64,
+	procedure:                     proc(),
+	procedure_name:                string,
+	timeout:                       Duration,
+	init_procedure:                proc(),
+	init_procedure_name:           string,
+	d_total_time, d_init_time:     Duration,
+	d_total_cycles, d_init_cycles: Cycles,
+	runs:                          i64,
 }
 Benchmarks :: [dynamic]Benchmark
 append_benchmark :: proc(
@@ -32,44 +33,121 @@ append_benchmark :: proc(
 			0,
 			0,
 			0,
+			0,
+			0,
 		},
 	)
 }
 run_benchmarks :: proc(benchmarks: ^Benchmarks) {
+	BENCHMARK_FORMAT_WITH_INIT :: "%v() / %v()"
+	BENCHMARK_FORMAT_WITHOUT_INIT :: "%v()"
 	// run benchmarks
 	for &benchmark in benchmarks {
 		procedure := benchmark.procedure
 		timeout := benchmark.timeout
 		init_procedure := benchmark.init_procedure
 
+		// print debug header
+		fmt.print("  ")
 		if init_procedure != nil {
-			fmt.printfln("  %v() + %v()", benchmark.init_procedure_name, benchmark.procedure_name)
+			fmt.printfln(
+				BENCHMARK_FORMAT_WITH_INIT,
+				benchmark.init_procedure_name,
+				benchmark.procedure_name,
+			)
 			init_procedure()
 		} else {
-			fmt.printfln("  %v()", benchmark.procedure_name)
+			fmt.printfln(BENCHMARK_FORMAT_WITHOUT_INIT, benchmark.procedure_name)
 		}
-		start_time := now()
-		start_cycles := now_cycles()
-		time := start_time
-		n: i64 = 0
-		for sub(time, start_time) <= timeout {
-			procedure()
-			n += 1
-			time = now()
+
+		// run benchmark
+		if init_procedure != nil {
+			start_time := now()
+			start_cycles := now_cycles()
+			time := start_time
+			cycles := start_cycles
+			runs: i64 = 0
+			total_init_time: Duration
+			total_init_cycles: Cycles
+			for sub(time, start_time) <= timeout {
+				// init
+				runs += 1
+				init_procedure()
+				mem.mfence()
+
+				total_init_time += sub(now(), time)
+				total_init_cycles += sub(now_cycles(), cycles)
+				mem.mfence()
+				// run procedure
+				procedure()
+				mem.mfence()
+
+				time = now()
+				cycles = now_cycles()
+				mem.mfence()
+			}
+			benchmark.d_total_time = div(sub(time, start_time), runs)
+			benchmark.d_total_cycles = div(sub(cycles, start_cycles), runs)
+			benchmark.d_init_time = div(total_init_time, runs)
+			benchmark.d_init_cycles = div(total_init_cycles, runs)
+			benchmark.runs = runs
+		} else {
+			start_time := now()
+			start_cycles := now_cycles()
+			time := start_time
+			cycles: Cycles
+			runs: i64 = 0
+			for sub(time, start_time) <= timeout {
+				runs += 1
+				procedure()
+				time = now()
+			}
+			cycles = now_cycles()
+			benchmark.d_total_time = div(sub(time, start_time), runs)
+			benchmark.d_total_cycles = div(sub(cycles, start_cycles), runs)
+			benchmark.runs = runs
 		}
-		cycles := now_cycles()
-		benchmark.d_time = div(sub(time, start_time), n)
-		benchmark.d_cycles = div(sub(cycles, start_cycles), n)
-		benchmark.n = n
+		// print gap
 		fmt.println()
 	}
 	// print results
 	tb: fmt.TableBuilder
 	for benchmark in benchmarks {
-		benchmark_name :=
-			benchmark.init_procedure != nil ? strings.concatenate({benchmark.init_procedure_name, "(); "}) : ""
-		benchmark_name = strings.concatenate({benchmark_name, benchmark.procedure_name, "()"})
-		fmt.table_append(&tb, benchmark_name, benchmark.d_time, benchmark.d_cycles, benchmark.n)
+		has_init_proc := benchmark.init_procedure != nil
+
+		benchmark_name := ""
+		if has_init_proc {
+			benchmark_name = fmt.tprintf(
+				BENCHMARK_FORMAT_WITH_INIT,
+				benchmark.init_procedure_name,
+				benchmark.procedure_name,
+			)
+		} else {
+			benchmark_name = fmt.tprintf(BENCHMARK_FORMAT_WITHOUT_INIT, benchmark.procedure_name)
+		}
+
+		d_init_time := benchmark.d_init_time
+		d_init_cycles := benchmark.d_init_cycles
+		d_time := benchmark.d_total_time - d_init_time
+		d_cycles := benchmark.d_total_cycles - d_init_cycles
+
+		time_string := ""
+		if has_init_proc {
+			time_string = fmt.tprintf("%v / %v", d_init_time, d_time)
+		} else {
+			time_string = fmt.tprint(d_time)
+		}
+
+		cycles_string := ""
+		if has_init_proc {
+			cycles_string = fmt.tprintf("%v / %v", d_init_cycles, d_cycles)
+		} else {
+			cycles_string = fmt.tprint(d_cycles)
+		}
+
+		runs := fmt.tprint(benchmark.runs)
+
+		fmt.table_append(&tb, benchmark_name, time_string, cycles_string, runs)
 	}
-	fmt.print_table(&tb, "%v: %v, %v cy, n: %v")
+	fmt.print_table(&tb, "  %v: %v, %v cy, n: %v")
 }

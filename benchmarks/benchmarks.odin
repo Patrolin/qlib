@@ -15,13 +15,13 @@ main :: proc() {
 
 	benchmarks: duration.Benchmarks
 	// fmt
-	duration.append_benchmark(&benchmarks, print_by_odin_fmt)
 	duration.append_benchmark(&benchmarks, print_by_write_syscall)
+	duration.append_benchmark(&benchmarks, print_by_odin_fmt)
 	// write
 	duration.append_benchmark(&benchmarks, write_by_syscall)
-	duration.append_benchmark(&benchmarks, write_by_syscall, delete_file, 0)
 	duration.append_benchmark(&benchmarks, write_by_odin_stdlib)
-	duration.append_benchmark(&benchmarks, write_by_odin_stdlib, delete_file, 0)
+	duration.append_benchmark(&benchmarks, write_by_syscall, delete_file)
+	duration.append_benchmark(&benchmarks, write_by_odin_stdlib, delete_file)
 
 	duration.run_benchmarks(&benchmarks)
 }
