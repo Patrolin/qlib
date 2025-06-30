@@ -1,6 +1,6 @@
 package test_utils
+import "../fmt"
 import "base:runtime"
-import "core:fmt"
 
 // constants
 TEST_TIMEOUT_MS :: 1000

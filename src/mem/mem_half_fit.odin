@@ -1,9 +1,9 @@
 package mem_utils
+import "../fmt"
 import "../math"
 import "../test"
 import "base:intrinsics"
 import "base:runtime"
-import "core:fmt"
 import "core:mem"
 
 // constants

@@ -1,5 +1,4 @@
 package benchmarks
-import "core:fmt"
 import odin_os "core:os"
 import win "core:sys/windows"
 

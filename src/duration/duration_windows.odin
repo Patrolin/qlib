@@ -1,7 +1,7 @@
 package duration_utils
+import "../fmt"
 import "../os"
 import "base:intrinsics"
-import "core:fmt"
 import win "core:sys/windows"
 
 now :: proc "contextless" () -> Time {

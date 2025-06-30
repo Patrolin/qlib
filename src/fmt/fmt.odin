@@ -1,4 +1,6 @@
 package fmt_utils
+import "base:intrinsics"
+import "base:runtime"
 import "core:bufio"
 import odin_fmt "core:fmt"
 import odin_io "core:io"
@@ -29,11 +31,18 @@ table_append :: proc(tb: ^TableBuilder, args: ..string) {
 	for arg, i in args {row[i] = arg}
 	append(&tb.data, row)
 }
+table_append_break :: proc(tb: ^TableBuilder) {
+	append(&tb.data, nil)
+}
 print_table :: proc(tb: ^TableBuilder, format: string) {
 	// TODO: print directly instead of allocating
 	padded_row := make([]string, len(tb.column_widths))
 	padded_row_any := make([]any, len(tb.column_widths))
 	for row in tb.data {
+		if row == nil {
+			println()
+			continue
+		}
 		for cell, column_index in row {
 			rune_count := 0
 			for rune in cell {rune_count += 1}
@@ -46,12 +55,12 @@ print_table :: proc(tb: ^TableBuilder, format: string) {
 	}
 }
 
-wprint :: #force_inline proc(w: odin_io.Writer, args: ..any, separator := " ", newline := false) {
+wprint :: proc(w: odin_io.Writer, args: ..any, separator := " ", newline := false) {
 	#force_inline odin_fmt.wprint(w, ..args, sep = separator, flush = false)
 	if newline {odin_io.write_byte(w, '\n', nil)}
 	odin_io.flush(w)
 }
-wprintf :: #force_inline proc(w: odin_io.Writer, format: string, args: ..any, newline := false) {
+wprintf :: proc(w: odin_io.Writer, format: string, args: ..any, newline := false) {
 	#force_inline odin_fmt.wprintf(w, format, ..args, flush = false)
 	if newline {odin_io.write_byte(w, '\n', nil)}
 	odin_io.flush(w)
@@ -87,4 +96,18 @@ println :: #force_inline proc(args: ..any, separator := " ") {
 }
 printfln :: #force_inline proc(format: string, args: ..any) {
 	printf(format, ..args, newline = true)
+}
+
+@(disabled = ODIN_DISABLE_ASSERT)
+assertf :: #force_inline proc(
+	condition: bool,
+	format: string,
+	args: ..any,
+	loc := #caller_location,
+) {
+	if intrinsics.expect(!condition, false) {
+		message := tprintf(format, ..args)
+		assertion_failure_proc := context.assertion_failure_proc
+		assertion_failure_proc("runtime assertion", message, loc)
+	}
 }

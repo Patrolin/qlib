@@ -1,6 +1,6 @@
 package tests
 import "../src/duration"
-import "core:fmt"
+import "../src/fmt"
 
 test_now :: proc() {
 	fmt.printfln("now: %v", duration.now())

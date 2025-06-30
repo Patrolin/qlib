@@ -3,41 +3,37 @@ import "../fmt"
 import "../mem"
 import "core:strings"
 
+// types
 Benchmark :: struct {
 	procedure:                     proc(),
+	init:                          proc(),
 	procedure_name:                string,
+	init_name:                     string,
 	timeout:                       Duration,
-	init_procedure:                proc(),
-	init_procedure_name:           string,
 	d_total_time, d_init_time:     Duration,
 	d_total_cycles, d_init_cycles: Cycles,
 	runs:                          i64,
 }
 Benchmarks :: [dynamic]Benchmark
+
+// procedures
 append_benchmark :: proc(
 	benchmarks: ^Benchmarks,
 	procedure: proc(),
-	init_procedure: proc() = nil,
+	init: proc() = nil,
 	timeout := 100 * MILLISECOND,
 	procedure_name := #caller_expression(procedure),
-	init_procedure_name := #caller_expression(init_procedure),
+	init_name := #caller_expression(init),
 ) {
 	append(
 		benchmarks,
-		Benchmark {
-			procedure,
-			procedure_name,
-			timeout,
-			init_procedure,
-			init_procedure_name,
-			0,
-			0,
-			0,
-			0,
-			0,
-		},
+		Benchmark{procedure, init, procedure_name, init_name, timeout, 0, 0, 0, 0, 0},
 	)
 }
+append_benchmark_group :: proc(benchmarks: ^Benchmarks) {
+	append(benchmarks, Benchmark{nil, nil, "", "", 0, 0, 0, 0, 0, 0})
+}
+
 run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 	BENCHMARK_FORMAT_WITH_INIT :: "%v() / %v()"
 	BENCHMARK_FORMAT_WITHOUT_INIT :: "%v()"
@@ -45,16 +41,13 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 	for &benchmark in benchmarks {
 		procedure := benchmark.procedure
 		timeout := benchmark.timeout
-		init_procedure := benchmark.init_procedure
+		init_procedure := benchmark.init
+		if procedure == nil {continue} 	// skip benchmark groups
 
 		// print debug header
 		fmt.print("  ")
 		if init_procedure != nil {
-			fmt.printfln(
-				BENCHMARK_FORMAT_WITH_INIT,
-				benchmark.init_procedure_name,
-				benchmark.procedure_name,
-			)
+			fmt.printfln(BENCHMARK_FORMAT_WITH_INIT, benchmark.init_name, benchmark.procedure_name)
 			init_procedure()
 		} else {
 			fmt.printfln(BENCHMARK_FORMAT_WITHOUT_INIT, benchmark.procedure_name)
@@ -113,13 +106,17 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 	// print results
 	tb: fmt.TableBuilder
 	for benchmark in benchmarks {
-		has_init_proc := benchmark.init_procedure != nil
+		if benchmark.procedure == nil {
+			fmt.table_append_break(&tb)
+			continue
+		}
+		has_init_proc := benchmark.init != nil
 
 		benchmark_name := ""
 		if has_init_proc {
 			benchmark_name = fmt.tprintf(
 				BENCHMARK_FORMAT_WITH_INIT,
-				benchmark.init_procedure_name,
+				benchmark.init_name,
 				benchmark.procedure_name,
 			)
 		} else {
@@ -150,4 +147,5 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 		fmt.table_append(&tb, benchmark_name, time_string, cycles_string, runs)
 	}
 	fmt.print_table(&tb, "  %v: %v, %v cy, n: %v")
+	// clear queued benchmarks
 }

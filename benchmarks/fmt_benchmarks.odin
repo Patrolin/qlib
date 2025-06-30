@@ -1,12 +1,20 @@
 package benchmarks
-import "core:fmt"
+import "../src/fmt"
+import odin_fmt "core:fmt"
 import odin_os "core:os"
 import "core:sys/linux"
 import win "core:sys/windows"
 
 // benchmarks
+assert_by_odin_fmt_assertf :: proc() {
+	odin_fmt.assertf(true, "foo: %v", 13)
+}
+assert_by_fmt_assertf :: proc() {
+	fmt.assertf(true, "foo: %v", 13)
+}
+
 print_by_odin_fmt :: proc() {
-	fmt.print("hi")
+	odin_fmt.print("hi")
 }
 print_by_write_syscall :: proc() {
 	buf: [1024]byte
