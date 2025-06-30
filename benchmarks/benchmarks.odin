@@ -19,6 +19,10 @@ main :: proc() {
 	duration.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf, timeout = 0)
 	duration.append_benchmark_group(&benchmarks)
 
+	duration.append_benchmark(&benchmarks, assert_by_fmt_assertf)
+	duration.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf)
+	duration.append_benchmark_group(&benchmarks)
+
 	duration.append_benchmark(&benchmarks, print_by_write_syscall)
 	duration.append_benchmark(&benchmarks, print_by_odin_fmt)
 	duration.append_benchmark_group(&benchmarks)
