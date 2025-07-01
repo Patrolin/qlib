@@ -71,5 +71,4 @@ print_benchmarks :: proc(benchmarks: ^Benchmarks) {
 		)
 	}
 	fmt.print_table(&tb, "  %v: %v, %v, runs: %v")
-	// clear queued benchmarks
 }
