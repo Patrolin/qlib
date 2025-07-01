@@ -1,4 +1,5 @@
 package duration_utils
+import "../fmt"
 import "../math"
 import "base:intrinsics"
 import odin_time "core:time"
@@ -12,7 +13,9 @@ SECOND :: Duration(1e9)
 // types
 Time :: odin_time.Time
 Duration :: odin_time.Duration
+Duration_f64 :: distinct f64
 Cycles :: distinct i64
+Cycles_f64 :: distinct f64
 
 // procedures
 get_cycles :: #force_inline proc "contextless" () -> Cycles {
@@ -39,13 +42,32 @@ sub :: proc {
 	sub_cycles,
 }
 
-div_duration :: #force_inline proc "contextless" (a: Duration, n: i64) -> Duration {
-	return Duration(math.round_to_int(f64(a) / f64(n)))
+div_duration :: #force_inline proc "contextless" (a: Duration, n: int) -> Duration_f64 {
+	return Duration_f64(f64(a) / f64(n))
 }
-div_cycles :: #force_inline proc "contextless" (a: Cycles, n: i64) -> Cycles {
-	return Cycles(math.round_to_int(f64(a) / f64(n)))
+div_cycles :: #force_inline proc "contextless" (a: Cycles, n: int) -> Cycles_f64 {
+	return Cycles_f64(f64(a) / f64(n))
 }
 div :: proc {
 	div_duration,
 	div_cycles,
+}
+
+tprint_duration_f64 :: proc(duration_f64: Duration_f64) -> string {
+	if duration_f64 >= 1e9 {
+		return fmt.tprintf("%.1fs", duration_f64 / 1e9)
+	} else if duration_f64 >= 1e6 {
+		return fmt.tprintf("%.1fms", duration_f64 / 1e6)
+	} else if duration_f64 >= 1e3 {
+		return fmt.tprintf("%.1fµs", duration_f64 / 1e3)
+	} else {
+		return fmt.tprintf("%.1fns", duration_f64)
+	}
+}
+tprint_cycles_f64 :: proc(cycles_f64: Cycles_f64) -> string {
+	return fmt.tprintf("%.1f cy", cycles_f64)
+}
+tprint :: proc {
+	tprint_duration_f64,
+	tprint_cycles_f64,
 }

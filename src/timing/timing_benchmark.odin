@@ -9,8 +9,8 @@ Benchmarks :: [dynamic]BenchmarkResult
 BenchmarkResult :: struct {
 	procedure_name: string,
 	timeout:        Duration,
-	d_duration:     Duration,
-	d_cycles:       Cycles,
+	d_duration:     Duration_f64,
+	d_cycles:       Cycles_f64,
 	runs:           int,
 }
 
@@ -46,8 +46,8 @@ run_benchmark :: proc(benchmarks: ^Benchmarks, $procedure: proc(), procedure_nam
 	cycles := get_cycles()
 	duration = get_duration()
 	// store the results
-	benchmark.d_duration = div(sub(duration, start_duration), i64(runs))
-	benchmark.d_cycles = div(sub(cycles, start_cycles), i64(runs))
+	benchmark.d_duration = div(sub(duration, start_duration), runs)
+	benchmark.d_cycles = div(sub(cycles, start_cycles), runs)
 }
 run_benchmark_group :: proc(benchmarks: ^Benchmarks) {
 	append(benchmarks, BenchmarkResult{"", 0, 0, 0, 0})
@@ -65,8 +65,8 @@ print_benchmarks :: proc(benchmarks: ^Benchmarks) {
 		fmt.table_append(
 			&tb,
 			fmt.tprintf("%v()", benchmark.procedure_name),
-			fmt.tprint(benchmark.d_duration),
-			fmt.tprintf("%v cy", benchmark.d_cycles),
+			tprint(benchmark.d_duration),
+			tprint(benchmark.d_cycles),
 			fmt.tprint(benchmark.runs),
 		)
 	}
