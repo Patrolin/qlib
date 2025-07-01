@@ -5,10 +5,9 @@ import "base:intrinsics"
 import win "core:sys/windows"
 
 now :: proc "contextless" () -> Time {
-	file_time: win.FILETIME
-	win.GetSystemTimePreciseAsFileTime(&file_time)
-	windows_time := u64(transmute(u64le)file_time)
-	ns := (windows_time - 116444736000000000) * 100
+	counter: win.LARGE_INTEGER
+	win.QueryPerformanceCounter(&counter)
+	ns := i64(counter) * os.info._time_multiplier
 	return Time{i64(ns)}
 }
 

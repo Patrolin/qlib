@@ -6,3 +6,7 @@ now :: proc "contextless" () -> Time {
 	ns := i64(linux_time.time_sec) * i64(SECOND) + i64(linux_time.time_nsec)
 	return Time{_nsec = ns}
 }
+
+/* TODO: How to get performance counters with linux syscalls?
+	- perf_event_open syscall
+*/
