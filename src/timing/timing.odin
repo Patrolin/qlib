@@ -15,7 +15,7 @@ Duration :: odin_time.Duration
 Cycles :: distinct i64
 
 // procedures
-now_cycles :: #force_inline proc "contextless" () -> Cycles {
+get_cycles :: #force_inline proc "contextless" () -> Cycles {
 	// NOTE: QueryThreadCycleTime(), GetThreadTimes() and similar are completely broken
 	return Cycles(intrinsics.read_cycle_counter())
 }

@@ -35,7 +35,7 @@ init :: #force_inline proc "contextless" () -> runtime.Context {
 	query_performance_frequency: win.LARGE_INTEGER
 	assert(bool(win.QueryPerformanceFrequency(&query_performance_frequency)))
 	assert(1e9 % i64(query_performance_frequency) == 0)
-	info._time_multiplier = 1e9 / i64(query_performance_frequency)
+	info.duration_multiplier = 1e9 / i64(query_performance_frequency)
 	assert(win.timeBeginPeriod(1) == win.TIMERR_NOERROR) // set min sleep timeout (from 15ms) to 1ms
 	// page_size, large_page_size
 	systemInfo: win.SYSTEM_INFO

@@ -5,14 +5,14 @@ import "core:strings"
 
 // types
 Benchmark :: struct {
-	procedure:                     proc(),
-	init:                          proc(),
-	procedure_name:                string,
-	init_name:                     string,
-	timeout:                       Duration,
-	d_total_time, d_init_time:     Duration,
-	d_total_cycles, d_init_cycles: Cycles,
-	runs:                          i64,
+	procedure:                         proc(),
+	init:                              proc(),
+	procedure_name:                    string,
+	init_name:                         string,
+	timeout:                           Duration,
+	d_total_duration, d_init_duration: Duration,
+	d_total_cycles, d_init_cycles:     Cycles,
+	runs:                              i64,
 }
 Benchmarks :: [dynamic]Benchmark
 
@@ -55,12 +55,12 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 
 		// run benchmark
 		if init_procedure != nil {
-			start_time := now()
-			start_cycles := now_cycles()
-			time := start_time
+			start_duration := get_duration()
+			start_cycles := get_cycles()
+			duration := start_duration
 			cycles := start_cycles
 			runs: i64 = 0
-			total_init_time: Duration
+			total_init_duration: Duration
 			total_init_cycles: Cycles
 			for {
 				// init
@@ -68,38 +68,38 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 				init_procedure()
 				mem.mfence()
 
-				total_init_time += sub(now(), time)
-				total_init_cycles += sub(now_cycles(), cycles)
+				total_init_duration += sub(get_duration(), duration)
+				total_init_cycles += sub(get_cycles(), cycles)
 				mem.mfence()
 				// run procedure
 				procedure()
 				mem.mfence()
 
-				time = now()
-				cycles = now_cycles()
+				duration = get_duration()
+				cycles = get_cycles()
 				mem.mfence()
 
-				if sub(time, start_time) >= timeout {break}
+				if sub(duration, start_duration) >= timeout {break}
 			}
-			benchmark.d_total_time = div(sub(time, start_time), runs)
+			benchmark.d_total_duration = div(sub(duration, start_duration), runs)
 			benchmark.d_total_cycles = div(sub(cycles, start_cycles), runs)
-			benchmark.d_init_time = div(total_init_time, runs)
+			benchmark.d_init_duration = div(total_init_duration, runs)
 			benchmark.d_init_cycles = div(total_init_cycles, runs)
 			benchmark.runs = runs
 		} else {
-			start_time := now()
-			start_cycles := now_cycles()
-			time := start_time
+			start_duration := get_duration()
+			start_cycles := get_cycles()
+			duration := start_duration
 			cycles: Cycles
 			runs: i64 = 0
 			for {
 				runs += 1
 				procedure()
-				time = now()
-				if sub(time, start_time) >= timeout {break}
+				duration = get_duration()
+				if sub(duration, start_duration) >= timeout {break}
 			}
-			cycles = now_cycles()
-			benchmark.d_total_time = div(sub(time, start_time), runs)
+			cycles = get_cycles()
+			benchmark.d_total_duration = div(sub(duration, start_duration), runs)
 			benchmark.d_total_cycles = div(sub(cycles, start_cycles), runs)
 			benchmark.runs = runs
 		}
@@ -126,9 +126,9 @@ run_benchmarks :: proc(benchmarks: ^Benchmarks) {
 			benchmark_name = fmt.tprintf(BENCHMARK_FORMAT_WITHOUT_INIT, benchmark.procedure_name)
 		}
 
-		d_init_time := benchmark.d_init_time
+		d_init_time := benchmark.d_init_duration
 		d_init_cycles := benchmark.d_init_cycles
-		d_time := benchmark.d_total_time - d_init_time
+		d_time := benchmark.d_total_duration - d_init_time
 		d_cycles := benchmark.d_total_cycles - d_init_cycles
 
 		time_string := ""
