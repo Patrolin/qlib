@@ -14,10 +14,15 @@ main :: proc() {
 	file_to_write = strings.repeat("abc\n", 4096 / 4)
 	benchmarks: timing.Benchmarks
 
+	// TODO: rewrite these so they can be inlined // TODO: how do we tell odin to not discard a value??
 	// timing benchmarks
-	timing.append_benchmark(&benchmarks, get_time)
-	timing.append_benchmark(&benchmarks, get_duration)
 	timing.append_benchmark(&benchmarks, get_cycles)
+	timing.append_benchmark(&benchmarks, get_duration)
+	timing.append_benchmark(&benchmarks, get_time)
+	timing.append_benchmark_group(&benchmarks)
+
+	timing.append_benchmark(&benchmarks, do_nothing, timeout = 0)
+	timing.append_benchmark(&benchmarks, do_nothing)
 	timing.append_benchmark_group(&benchmarks)
 
 	// fmt benchmarks
@@ -25,13 +30,9 @@ main :: proc() {
 		and to being relocated in the executable when changing the procedure name, e.g. "assertf" -> "assertf2"
 		(resulting in a 2x slowdown), and thus should never be used.
 	*/
-	timing.append_benchmark(&benchmarks, do_nothing, timeout = 0)
 	timing.append_benchmark(&benchmarks, assert_by_fmt_assertf, timeout = 0)
-	timing.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf, timeout = 0)
-	timing.append_benchmark_group(&benchmarks)
-
-	timing.append_benchmark(&benchmarks, do_nothing)
 	timing.append_benchmark(&benchmarks, assert_by_fmt_assertf)
+	timing.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf, timeout = 0)
 	timing.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf)
 	timing.append_benchmark_group(&benchmarks)
 
