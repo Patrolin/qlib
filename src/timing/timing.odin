@@ -27,11 +27,15 @@ add :: #force_inline proc "contextless" (time: Time, ns: Duration) -> Time {
 sub_time :: #force_inline proc "contextless" (end, start: Time) -> Duration {
 	return Duration(end._nsec - start._nsec)
 }
+sub_duration :: #force_inline proc "contextless" (end, start: Duration) -> Duration {
+	return end - start
+}
 sub_cycles :: #force_inline proc "contextless" (end, start: Cycles) -> Cycles {
 	return end - start
 }
 sub :: proc {
 	sub_time,
+	sub_duration,
 	sub_cycles,
 }
 

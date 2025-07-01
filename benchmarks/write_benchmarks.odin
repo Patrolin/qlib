@@ -34,10 +34,10 @@ write_file :: proc(file_path: string, data: []byte) {
 }
 
 // benchmarks
-write_by_odin_stdlib :: proc() {
+write_file_by_odin_stdlib :: proc() {
 	err := odin_os.write_entire_file_or_err(FILE_PATH, transmute([]u8)(file_to_write))
 	assert(err == nil)
 }
-write_by_syscall :: proc() {
+write_file_by_syscall :: proc() {
 	write_file(FILE_PATH, transmute([]u8)file_to_write)
 }

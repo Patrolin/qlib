@@ -14,41 +14,33 @@ main :: proc() {
 	file_to_write = strings.repeat("abc\n", 4096 / 4)
 	benchmarks: timing.Benchmarks
 
+	/* NOTE: first runs are prone to being relocated in the executable (randomly resulting in a 40x slowdown), and thus should never be used. */
+	timing.run_benchmark(&benchmarks, do_nothing, "do_nothing")
+	timing.run_benchmark(&benchmarks, assert_by_odin_fmt_assertf, "assert_by_odin_fmt_assertf", timeout = 0)
+	timing.run_benchmark(&benchmarks, assert_by_fmt_assertf, "assert_by_fmt_assertf", timeout = 0)
+	timing.run_benchmark(&benchmarks, assert_by_odin_fmt_assertf, "assert_by_odin_fmt_assertf")
+	timing.run_benchmark(&benchmarks, assert_by_fmt_assertf, "assert_by_fmt_assertf")
+	timing.run_benchmark_group(&benchmarks)
+
 	// TODO: rewrite these so they can be inlined // TODO: how do we tell odin to not discard a value??
 	// timing benchmarks
-	timing.append_benchmark(&benchmarks, get_cycles)
-	timing.append_benchmark(&benchmarks, get_duration)
-	timing.append_benchmark(&benchmarks, get_time)
-	timing.append_benchmark_group(&benchmarks)
-
-	timing.append_benchmark(&benchmarks, do_nothing, timeout = 0)
-	timing.append_benchmark(&benchmarks, do_nothing)
-	timing.append_benchmark_group(&benchmarks)
+	timing.run_benchmark(&benchmarks, get_cycles, "get_cycles")
+	timing.run_benchmark(&benchmarks, get_duration, "get_duration")
+	timing.run_benchmark(&benchmarks, get_time, "get_time")
+	timing.run_benchmark_group(&benchmarks)
 
 	// fmt benchmarks
-	/* NOTE: first runs are prone to not being in cache (resulting in 1000x slowdown)
-		and to being relocated in the executable when changing the procedure name, e.g. "assertf" -> "assertf2"
-		(resulting in a 2x slowdown), and thus should never be used.
+	/*
+	timing.run_benchmark(&benchmarks, print_by_write_syscall, "print_by_write_syscall")
+	timing.run_benchmark(&benchmarks, print_by_odin_fmt, "print_by_odin_fmt")
+	timing.run_benchmark_group(&benchmarks)
 	*/
-	timing.append_benchmark(&benchmarks, assert_by_fmt_assertf, timeout = 0)
-	timing.append_benchmark(&benchmarks, assert_by_fmt_assertf)
-	timing.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf, timeout = 0)
-	timing.append_benchmark(&benchmarks, assert_by_odin_fmt_assertf)
-	timing.append_benchmark_group(&benchmarks)
-
-	timing.append_benchmark(&benchmarks, print_by_write_syscall)
-	timing.append_benchmark(&benchmarks, print_by_odin_fmt)
-	timing.append_benchmark_group(&benchmarks)
 
 	// write benchmarks
-	timing.append_benchmark(&benchmarks, write_by_syscall)
-	timing.append_benchmark(&benchmarks, write_by_odin_stdlib)
-	timing.append_benchmark_group(&benchmarks)
-
-	timing.append_benchmark(&benchmarks, write_by_syscall, init = delete_file)
-	timing.append_benchmark(&benchmarks, write_by_odin_stdlib, init = delete_file)
-	timing.append_benchmark_group(&benchmarks)
+	timing.run_benchmark(&benchmarks, write_file_by_syscall, "write_file_by_syscall")
+	timing.run_benchmark(&benchmarks, write_file_by_odin_stdlib, "write_file_by_odin_stdlib")
+	timing.run_benchmark_group(&benchmarks)
 
 	// run the benchmarks
-	timing.run_benchmarks(&benchmarks)
+	timing.print_benchmarks(&benchmarks)
 }

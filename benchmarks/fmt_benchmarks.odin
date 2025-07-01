@@ -1,23 +1,27 @@
 package benchmarks
 import "../src/fmt"
+import "base:intrinsics"
 import odin_fmt "core:fmt"
 import odin_os "core:os"
 import "core:sys/linux"
 import win "core:sys/windows"
 
+// globals
+assert_condition := true
+
 // benchmarks
 do_nothing :: proc() {}
 assert_by_fmt_assertf :: proc() {
-	fmt.assertf(true, "foo: %v", 13)
+	fmt.assertf(intrinsics.atomic_load(&assert_condition), "foo: %v", 13)
 }
 assert_by_odin_fmt_assertf :: proc() {
-	odin_fmt.assertf(true, "foo: %v", 13)
+	odin_fmt.assertf(intrinsics.atomic_load(&assert_condition), "foo: %v", 13)
 }
 
 print_by_write_syscall :: proc() {
 	buf: [1024]byte
 	buf[0] = 'h'
-	buf[1] = 'i'
+	buf[1] = '\n'
 	buf[2] = 0
 	when ODIN_OS == .Windows {
 		win.WriteFile(win.HANDLE(odin_os.stdout), &buf, 2, nil, nil)
@@ -28,5 +32,5 @@ print_by_write_syscall :: proc() {
 	}
 }
 print_by_odin_fmt :: proc() {
-	odin_fmt.print("hi")
+	odin_fmt.print("h\n")
 }

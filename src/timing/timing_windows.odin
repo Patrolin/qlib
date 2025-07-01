@@ -11,11 +11,11 @@ get_time :: proc "contextless" () -> Time {
 	ns := (windows_time - 116444736000000000) * 100
 	return Time{i64(ns)}
 }
-get_duration :: proc "contextless" () -> Time {
+get_duration :: proc "contextless" () -> Duration {
 	counter: win.LARGE_INTEGER
 	win.QueryPerformanceCounter(&counter)
 	ns := i64(counter) * os.info.duration_multiplier
-	return Time{i64(ns)}
+	return Duration(ns)
 }
 
 sleep_ns :: proc(ns: Duration) {
