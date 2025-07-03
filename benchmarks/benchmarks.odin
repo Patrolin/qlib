@@ -30,11 +30,9 @@ main :: proc() {
 	timing.run_benchmark_group(&benchmarks)
 
 	// fmt benchmarks
-	/*
 	timing.run_benchmark(&benchmarks, print_by_write_syscall, "print_by_write_syscall")
 	timing.run_benchmark(&benchmarks, print_by_odin_fmt, "print_by_odin_fmt")
 	timing.run_benchmark_group(&benchmarks)
-	*/
 
 	// write benchmarks
 	timing.run_benchmark(&benchmarks, write_file_by_syscall, "write_file_by_syscall")

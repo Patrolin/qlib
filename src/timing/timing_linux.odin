@@ -9,7 +9,7 @@ get_time :: proc "contextless" () -> Time {
 get_duration :: proc "contextless" () -> Duration {
 	linux_time, _ := linux.clock_gettime(.MONOTONIC)
 	ns := i64(linux_time.time_sec) * i64(SECOND) + i64(linux_time.time_nsec)
-	return Duration{_nsec = ns}
+	return Duration(ns)
 }
 
 /* TODO: How to get performance counters with linux syscalls?

@@ -29,7 +29,7 @@ write_file :: proc(file_path: string, data: []byte) {
 		)
 		win.WriteFile(file, raw_data(data), u32(len(data)), nil, nil)
 	} else {
-		#assert(false, "not implemented")
+		//#assert(false, "not implemented")
 	}
 }
 
