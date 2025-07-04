@@ -1,4 +1,4 @@
-package alloc_utils
+package lib_alloc
 import "base:runtime"
 
 /* TODO: rethink this with half fit allocator in mind */
@@ -27,8 +27,7 @@ SlotUsed :: enum u8 {
 Map :: struct($Key, $Value: typeid) {
 	using _: SlotArray(Key, Value),
 }
-void :: struct {
-}
+void :: struct {}
 #assert(size_of(void) == 0)
 Set :: struct($Key: typeid) {
 	using _: SlotArray(Key, void),

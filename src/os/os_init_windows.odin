@@ -11,6 +11,14 @@ STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)
 STD_OUTPUT_HANDLE :: transmute(win.DWORD)i32(-11)
 STD_ERROR_HANDLE :: transmute(win.DWORD)i32(-12)
 
+// types
+FileHandle :: win.HANDLE
+File :: struct {
+	handle:          FileHandle,
+	file_size:       int,
+	last_write_time: int,
+}
+
 // imports
 foreign import kernel32 "system:kernel32.lib"
 @(default_calling_convention = "std")
@@ -49,12 +57,7 @@ init :: #force_inline proc "contextless" () -> runtime.Context {
 	// window_border
 	window_border: win.RECT
 	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, false, 0)
-	info.window_border = math.AbsoluteRect {
-		-window_border.left,
-		-window_border.top,
-		window_border.right,
-		window_border.bottom,
-	}
+	info.window_border = math.AbsoluteRect{-window_border.left, -window_border.top, window_border.right, window_border.bottom}
 
 	return ctx
 }
