@@ -5,11 +5,11 @@ import "core:strings"
 import win "core:sys/windows"
 
 // windows helper functions
-LOBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v & 0xff)}
+LOBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v)}
 HIBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v >> 8)}
-LOWORD :: #force_inline proc "contextless" (v: $T) -> u16 {return u16(v & 0xffff)}
+LOWORD :: #force_inline proc "contextless" (v: $T) -> u16 {return u16(v)}
 HIWORD :: #force_inline proc "contextless" (v: $T) -> u16 {return u16(v >> 16)}
-LOIWORD :: #force_inline proc "contextless" (v: $T) -> i16 {return i16(v & 0xffff)}
+LOIWORD :: #force_inline proc "contextless" (v: $T) -> i16 {return i16(v)}
 HIIWORD :: #force_inline proc "contextless" (v: $T) -> i16 {return i16(v >> 16)}
 MAKEWORD :: #force_inline proc "contextless" (hi, lo: u32) -> u32 {return (hi << 16) | lo}
 
