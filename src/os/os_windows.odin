@@ -57,7 +57,7 @@ win_get_last_error_message :: proc() -> (error: u32, error_message: string) {
 new_directory :: proc(dir_path: string) -> (ok: bool) {
 	return win.CreateDirectoryW(win_string_to_wstring(dir_path), nil) == true
 }
-delete_empty_directory :: proc(dir_path: string) -> (ok: bool) {
+delete_directory_if_empty :: proc(dir_path: string) -> (ok: bool) {
 	return win.RemoveDirectoryW(win_string_to_wstring(dir_path)) == true
 }
 delete_file :: proc(file_path: string) -> (ok: bool) {
@@ -110,22 +110,24 @@ write_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_writt
 }
 
 // file_view procedures
-open_file_view :: proc(file_path: string) -> (file_view: FileView, ok: bool) {
-	// open the file with minimum size of 4096B
-	fmt.printfln("file_path: %v", file_path)
-	file_view.file = open_file(file_path, {.Read, .Write_Preserve, .UniqueAccess}) or_return
-	if file_view.file.size == 0 {
-		win.SetFilePointer(file_view.file.handle, 4096, nil, win.FILE_BEGIN)
+open_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
+	assert(file_view.file.handle != nil)
+	// set the file size
+	dwMaximumSizeHigh := u32((new_size) >> 32)
+	dwMaximumSizeLow := u32(new_size)
+	fmt.printfln("file_view.file.size: %v, new_size: %v", file_view.file.size, new_size)
+	if file_view.file.size != new_size {
+		win.SetFilePointer(file_view.file.handle, i32(dwMaximumSizeLow), (^i32)(&dwMaximumSizeHigh), win.FILE_BEGIN)
 		win.SetEndOfFile(file_view.file.handle)
 	}
-	// open the file_view
-	dwMaximumSizeHigh := u32((file_view.file.size) >> 32)
-	dwMaximumSizeLow := u32(file_view.file.size)
+	file_view.file.size = new_size
+
+	// reopen the file_view
 	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
-	if file_view.mapping == nil {return file_view, false}
+	if file_view.mapping == nil {return false}
 	ptr := win.MapViewOfFile(file_view.mapping, win.FILE_MAP_READ | win.FILE_MAP_WRITE, 0, 0, 0)
-	file_view.data = ([^]byte)(ptr)[:file_view.file.size]
-	return file_view, true
+	file_view.data = ([^]byte)(ptr)[:new_size]
+	return true
 }
 close_file_view :: proc(file_view: FileView) {
 	assert(win.UnmapViewOfFile(raw_data(file_view.data)) == true)
@@ -134,10 +136,10 @@ close_file_view :: proc(file_view: FileView) {
 resize_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
 	close_file_view(file_view^) // NOTE: windows doesn't let us resize in place
 
-	// shrink the file if necessary
+	// set the file size
 	dwMaximumSizeHigh := u32((new_size) >> 32)
 	dwMaximumSizeLow := u32(new_size)
-	if new_size < file_view.file.size {
+	if file_view.file.size != new_size {
 		win.SetFilePointer(file_view.file.handle, i32(dwMaximumSizeLow), (^i32)(&dwMaximumSizeHigh), win.FILE_BEGIN)
 		win.SetEndOfFile(file_view.file.handle)
 	}

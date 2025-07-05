@@ -38,7 +38,7 @@ release_lock :: #force_inline proc "contextless" (lock: ^Lock) {
 	intrinsics.atomic_store(lock, false)
 }
 
-// simd procedures
+// copy procedures
 zero_simd_64B :: proc(dest: rawptr, size: int) {
 	dest := uintptr(dest)
 	dest_end := dest + transmute(uintptr)(size)

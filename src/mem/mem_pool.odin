@@ -6,10 +6,10 @@ import "base:intrinsics"
 
 // types
 PoolAllocator :: struct {
-	lock:            Lock,
-	next_free_slot:  ^FreePoolSlot,
-	next_empty_slot: ^FreePoolSlot,
-	slot_size:       int,
+	lock:             Lock,
+	next_free_slot:   ^FreePoolSlot,
+	next_unused_slot: ^FreePoolSlot,
+	slot_size:        int,
 }
 #assert(size_of(PoolAllocator) <= 64)
 
@@ -28,12 +28,12 @@ pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
 	defer release_lock(&pool.lock)
 	// find free slot
 	next_free_slot := pool.next_free_slot
-	next_empty_slot := pool.next_empty_slot
+	next_unused_slot := pool.next_unused_slot
 	have_free_slot := next_free_slot != nil
-	slot := have_free_slot ? next_free_slot : next_empty_slot
+	slot := have_free_slot ? next_free_slot : next_unused_slot
 	// update pool
 	pool.next_free_slot = have_free_slot ? slot.next_free_slot : next_free_slot
-	pool.next_empty_slot = (^FreePoolSlot)(math.ptr_add(next_empty_slot, have_free_slot ? 0 : pool.slot_size))
+	pool.next_unused_slot = (^FreePoolSlot)(math.ptr_add(next_unused_slot, have_free_slot ? 0 : pool.slot_size))
 	return ([^]byte)(slot)
 }
 pool_free :: proc(pool: ^PoolAllocator, old_ptr: rawptr) {
