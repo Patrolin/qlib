@@ -4,6 +4,13 @@ import "../math"
 import "core:strings"
 import win "core:sys/windows"
 
+// types
+FileView :: struct {
+	file:    File,
+	mapping: win.HANDLE,
+	data:    []byte `fmt:"-"`,
+}
+
 // windows helper functions
 LOBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v)}
 HIBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v >> 8)}
@@ -47,7 +54,16 @@ win_get_last_error_message :: proc() -> (error: u32, error_message: string) {
 	return
 }
 
-// file procedures
+// dir and file procedures
+new_directory :: proc(dir_path: string) -> (ok: bool) {
+	return win.CreateDirectoryW(win_string_to_wstring(dir_path), nil) == true
+}
+delete_empty_directory :: proc(dir_path: string) -> (ok: bool) {
+	return win.RemoveDirectoryW(win_string_to_wstring(dir_path)) == true
+}
+delete_file :: proc(file_path: string) -> (ok: bool) {
+	return win.DeleteFileW(win_string_to_wstring(file_path)) == true
+}
 open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: bool) {
 	file_path_w := win_string_to_wstring(file_path)
 
@@ -77,27 +93,54 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	return
 }
 close_file :: proc(file: File) {
-	win.CloseHandle(file.handle)
+	assert(win.CloseHandle(file.handle) == true)
 }
-
-map_view_of_file :: proc(file: File) -> (data: []byte, ok: bool) {
-	dwMaximumSizeHigh := u32((file.file_size) >> 32)
-	dwMaximumSizeLow := u32(file.file_size)
-	mapping := win.CreateFileMappingW(file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
-	ptr := win.MapViewOfFile(mapping, win.FILE_MAP_READ | win.FILE_MAP_WRITE, 0, 0, uint(file.file_size))
-	fmt.println(win_get_last_error_message())
-	return ([^]byte)(ptr)[:file.file_size], ptr != nil
-}
-
+@(require_results)
 read_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_read: int) {
 	bytes_to_read_u32 := u32(min(len(buffer), int(max(u32))))
 	byte_count_written_word: win.DWORD
 	win.ReadFile(file_handle, raw_data(buffer), bytes_to_read_u32, &byte_count_written_word, nil)
 	return int(byte_count_written_word)
 }
+@(require_results)
 write_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_written: int) {
 	bytes_to_write_u32 := u32(min(len(buffer), int(max(u32))))
 	byte_count_written_word: win.DWORD
 	win.WriteFile(file_handle, raw_data(buffer), bytes_to_write_u32, &byte_count_written_word, nil)
 	return int(byte_count_written_word)
+}
+
+// file_view procedures
+open_file_view :: proc(file_path: string) -> (file_view: FileView, ok: bool) {
+	file_view.file = open_file(file_path, {.Read, .Write_Preserve, .UniqueAccess}) or_return
+	dwMaximumSizeHigh := u32((file_view.file.file_size) >> 32)
+	dwMaximumSizeLow := u32(file_view.file.file_size)
+	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
+	if file_view.mapping == nil {return file_view, false}
+	ptr := win.MapViewOfFile(file_view.mapping, win.FILE_MAP_READ | win.FILE_MAP_WRITE, 0, 0, 0)
+	file_view.data = ([^]byte)(ptr)[:file_view.file.file_size]
+	return file_view, true
+}
+close_file_view :: proc(file_view: FileView) {
+	assert(win.UnmapViewOfFile(raw_data(file_view.data)) == true)
+	assert(win.CloseHandle(file_view.mapping) == true)
+}
+resize_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
+	close_file_view(file_view^) // NOTE: windows doesn't let us resize in place
+
+	// shrink the file if necessary
+	dwMaximumSizeHigh := u32((new_size) >> 32)
+	dwMaximumSizeLow := u32(new_size)
+	if new_size < file_view.file.file_size {
+		win.SetFilePointer(file_view.file.handle, i32(dwMaximumSizeLow), (^i32)(&dwMaximumSizeHigh), win.FILE_BEGIN)
+		win.SetEndOfFile(file_view.file.handle)
+	}
+	file_view.file.file_size = new_size
+
+	// reopen the file_view
+	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
+	if file_view.mapping == nil {return false}
+	ptr := win.MapViewOfFile(file_view.mapping, win.FILE_MAP_READ | win.FILE_MAP_WRITE, 0, 0, 0)
+	file_view.data = ([^]byte)(ptr)[:new_size]
+	return true
 }
