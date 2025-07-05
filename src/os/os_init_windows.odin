@@ -15,7 +15,7 @@ STD_ERROR_HANDLE :: transmute(win.DWORD)i32(-12)
 FileHandle :: win.HANDLE
 File :: struct {
 	handle:          FileHandle,
-	file_size:       int,
+	size:            int,
 	last_write_time: int,
 }
 

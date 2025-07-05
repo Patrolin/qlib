@@ -27,7 +27,7 @@ empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 }
 read_entire_file :: proc(file_path: string, allocator := context.temp_allocator) -> (data: string, ok: bool) {
 	file := open_file(file_path, {.Read}) or_return
-	buffer := make([]byte, file.file_size, allocator = allocator)
+	buffer := make([]byte, file.size, allocator = allocator)
 	n := 0
 	for n < len(buffer) {n += read_file(file.handle, buffer[n:])}
 	close_file(file)

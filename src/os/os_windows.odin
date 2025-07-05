@@ -1,4 +1,5 @@
 package os_utils
+import "../fmt"
 import "core:strings"
 import win "core:sys/windows"
 
@@ -110,13 +111,20 @@ write_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_writt
 
 // file_view procedures
 open_file_view :: proc(file_path: string) -> (file_view: FileView, ok: bool) {
+	// open the file with minimum size of 4096B
+	fmt.printfln("file_path: %v", file_path)
 	file_view.file = open_file(file_path, {.Read, .Write_Preserve, .UniqueAccess}) or_return
-	dwMaximumSizeHigh := u32((file_view.file.file_size) >> 32)
-	dwMaximumSizeLow := u32(file_view.file.file_size)
+	if file_view.file.size == 0 {
+		win.SetFilePointer(file_view.file.handle, 4096, nil, win.FILE_BEGIN)
+		win.SetEndOfFile(file_view.file.handle)
+	}
+	// open the file_view
+	dwMaximumSizeHigh := u32((file_view.file.size) >> 32)
+	dwMaximumSizeLow := u32(file_view.file.size)
 	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
 	if file_view.mapping == nil {return file_view, false}
 	ptr := win.MapViewOfFile(file_view.mapping, win.FILE_MAP_READ | win.FILE_MAP_WRITE, 0, 0, 0)
-	file_view.data = ([^]byte)(ptr)[:file_view.file.file_size]
+	file_view.data = ([^]byte)(ptr)[:file_view.file.size]
 	return file_view, true
 }
 close_file_view :: proc(file_view: FileView) {
@@ -129,11 +137,11 @@ resize_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
 	// shrink the file if necessary
 	dwMaximumSizeHigh := u32((new_size) >> 32)
 	dwMaximumSizeLow := u32(new_size)
-	if new_size < file_view.file.file_size {
+	if new_size < file_view.file.size {
 		win.SetFilePointer(file_view.file.handle, i32(dwMaximumSizeLow), (^i32)(&dwMaximumSizeHigh), win.FILE_BEGIN)
 		win.SetEndOfFile(file_view.file.handle)
 	}
-	file_view.file.file_size = new_size
+	file_view.file.size = new_size
 
 	// reopen the file_view
 	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
