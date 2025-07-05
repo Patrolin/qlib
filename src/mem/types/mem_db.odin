@@ -17,11 +17,11 @@ DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
 	data_lock:      mem.Lock,
 	data_row_count: int, // NOTE: we compute `data_row_count` at startup, so that it can't desync from `next_unused_slot`
 }
-DBTableHeader :: struct {
+DBTableHeader :: struct #packed {
 	last_used_slot_id: u64le,
 	next_free_slot_id: u64le,
 }
-DBTableSlot :: struct {
+DBTableSlot :: struct #packed {
 	next_free_slot_id: u64le,
 }
 
@@ -32,6 +32,7 @@ _get_table_slot_size :: proc($T: typeid) -> int {
 }
 @(private)
 _get_table_slot :: #force_inline proc(data: []byte, id: int, $T: typeid) -> ^DBTableSlot {
+	// TODO: this is wrong, since it doesn't respect the free_list - add a slot.used flag?
 	return id <= 0 ? nil : (^DBTableSlot)(&data[size_of(DBTableHeader) + (id - 1) * _get_table_slot_size(T)])
 }
 @(private)
