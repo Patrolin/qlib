@@ -1,4 +1,4 @@
-package mem_utils
+package lib_mem
 import "../math"
 import win "core:sys/windows"
 
@@ -18,17 +18,11 @@ _page_fault_exception_handler :: proc "system" (exception: ^win.EXCEPTION_POINTE
 		commited_ptr := win.VirtualAlloc(page_ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
 		when DEBUG_VIRTUAL {
 			//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", exception.ExceptionRecord)
-			fmt.printfln(
-				"EXCEPTION_ACCESS_VIOLATION, ptr: %v, commited_ptr: %v",
-				ptr,
-				commited_ptr,
-			)
+			fmt.printfln("EXCEPTION_ACCESS_VIOLATION, ptr: %v, commited_ptr: %v", ptr, commited_ptr)
 		}
 
 		ERROR_INVALID_ADDRESS :: 487
-		return(
-			ptr != nil && commited_ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER \
-		)
+		return ptr != nil && commited_ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER
 	}
 	return win.EXCEPTION_EXECUTE_HANDLER
 }

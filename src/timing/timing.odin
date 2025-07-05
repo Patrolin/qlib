@@ -1,6 +1,5 @@
 package duration_utils
 import "../fmt"
-import "../math"
 import "base:intrinsics"
 import odin_time "core:time"
 

@@ -1,6 +1,5 @@
 package fmt_utils
 import "base:intrinsics"
-import "base:runtime"
 import "core:bufio"
 import odin_fmt "core:fmt"
 import odin_io "core:io"
@@ -23,7 +22,7 @@ table_append :: proc(tb: ^TableBuilder, args: ..string) {
 	assert(len(args) == len(tb.column_widths))
 	for cell, column_index in args {
 		rune_count := 0
-		for rune in cell {rune_count += 1}
+		for _ in cell {rune_count += 1}
 		tb.column_widths[column_index] = max(tb.column_widths[column_index], rune_count)
 	}
 	// copy row
@@ -45,7 +44,7 @@ print_table :: proc(tb: ^TableBuilder, format: string) {
 		}
 		for cell, column_index in row {
 			rune_count := 0
-			for rune in cell {rune_count += 1}
+			for _ in cell {rune_count += 1}
 			padding_length := max(0, tb.column_widths[column_index] - rune_count)
 			padded_cell_string := strings.concatenate({strings.repeat(" ", padding_length), cell})
 			padded_row[column_index] = padded_cell_string
@@ -99,12 +98,7 @@ printfln :: #force_inline proc(format: string, args: ..any) {
 }
 
 @(disabled = ODIN_DISABLE_ASSERT)
-assertf :: #force_inline proc(
-	condition: bool,
-	format: string,
-	args: ..any,
-	loc := #caller_location,
-) {
+assertf :: #force_inline proc(condition: bool, format: string, args: ..any, loc := #caller_location) {
 	if intrinsics.expect(!condition, false) {
 		message := tprintf(format, ..args)
 		assertion_failure_proc := context.assertion_failure_proc

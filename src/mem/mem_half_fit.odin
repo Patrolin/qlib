@@ -1,4 +1,4 @@
-package mem_utils
+package lib_mem
 import "../fmt"
 import "../math"
 import "base:intrinsics"

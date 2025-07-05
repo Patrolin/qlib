@@ -5,7 +5,7 @@ import "../src/timing"
 test_timings :: proc() {
 	fmt.printfln("now: %v", timing.get_time())
 	assert(timing.get_time()._nsec != 0)
-	assert(timing.get_duration()._nsec != 0)
+	assert(timing.get_duration() != 0)
 	assert(timing.get_cycles() != 0)
 }
 test_sleep_ns :: proc() {

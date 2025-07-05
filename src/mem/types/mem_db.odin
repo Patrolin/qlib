@@ -1,8 +1,5 @@
-package lib_alloc
-import "../fmt"
-import "../os"
+package lib_mem_types
 import "base:intrinsics"
-import "base:runtime"
 
 // types
 DBColumn :: struct($T: typeid) {

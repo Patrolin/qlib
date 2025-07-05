@@ -1,4 +1,4 @@
-package lib_alloc
+package lib_mem_types
 import "base:intrinsics"
 
 /* TODO: If you were making a game you might want something like this:

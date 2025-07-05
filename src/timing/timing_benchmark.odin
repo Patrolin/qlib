@@ -1,8 +1,6 @@
 package duration_utils
 import "../fmt"
-import "../mem"
 import "base:intrinsics"
-import "core:strings"
 
 // types
 Benchmarks :: [dynamic]BenchmarkResult

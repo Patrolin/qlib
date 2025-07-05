@@ -1,6 +1,4 @@
 package os_utils
-import "../fmt"
-import "../math"
 import "core:strings"
 import win "core:sys/windows"
 

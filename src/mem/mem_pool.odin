@@ -1,4 +1,4 @@
-package mem_utils
+package lib_mem
 import "../math"
 import "base:intrinsics"
 
@@ -33,9 +33,7 @@ pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
 	slot := have_free_slot ? next_free_slot : next_empty_slot
 	// update pool
 	pool.next_free_slot = have_free_slot ? slot.next_free_slot : next_free_slot
-	pool.next_empty_slot = (^FreePoolSlot)(
-		math.ptr_add(next_empty_slot, have_free_slot ? 0 : pool.slot_size),
-	)
+	pool.next_empty_slot = (^FreePoolSlot)(math.ptr_add(next_empty_slot, have_free_slot ? 0 : pool.slot_size))
 	return ([^]byte)(slot)
 }
 pool_free :: proc(pool: ^PoolAllocator, old_ptr: rawptr) {

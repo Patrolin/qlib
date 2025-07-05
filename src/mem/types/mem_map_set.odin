@@ -1,4 +1,4 @@
-package lib_alloc
+package lib_mem_types
 import "base:runtime"
 
 /* TODO: rethink this with half fit allocator in mind */

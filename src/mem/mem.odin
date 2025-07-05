@@ -1,4 +1,4 @@
-package mem_utils
+package lib_mem
 import "base:intrinsics"
 
 // constants
@@ -14,7 +14,31 @@ HUGE_PAGE_SIZE :: 1 << HUGE_PAGE_SIZE_EXPONENT
 
 VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
 
-// procedures
+// types
+Lock :: distinct bool
+
+// lock procedures
+mfence :: #force_inline proc "contextless" () {
+	intrinsics.atomic_thread_fence(.Seq_Cst)
+}
+@(require_results)
+get_lock_or_error :: #force_inline proc "contextless" (lock: ^Lock) -> (ok: bool) {
+	old_value := intrinsics.atomic_exchange(lock, true)
+	return old_value == false
+}
+get_lock :: #force_inline proc "contextless" (lock: ^Lock) {
+	for {
+		old_value := intrinsics.atomic_exchange(lock, true)
+		if intrinsics.expect(old_value == false, true) {return}
+		intrinsics.cpu_relax()
+	}
+	mfence()
+}
+release_lock :: #force_inline proc "contextless" (lock: ^Lock) {
+	intrinsics.atomic_store(lock, false)
+}
+
+// simd procedures
 zero_simd_64B :: proc(dest: rawptr, size: int) {
 	dest := uintptr(dest)
 	dest_end := dest + transmute(uintptr)(size)

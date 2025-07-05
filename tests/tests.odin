@@ -23,14 +23,8 @@ main :: proc() {
 
 	// init context
 	context = os.init()
-	context.allocator = mem.half_fit_allocator(
-		&global_allocator,
-		mem.page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE),
-	)
-	context.temp_allocator = mem.arena_allocator(
-		&temp_allocator,
-		mem.page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE),
-	)
+	context.allocator = mem.half_fit_allocator(&global_allocator, mem.page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE))
+	context.temp_allocator = mem.arena_allocator(&temp_allocator, mem.page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE))
 
 	// mem, os
 	test.group("mem")
@@ -53,8 +47,8 @@ main :: proc() {
 	test.run_test(test_set)
 	test.group_end()
 
-	test.group("time")
-	test.run_test(test_now)
+	test.group("timing")
+	test.run_test(test_timings)
 	test.run_test(test_sleep_ns)
 	test.group_end()
 }

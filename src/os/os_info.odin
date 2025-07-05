@@ -1,8 +1,6 @@
 package os_utils
-import "../fmt"
 import "../math"
 import "base:runtime"
-import "core:strings"
 
 // globals
 info: OsInfo
