@@ -18,6 +18,8 @@ create_table :: proc(table: ^$T) where intrinsics.type_is_struct(T) {
 	os.new_directory("db")
 	os.new_directory(fmt.tprintf("db/%v", table_name))
 
+	// TODO: also store a count file
+
 	table_struct_info := table_named_info.base.variant.(runtime.Type_Info_Struct)
 	for i in 0 ..< table_struct_info.field_count {
 		named_info := table_struct_info.types[i].variant.(runtime.Type_Info_Named) or_continue
