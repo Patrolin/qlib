@@ -32,7 +32,6 @@ _get_table_slot_size :: proc($T: typeid) -> int {
 }
 @(private)
 _get_table_slot :: #force_inline proc(data: []byte, id: int, $T: typeid) -> ^DBTableSlot {
-	// TODO: this is wrong, since it doesn't respect the free_list - add a slot.used flag?
 	return id <= 0 ? nil : (^DBTableSlot)(&data[size_of(DBTableHeader) + (id - 1) * _get_table_slot_size(T)])
 }
 @(private)
@@ -167,6 +166,7 @@ append_table_row :: proc(table: ^DBTable($T), row: ^T) {
 get_table_row :: proc(table: ^DBTable($T), id: int, row: ^T) -> (ok: bool) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	// get the slot
+	// TODO: this is wrong, since it doesn't respect the free_list - add a slot.used flag?
 	table_buffer := ([^]byte)(_get_table_slot(table.data_view.data, id, T))
 	if table_buffer == nil {return false}
 	// copy the data
