@@ -134,7 +134,7 @@ append_table_row :: proc(table: ^DBTable($T), value: ^T) {
 	// get next slot
 	row_slot := _get_free_table_data_slot(table)
 	// copy the data
-	row_slot.used = true
+	row_slot.used = true // NOTE: this only gets stored when we flush the file buffers
 	row_buffer := ([^]byte)(&row_slot.data)
 	value_buffer := ([^]byte)(value)
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
