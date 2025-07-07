@@ -69,9 +69,8 @@ get_path_type :: proc(path: string) -> (path_type: PathType) {
 	return
 }
 delete_path_recursively :: proc(path: string) {
-	assert(len(path) >= 2 && !strings.starts_with(path, "C:\\") && !strings.starts_with(path, "~"))
+	assert_path_is_safe_to_delete(path)
 	path_type := get_path_type(path)
-	fmt.printfln("delete_path_recursively: %v, .%v", path, path_type)
 	switch path_type {
 	case .None:
 	case .File:

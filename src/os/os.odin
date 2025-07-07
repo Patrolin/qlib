@@ -46,3 +46,7 @@ write_entire_file :: proc(file_path: string, data: string) -> (ok: bool) {
 	close_file(file)
 	return true
 }
+@(private)
+assert_path_is_safe_to_delete :: #force_inline proc(path: string) {
+	assert(len(path) >= 2 && path != "C:\\" && path != "~/")
+}
