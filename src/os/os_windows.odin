@@ -59,8 +59,8 @@ win_get_last_error_message :: proc() -> (error: u32, error_message: string) {
 }
 
 // dir and file procedures
-move_path :: proc(old_path: string, new_path: string) {
-	win.MoveFileExW(win_string_to_wstring(old_path), win_string_to_wstring(new_path), 0)
+move_path :: proc(old_path: string, new_path: string) -> (ok: bool) {
+	return win.MoveFileExW(win_string_to_wstring(old_path), win_string_to_wstring(new_path), 0) == true
 }
 get_path_type :: proc(path: string) -> (path_type: PathType) {
 	attributes := win.GetFileAttributesW(win_string_to_wstring(path))
@@ -76,24 +76,22 @@ delete_path_recursively :: proc(path: string) {
 	case .File:
 		delete_file(path)
 	case .Directory:
-		ok := delete_directory_if_empty(path)
-		if !ok {
-			path_to_search := fmt.tprintf("%v\\*", path)
-			wpath_to_search := win_string_to_wstring(path_to_search)
-			find_result: win.WIN32_FIND_DATAW
-			find := win.FindFirstFileW(wpath_to_search, &find_result)
-			if find != win.INVALID_HANDLE_VALUE {
-				for {
-					relative_path := win_null_terminated_wstring_to_string(&find_result.cFileName[0])
-					if relative_path != "." && relative_path != ".." {
-						delete_path_recursively(fmt.tprint(path, relative_path, separator = "/"))
-					}
-					if win.FindNextFileW(find, &find_result) == false {break}
+		// TODO: write these wstrings into a shared buffer instead?
+		path_to_search := fmt.tprintf("%v\\*", path)
+		wpath_to_search := win_string_to_wstring(path_to_search)
+		find_result: win.WIN32_FIND_DATAW
+		find := win.FindFirstFileW(wpath_to_search, &find_result)
+		if find != win.INVALID_HANDLE_VALUE {
+			for {
+				relative_path := win_null_terminated_wstring_to_string(&find_result.cFileName[0])
+				if relative_path != "." && relative_path != ".." {
+					delete_path_recursively(fmt.tprint(path, relative_path, separator = "/"))
 				}
-				win.FindClose(find)
+				if win.FindNextFileW(find, &find_result) == false {break}
 			}
-			delete_directory_if_empty(path)
+			win.FindClose(find)
 		}
+		delete_directory_if_empty(path)
 	}
 }
 
@@ -101,13 +99,13 @@ delete_path_recursively :: proc(path: string) {
 new_directory :: proc(dir_path: string) -> (ok: bool) {
 	return win.CreateDirectoryW(win_string_to_wstring(dir_path), nil) == true
 }
-delete_directory_if_empty :: proc(dir_path: string) -> (ok: bool) {
-	return win.RemoveDirectoryW(win_string_to_wstring(dir_path)) == true
+delete_directory_if_empty :: proc(dir_path: string) {
+	win.RemoveDirectoryW(win_string_to_wstring(dir_path))
 }
 
 // file procedures
-delete_file :: proc(file_path: string) -> (ok: bool) {
-	return win.DeleteFileW(win_string_to_wstring(file_path)) == true
+delete_file :: proc(file_path: string) {
+	win.DeleteFileW(win_string_to_wstring(file_path))
 }
 open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: bool) {
 	file_path_w := win_string_to_wstring(file_path)
