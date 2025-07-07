@@ -77,6 +77,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	dwCreationDisposition = options >= {.Write_Preserve} ? win.OPEN_ALWAYS : dwCreationDisposition
 	dwCreationDisposition = options >= {.Write_Truncate} ? win.CREATE_ALWAYS : dwCreationDisposition
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
+	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
 
 	file_handle := win.CreateFileW(file_path_w, dwDesiredAccess, dwShareMode, nil, dwCreationDisposition, dwFlagsAndAttributes, nil)
 	if file_handle != nil {

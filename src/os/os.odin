@@ -18,6 +18,7 @@ FileOptionsEnum :: enum {
 	Write_Truncate,
 	Write_Preserve,
 	UniqueAccess,
+	RandomAccess,
 }
 FileOptions :: bit_set[FileOptionsEnum]
 
