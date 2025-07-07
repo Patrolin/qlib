@@ -4,12 +4,10 @@ import "../../os"
 
 read_save_file :: proc(file_path: string) -> (data: string, ok: bool) {
 	if os.get_path_type(file_path) == .File {
-		fmt.printfln("Using: %v", file_path)
 		return os.read_entire_file(file_path)
 	}
 	old_file_path := fmt.tprintf("%v.old", file_path)
 	if os.get_path_type(old_file_path) == .File {
-		fmt.printfln("Using: %v", old_file_path)
 		return os.read_entire_file(old_file_path)
 	}
 	return "", false
