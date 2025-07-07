@@ -64,7 +64,7 @@ move_path :: proc(old_path: string, new_path: string) -> (ok: bool) {
 }
 get_path_type :: proc(path: string) -> (path_type: PathType) {
 	attributes := win.GetFileAttributesW(win_string_to_wstring(path))
-	path_type = attributes == win.FILE_ATTRIBUTE_DIRECTORY ? .Directory : .File
+	path_type = (attributes & win.FILE_ATTRIBUTE_DIRECTORY) == win.FILE_ATTRIBUTE_DIRECTORY ? .Directory : .File
 	path_type = attributes == win.INVALID_FILE_ATTRIBUTES ? .None : path_type
 	return
 }
