@@ -20,13 +20,18 @@ HIIWORD :: #force_inline proc "contextless" (v: $T) -> i16 {return i16(v >> 16)}
 MAKEWORD :: #force_inline proc "contextless" (hi, lo: u32) -> u32 {return (hi << 16) | lo}
 
 // string procedures
-win_string_to_wstring :: win.utf8_to_wstring
-win_wstring_to_string :: proc(str: []win.WCHAR, allocator := context.temp_allocator) -> string {
-	res, _ := win.wstring_to_utf8(raw_data(str), len(str), allocator = allocator)
+@(private)
+win_string_to_wstring :: proc(str: string, allocator := context.temp_allocator) -> win.wstring {
+	return win.utf8_to_wstring(str, allocator = allocator)
+}
+@(private)
+win_wstring_to_string :: proc(wstr: []win.WCHAR, allocator := context.temp_allocator) -> string {
+	res, _ := win.wstring_to_utf8(raw_data(wstr), len(wstr), allocator = allocator)
 	return res
 }
-win_null_terminated_wstring_to_string :: proc(str: [^]win.WCHAR, allocator := context.temp_allocator) -> string {
-	res, _ := win.wstring_to_utf8(str, -1, allocator = allocator)
+@(private)
+win_null_terminated_wstring_to_string :: proc(wstr: [^]win.WCHAR, allocator := context.temp_allocator) -> string {
+	res, _ := win.wstring_to_utf8(wstr, -1, allocator = allocator)
 	return res
 }
 win_get_last_error_message :: proc() -> (error: u32, error_message: string) {
@@ -54,12 +59,54 @@ win_get_last_error_message :: proc() -> (error: u32, error_message: string) {
 }
 
 // dir and file procedures
+move_path :: proc(old_path: string, new_path: string) {
+	win.MoveFileExW(win_string_to_wstring(old_path), win_string_to_wstring(new_path), 0)
+}
+get_path_type :: proc(path: string) -> (path_type: PathType) {
+	attributes := win.GetFileAttributesW(win_string_to_wstring(path))
+	path_type = attributes == win.FILE_ATTRIBUTE_DIRECTORY ? .Directory : .File
+	path_type = attributes == win.INVALID_FILE_ATTRIBUTES ? .None : path_type
+	return
+}
+delete_path_recursively :: proc(path: string) {
+	assert(len(path) >= 2 && !strings.starts_with(path, "C:\\") && !strings.starts_with(path, "~"))
+	path_type := get_path_type(path)
+	fmt.printfln("delete_path_recursively: %v, .%v", path, path_type)
+	switch path_type {
+	case .None:
+	case .File:
+		delete_file(path)
+	case .Directory:
+		ok := delete_directory_if_empty(path)
+		if !ok {
+			path_to_search := fmt.tprintf("%v\\*", path)
+			wpath_to_search := win_string_to_wstring(path_to_search)
+			find_result: win.WIN32_FIND_DATAW
+			find := win.FindFirstFileW(wpath_to_search, &find_result)
+			if find != win.INVALID_HANDLE_VALUE {
+				for {
+					relative_path := win_null_terminated_wstring_to_string(&find_result.cFileName[0])
+					if relative_path != "." && relative_path != ".." {
+						delete_path_recursively(fmt.tprint(path, relative_path, separator = "/"))
+					}
+					if win.FindNextFileW(find, &find_result) == false {break}
+				}
+				win.FindClose(find)
+			}
+			delete_directory_if_empty(path)
+		}
+	}
+}
+
+// dir procedures
 new_directory :: proc(dir_path: string) -> (ok: bool) {
 	return win.CreateDirectoryW(win_string_to_wstring(dir_path), nil) == true
 }
 delete_directory_if_empty :: proc(dir_path: string) -> (ok: bool) {
 	return win.RemoveDirectoryW(win_string_to_wstring(dir_path)) == true
 }
+
+// file procedures
 delete_file :: proc(file_path: string) -> (ok: bool) {
 	return win.DeleteFileW(win_string_to_wstring(file_path)) == true
 }

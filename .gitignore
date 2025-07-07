@@ -1,4 +1,4 @@
 *.exe
 minimal
-_tmp
+_tmp*
 db

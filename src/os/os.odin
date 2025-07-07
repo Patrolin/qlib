@@ -13,6 +13,11 @@ OsInfo :: struct {
 	logical_core_count:  int,
 	window_border:       math.AbsoluteRect,
 }
+PathType :: enum {
+	None,
+	File,
+	Directory,
+}
 FileOptionsEnum :: enum {
 	Read,
 	Write_Truncate,
