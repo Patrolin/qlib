@@ -21,25 +21,33 @@ DBTableHeader :: struct #packed {
 	last_used_slot_id: u64le,
 	next_free_slot_id: u64le,
 }
+DBTableSlotHeader :: struct #packed {
+	used: b8,
+}
 DBTableSlot :: struct #packed {
-	next_free_slot_id: u64le,
+	using _: DBTableSlotHeader,
+	using _: struct #raw_union {
+		next_free_slot_id: u64le,
+		data:              void,
+	},
 }
 
 // helper procedures
 @(private)
 _get_table_slot_size :: proc($T: typeid) -> int {
-	return max(size_of(DBTableSlot), size_of(T))
+	return max(size_of(DBTableSlot), size_of(DBTableSlotHeader) + size_of(T))
 }
 @(private)
 _get_table_slot :: #force_inline proc(data: []byte, id: int, $T: typeid) -> ^DBTableSlot {
-	return id <= 0 ? nil : (^DBTableSlot)(&data[size_of(DBTableHeader) + (id - 1) * _get_table_slot_size(T)])
+	if id <= 0 {return nil}
+	return (^DBTableSlot)(&data[size_of(DBTableHeader) + (id - 1) * _get_table_slot_size(T)])
 }
 @(private)
 _get_table_header :: #force_inline proc(data: []byte) -> ^DBTableHeader {
 	return (^DBTableHeader)(raw_data(data))
 }
 @(private)
-_get_free_table_data_slot :: proc(table: ^DBTable($T)) -> [^]byte {
+_get_free_table_data_slot :: proc(table: ^DBTable($T)) -> ^DBTableSlot {
 	table_header := _get_table_header(table.data_view.data)
 	// find free slot
 	next_unused_slot_id := int(table_header.last_used_slot_id) + 1
@@ -53,7 +61,7 @@ _get_free_table_data_slot :: proc(table: ^DBTable($T)) -> [^]byte {
 	} else {
 		table_header.last_used_slot_id = u64le(next_unused_slot_id)
 	}
-	return ([^]byte)(slot)
+	return slot
 }
 @(private)
 _open_table_file :: proc(file_view: ^os.FileView, file_path_format: string, args: ..any) {
@@ -71,11 +79,6 @@ _open_table_file :: proc(file_view: ^os.FileView, file_path_format: string, args
 }
 
 // procedures
-delete_table :: proc($T: typeid) {
-	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
-	table_name := named_info.name
-	os.delete_file(fmt.tprintf("db/%v.bin", table_name))
-}
 open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 	// make directories
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
@@ -115,22 +118,25 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 	free_slot_count := 0
 	for next_free_slot_id > 0 {
 		free_slot_count += 1
-		next_free_slot_id = int(_get_table_slot(table.data_view.data, next_free_slot_id, T).next_free_slot_id)
+		slot := _get_table_slot(table.data_view.data, next_free_slot_id, T)
+		next_free_slot_id = int(slot.next_free_slot_id)
 	}
 	table.data_row_count = int(table_header.last_used_slot_id) - free_slot_count
 	return table
 }
-// !TODO: get id from struct type and call this insert instead
-append_table_row :: proc(table: ^DBTable($T), row: ^T) {
+// !TODO: get id from struct type and allow setting AND appending, and call this insert instead
+append_table_row :: proc(table: ^DBTable($T), value: ^T) {
 	mem.get_lock(&table.data_lock)
 	defer mem.release_lock(&table.data_lock)
 	// get table name
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	table_name := named_info.name
 	// get next slot
-	table_buffer := _get_free_table_data_slot(table)
+	row_slot := _get_free_table_data_slot(table)
 	// copy the data
-	row_buffer := ([^]byte)(row)
+	row_slot.used = true
+	row_buffer := ([^]byte)(&row_slot.data)
+	value_buffer := ([^]byte)(value)
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
 	for i in 0 ..< struct_info.field_count {
 		//field_name := struct_info.names[i]
@@ -139,8 +145,8 @@ append_table_row :: proc(table: ^DBTable($T), row: ^T) {
 
 		#partial switch field in field_type.variant {
 		case runtime.Type_Info_Boolean, runtime.Type_Info_Integer, runtime.Type_Info_Float:
-			table_ptr := &table_buffer[field_offset]
-			row_ptr := &row_buffer[field_offset]
+			table_ptr := &row_buffer[field_offset]
+			row_ptr := &value_buffer[field_offset]
 			switch size_of(field_type) {
 			case 1:
 				(^u8)(table_ptr)^ = (^u8)(row_ptr)^
@@ -155,7 +161,7 @@ append_table_row :: proc(table: ^DBTable($T), row: ^T) {
 			}
 		case:
 			for j in 0 ..< size_of(field_type) {
-				table_buffer[field_offset + j] = row_buffer[field_offset + j]
+				row_buffer[field_offset + j] = value_buffer[field_offset + j]
 			}
 		}
 	}
@@ -163,14 +169,17 @@ append_table_row :: proc(table: ^DBTable($T), row: ^T) {
 	table.data_row_count += 1
 	win.FlushFileBuffers(table.data_view.file.handle)
 }
-get_table_row :: proc(table: ^DBTable($T), id: int, row: ^T) -> (ok: bool) {
+get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T) -> (ok: bool) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	// get the slot
-	// TODO: this is wrong, since it doesn't respect the free_list - add a slot.used flag?
-	table_buffer := ([^]byte)(_get_table_slot(table.data_view.data, id, T))
-	if table_buffer == nil {return false}
+	row_slot := _get_table_slot(table.data_view.data, id, T)
+	if row_slot == nil || !row_slot.used {
+		value^ = {}
+		return false
+	}
+	row_buffer := ([^]byte)(&row_slot.data)
 	// copy the data
-	row_buffer := ([^]byte)(row)
+	value_buffer := ([^]byte)(value)
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
 	for i in 0 ..< struct_info.field_count {
 		//field_name := struct_info.names[i]
@@ -179,8 +188,8 @@ get_table_row :: proc(table: ^DBTable($T), id: int, row: ^T) -> (ok: bool) {
 
 		#partial switch field in field_type.variant {
 		case runtime.Type_Info_Boolean, runtime.Type_Info_Integer, runtime.Type_Info_Float:
-			table_ptr := &table_buffer[field_offset]
-			row_ptr := &row_buffer[field_offset]
+			table_ptr := &row_buffer[field_offset]
+			row_ptr := &value_buffer[field_offset]
 			switch size_of(field_type) {
 			case 1:
 				(^u8)(row_ptr)^ = (^u8)(table_ptr)^
@@ -195,12 +204,12 @@ get_table_row :: proc(table: ^DBTable($T), id: int, row: ^T) -> (ok: bool) {
 			}
 		case:
 			for j in 0 ..< size_of(field_type) {
-				row_buffer[field_offset + j] = table_buffer[field_offset + j]
+				value_buffer[field_offset + j] = row_buffer[field_offset + j]
 			}
 		}
 	}
 	return true
 }
 hard_delete_table_row :: proc(table: ^DBTable($T), id: int) {
-	// TODO
+	// TODO: hard delete row
 }
