@@ -124,7 +124,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
 
 	file_handle := win.CreateFileW(file_path_w, dwDesiredAccess, dwShareMode, nil, dwCreationDisposition, dwFlagsAndAttributes, nil)
-	if file_handle != nil {
+	if file_handle != win.INVALID_HANDLE_VALUE {
 		win_stats: win.BY_HANDLE_FILE_INFORMATION
 		win.GetFileInformationByHandle(file_handle, &win_stats)
 		file = File {
