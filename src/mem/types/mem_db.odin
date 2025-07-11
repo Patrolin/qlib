@@ -77,7 +77,7 @@ _get_free_table_slot :: proc(table: ^DBTable($T)) -> ^DBTableSlot {
 _open_table_file :: proc(file_view: ^os.FileView, file_path_format: string, args: ..any) {
 	// open file
 	file_path := fmt.tprintf(file_path_format, ..args)
-	file, ok := os.open_file(file_path, {.ReadWrite, .UniqueAccess, .RandomAccess})
+	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess})
 	fmt.assertf(ok, "Failed to open file: %v", file_path)
 	file_view.file = file
 	// open file_view

@@ -96,10 +96,13 @@ delete_file :: proc(file_path: string) {
 }
 open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: bool) {
 	cfile_path := linux_string_to_cstring(file_path)
+	read_only := options >= {.ReadOnly}
+	write_only := options >= {.WriteOnly}
 
 	open_flags := OpenFlags.O_LARGEFILE | OpenFlags.O_NOATIME
-	open_flags |= options >= {.WriteOnly} ? OpenFlags.O_CREAT | OpenFlags.O_WRONLY : {}
-	open_flags |= options >= {.ReadWrite} ? OpenFlags.O_CREAT | OpenFlags.O_RDWR : {}
+	open_flags |= read_only ? {} : OpenFlags.O_CREAT
+	open_flags |= read_only ? {} : (write_only ? OpenFlags.O_WRONLY : OpenFlags.O_RDWR)
+	open_flags |= options >= {.DontOpenExisting} ? OpenFlags.O_EXCL : {}
 	open_flags |= options >= {.Truncate} ? OpenFlags.O_TRUNC : {}
 	open_flags |= options >= {.FlushOnWrite} ? OpenFlags.O_DSYNC : {}
 

@@ -115,16 +115,17 @@ delete_file :: proc(file_path: string) {
 }
 open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: bool) {
 	file_path_w := win_string_to_wstring(file_path)
-	for_writing := options >= {.WriteOnly} || options >= {.ReadWrite}
+	read_only := options >= {.ReadOnly}
 
 	dwDesiredAccess := options >= {.WriteOnly} ? 0 : win.GENERIC_READ
-	dwDesiredAccess |= for_writing ? win.GENERIC_WRITE : 0
+	dwDesiredAccess |= read_only ? 0 : win.GENERIC_WRITE
 	dwShareMode := options >= {.UniqueAccess} ? 0 : win.FILE_SHARE_READ | win.FILE_SHARE_WRITE
 	/*securityAttributes := win.SECURITY_ATTRIBUTES { // NOTE: i don't think you ever want this
 		nLength        = size_of(win.SECURITY_ATTRIBUTES),
 		bInheritHandle = true,
 	}*/
-	dwCreationDisposition := for_writing ? win.OPEN_ALWAYS : win.OPEN_EXISTING
+	dwCreationDisposition := read_only ? win.OPEN_EXISTING : win.OPEN_ALWAYS
+	dwCreationDisposition = options >= {.DontOpenExisting} ? win.CREATE_NEW : dwCreationDisposition
 	dwCreationDisposition = options >= {.Truncate} ? win.CREATE_ALWAYS : dwCreationDisposition
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
 	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
