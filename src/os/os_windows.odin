@@ -188,8 +188,7 @@ close_file_view :: proc(file_view: FileView) {
 	assert(win.CloseHandle(file_view.mapping) == true)
 }
 resize_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
-	close_file_view(file_view^) // NOTE: windows doesn't let us resize in place
-
+	close_file_view(file_view^)
 	// set the file size
 	dwMaximumSizeHigh := u32((new_size) >> 32)
 	dwMaximumSizeLow := u32(new_size)
@@ -198,7 +197,6 @@ resize_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
 		win.SetEndOfFile(file_view.file.handle)
 	}
 	file_view.file.size = new_size
-
 	// reopen the file_view
 	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
 	if file_view.mapping == nil {return false}
