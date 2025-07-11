@@ -9,7 +9,7 @@ import "core:sys/unix"
 // constants
 @(private)
 OpenFlags :: enum {
-	O_RDONLY    = 0x000000,
+	O_RDONLY    = 0x000000, // NOTE: linux will happily open a file with O_RDONLY|O_WRONLY, :shrug:
 	O_WRONLY    = 0x000001,
 	O_RDWR      = 0x000002,
 	// RESERVED      = 0x000004,
