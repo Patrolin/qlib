@@ -14,14 +14,18 @@ TABLE_SLOT_DATA_SIZE :: TABLE_SLOT_SIZE - size_of(DBTableSlotHeader)
 
 // TODO: automatic migrations via tags+storing metadata if you want to link tables together
 // TODO: BTree(hash(field), id) indexes for fast filter/sort
-// TODO: replay log for consistency?
+/* TODO: write ahead log for consistency?
+	- have multiple sequentially written files
+		- fsync(file); fsync(dir) ahead of time
+	- have a checksum for each entry
+*/
 
 // types
 DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
 	data_view:      os.FileView,
 	//strings:   os.FileView,
 	data_lock:      mem.Lock,
-	data_row_count: int, // NOTE: we compute `data_row_count` at startup, so that it can't desync from `next_unused_slot`
+	data_row_count: int,
 }
 DBTableHeader :: struct #packed {
 	last_used_slot_id: u64le,
@@ -73,7 +77,7 @@ _get_free_table_slot :: proc(table: ^DBTable($T)) -> ^DBTableSlot {
 _open_table_file :: proc(file_view: ^os.FileView, file_path_format: string, args: ..any) {
 	// open file
 	file_path := fmt.tprintf(file_path_format, ..args)
-	file, ok := os.open_file(file_path, {.Read, .Write_Preserve, .UniqueAccess, .RandomAccess})
+	file, ok := os.open_file(file_path, {.ReadWrite, .UniqueAccess, .RandomAccess})
 	fmt.assertf(ok, "Failed to open file: %v", file_path)
 	file_view.file = file
 	// open file_view
@@ -177,7 +181,7 @@ append_table_row :: proc(table: ^DBTable($T), value: ^T) {
 	}
 	// update `data_row_count` and flush file
 	table.data_row_count += 1
-	win.FlushFileBuffers(table.data_view.file.handle)
+	os.flush_file(table.data_view.file.handle)
 }
 get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T) -> (ok: bool) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)

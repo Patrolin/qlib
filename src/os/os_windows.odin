@@ -4,6 +4,12 @@ import "core:strings"
 import win "core:sys/windows"
 
 // types
+FileHandle :: win.HANDLE
+File :: struct {
+	handle:          FileHandle,
+	size:            int,
+	last_write_time: int,
+}
 FileView :: struct {
 	file:    File,
 	mapping: win.HANDLE,
@@ -96,11 +102,11 @@ delete_path_recursively :: proc(path: string) {
 }
 
 // dir procedures
-new_directory :: proc(dir_path: string) -> (ok: bool) {
-	return win.CreateDirectoryW(win_string_to_wstring(dir_path), nil) == true
-}
 delete_directory_if_empty :: proc(dir_path: string) {
 	win.RemoveDirectoryW(win_string_to_wstring(dir_path))
+}
+new_directory :: proc(dir_path: string) -> (ok: bool) {
+	return win.CreateDirectoryW(win_string_to_wstring(dir_path), nil) == true
 }
 
 // file procedures
@@ -109,17 +115,17 @@ delete_file :: proc(file_path: string) {
 }
 open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: bool) {
 	file_path_w := win_string_to_wstring(file_path)
+	for_writing := options >= {.WriteOnly} || options >= {.ReadWrite}
 
-	dwDesiredAccess := options >= {.Read} ? win.GENERIC_READ : 0
-	dwDesiredAccess |= options >= {.Write_Truncate} || options >= {.Write_Preserve} ? win.GENERIC_WRITE : 0
+	dwDesiredAccess := options >= {.WriteOnly} ? 0 : win.GENERIC_READ
+	dwDesiredAccess |= for_writing ? win.GENERIC_WRITE : 0
 	dwShareMode := options >= {.UniqueAccess} ? 0 : win.FILE_SHARE_READ | win.FILE_SHARE_WRITE
 	/*securityAttributes := win.SECURITY_ATTRIBUTES { // NOTE: i don't think you ever want this
 		nLength        = size_of(win.SECURITY_ATTRIBUTES),
 		bInheritHandle = true,
 	}*/
-	dwCreationDisposition := win.OPEN_EXISTING
-	dwCreationDisposition = options >= {.Write_Preserve} ? win.OPEN_ALWAYS : dwCreationDisposition
-	dwCreationDisposition = options >= {.Write_Truncate} ? win.CREATE_ALWAYS : dwCreationDisposition
+	dwCreationDisposition := for_writing ? win.OPEN_ALWAYS : win.OPEN_EXISTING
+	dwCreationDisposition = options >= {.Truncate} ? win.CREATE_ALWAYS : dwCreationDisposition
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
 	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
 
@@ -142,16 +148,19 @@ close_file :: proc(file: File) {
 @(require_results)
 read_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_read: int) {
 	bytes_to_read_u32 := u32(min(len(buffer), int(max(u32))))
-	byte_count_written_word: win.DWORD
-	win.ReadFile(file_handle, raw_data(buffer), bytes_to_read_u32, &byte_count_written_word, nil)
-	return int(byte_count_written_word)
+	read_byte_count_word: win.DWORD
+	win.ReadFile(file_handle, raw_data(buffer), bytes_to_read_u32, &read_byte_count_word, nil)
+	return int(read_byte_count_word)
 }
 @(require_results)
 write_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_written: int) {
 	bytes_to_write_u32 := u32(min(len(buffer), int(max(u32))))
-	byte_count_written_word: win.DWORD
-	win.WriteFile(file_handle, raw_data(buffer), bytes_to_write_u32, &byte_count_written_word, nil)
-	return int(byte_count_written_word)
+	written_byte_count_word: win.DWORD
+	win.WriteFile(file_handle, raw_data(buffer), bytes_to_write_u32, &written_byte_count_word, nil)
+	return int(written_byte_count_word)
+}
+flush_file :: proc(file_handle: FileHandle) {
+	win.FlushFileBuffers(file_handle)
 }
 
 // file_view procedures

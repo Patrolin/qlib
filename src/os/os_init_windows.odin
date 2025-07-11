@@ -11,14 +11,6 @@ STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)
 STD_OUTPUT_HANDLE :: transmute(win.DWORD)i32(-11)
 STD_ERROR_HANDLE :: transmute(win.DWORD)i32(-12)
 
-// types
-FileHandle :: win.HANDLE
-File :: struct {
-	handle:          FileHandle,
-	size:            int,
-	last_write_time: int,
-}
-
 // imports
 foreign import kernel32 "system:kernel32.lib"
 @(default_calling_convention = "std")

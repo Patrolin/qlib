@@ -19,11 +19,15 @@ PathType :: enum {
 	Directory,
 }
 FileOptionsEnum :: enum {
-	Read,
-	Write_Truncate,
-	Write_Preserve,
+	WriteOnly,
+	ReadWrite,
+	Truncate,
+	// windows hint
 	UniqueAccess,
+	// windows hint
 	RandomAccess,
+	// O_DSYNC on linux, TODO: emulated on windows
+	FlushOnWrite,
 }
 FileOptions :: bit_set[FileOptionsEnum]
 
@@ -32,7 +36,7 @@ empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 	return runtime.Context{assertion_failure_proc = runtime.default_assertion_failure_proc}
 }
 read_entire_file :: proc(file_path: string, allocator := context.temp_allocator) -> (data: string, ok: bool) {
-	file := open_file(file_path, {.Read}) or_return
+	file := open_file(file_path, {}) or_return
 	buffer := make([]byte, file.size, allocator = allocator)
 	n := 0
 	for n < len(buffer) {n += read_file(file.handle, buffer[n:])}
@@ -40,7 +44,7 @@ read_entire_file :: proc(file_path: string, allocator := context.temp_allocator)
 	return transmute(string)buffer, true
 }
 write_entire_file :: proc(file_path: string, data: string) -> (ok: bool) {
-	file := open_file(file_path, {.Write_Truncate}) or_return
+	file := open_file(file_path, {.WriteOnly}) or_return
 	data_bytes := transmute([]u8)data
 	for n := 0; n < len(data); {n += write_file(file.handle, data_bytes[n:])}
 	close_file(file)
