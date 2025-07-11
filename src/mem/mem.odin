@@ -2,9 +2,8 @@ package lib_mem
 import "base:intrinsics"
 
 // constants
-// NOTE: reading from the same cache line is fine, but writing from multiple threads can lead to false sharing
-CACHE_LINE_SIZE_EXPONENT :: 6
-CACHE_LINE_SIZE :: 1 << CACHE_LINE_SIZE_EXPONENT
+// NOTE: SSD block sizes are 512B or 4KiB
+VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
 
 PAGE_SIZE_EXPONENT :: 12
 PAGE_SIZE :: 1 << PAGE_SIZE_EXPONENT
@@ -12,7 +11,9 @@ PAGE_SIZE :: 1 << PAGE_SIZE_EXPONENT
 HUGE_PAGE_SIZE_EXPONENT :: 21
 HUGE_PAGE_SIZE :: 1 << HUGE_PAGE_SIZE_EXPONENT
 
-VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
+// NOTE: multiple threads reading from the same cache line is fine, but writing can lead to false sharing
+CACHE_LINE_SIZE_EXPONENT :: 6
+CACHE_LINE_SIZE :: 1 << CACHE_LINE_SIZE_EXPONENT
 
 // types
 Lock :: distinct bool
