@@ -1,5 +1,6 @@
 package os_utils
 import "../fmt"
+import "../math"
 import "core:strings"
 import win "core:sys/windows"
 
@@ -156,19 +157,43 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 close_file :: proc(file: File) {
 	assert(win.CloseHandle(file.handle) == true)
 }
-@(require_results)
-read_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_read: int) {
-	bytes_to_read_u32 := u32(min(len(buffer), int(max(u32))))
-	read_byte_count_word: win.DWORD
-	win.ReadFile(file_handle, raw_data(buffer), bytes_to_read_u32, &read_byte_count_word, nil)
-	return int(read_byte_count_word)
+read_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+	buffer_ptr := raw_data(buffer)
+	n := len(buffer)
+	for n > 0 {
+		bytes_to_read_u32 := min(u32(n), max(u32))
+		read_byte_count_word: win.DWORD
+		win.ReadFile(file_handle, buffer_ptr, bytes_to_read_u32, &read_byte_count_word, nil)
+		read_byte_count := int(read_byte_count_word)
+
+		buffer_ptr = math.ptr_add(buffer_ptr, read_byte_count)
+		n -= read_byte_count
+	}
 }
-@(require_results)
-write_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_written: int) {
-	bytes_to_write_u32 := u32(min(len(buffer), int(max(u32))))
-	written_byte_count_word: win.DWORD
-	win.WriteFile(file_handle, raw_data(buffer), bytes_to_write_u32, &written_byte_count_word, nil)
-	return int(written_byte_count_word)
+write_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+	buffer_ptr := raw_data(buffer)
+	n := len(buffer)
+	for n > 0 {
+		bytes_to_write_u32 := min(u32(n), max(u32))
+		written_byte_count_word: win.DWORD
+		win.WriteFile(file_handle, raw_data(buffer), bytes_to_write_u32, &written_byte_count_word, nil)
+		read_byte_count := int(written_byte_count_word)
+
+		buffer_ptr = math.ptr_add(buffer_ptr, read_byte_count)
+		n -= read_byte_count
+	}
+}
+read_file_3 :: proc(file_handle: FileHandle, buffer: []byte, offset: int) {
+	offset_low := i32(offset)
+	offset_high := i32(offset >> 32)
+	win.SetFilePointer(file_handle, offset_low, &offset_high, win.FILE_BEGIN)
+	read_file_2(file_handle, buffer)
+}
+write_file_3 :: proc(file_handle: FileHandle, buffer: []byte, offset: int) {
+	offset_low := i32(offset)
+	offset_high := i32(offset >> 32)
+	win.SetFilePointer(file_handle, offset_low, &offset_high, win.FILE_BEGIN)
+	write_file_2(file_handle, buffer)
 }
 flush_file :: proc(file_handle: FileHandle) {
 	win.FlushFileBuffers(file_handle)

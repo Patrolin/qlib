@@ -118,15 +118,17 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 close_file :: proc(file: File) {
 	assert(linux.close(file.handle) == nil)
 }
-@(require_results)
-read_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_read: int) {
-	byte_count_read, _ = linux.read(file_handle, buffer)
-	return
+read_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+	for i := 0; i < len(buffer); {
+		read_byte_count, _ := linux.read(file_handle, buffer[i:])
+		i += read_byte_count
+	}
 }
-@(require_results)
-write_file :: proc(file_handle: FileHandle, buffer: []byte) -> (byte_count_written: int) {
-	byte_count_written, _ = linux.write(file_handle, buffer)
-	return
+write_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+	for i := 0; i < len(buffer); {
+		written_byte_count, _ := linux.write(file_handle, buffer[i:])
+		i += written_byte_count
+	}
 }
 flush_file :: proc(file_handle: FileHandle) {
 	linux.fsync(file_handle)

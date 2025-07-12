@@ -32,26 +32,35 @@ FileOptionsEnum :: enum {
 }
 FileOptions :: bit_set[FileOptionsEnum]
 
+// helper procedures
+@(private)
+assert_path_is_safe_to_delete :: #force_inline proc(path: string) {
+	assert(len(path) >= 2 && path != "C:\\" && path != "~/")
+}
+
 // procedures
 empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 	return runtime.Context{assertion_failure_proc = runtime.default_assertion_failure_proc}
 }
+read_file :: proc {
+	read_file_2,
+	read_file_3,
+}
+write_file :: proc {
+	write_file_2,
+	write_file_3,
+}
 read_entire_file :: proc(file_path: string, allocator := context.temp_allocator) -> (data: string, ok: bool) {
 	file := open_file(file_path, {.ReadOnly}) or_return
 	buffer := make([]byte, file.size, allocator = allocator)
-	n := 0
-	for n < len(buffer) {n += read_file(file.handle, buffer[n:])}
+	read_file(file.handle, buffer)
 	close_file(file)
 	return transmute(string)buffer, true
 }
 write_entire_file :: proc(file_path: string, data: string) -> (ok: bool) {
 	file := open_file(file_path, {.WriteOnly}) or_return
-	data_bytes := transmute([]u8)data
-	for n := 0; n < len(data); {n += write_file(file.handle, data_bytes[n:])}
+	buffer := transmute([]u8)data
+	write_file(file.handle, buffer)
 	close_file(file)
 	return true
-}
-@(private)
-assert_path_is_safe_to_delete :: #force_inline proc(path: string) {
-	assert(len(path) >= 2 && path != "C:\\" && path != "~/")
 }
