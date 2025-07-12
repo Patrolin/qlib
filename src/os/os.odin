@@ -21,8 +21,9 @@ PathType :: enum {
 FileOptionsEnum :: enum {
 	ReadOnly,
 	WriteOnly,
-	OnlyCreate,
+	NoOpen,
 	Truncate,
+	// TODO: NoBuffering,
 	// windows hint
 	UniqueAccess,
 	// windows hint

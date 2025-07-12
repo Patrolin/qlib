@@ -132,7 +132,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 		bInheritHandle = true,
 	}*/
 	dwCreationDisposition: DwCreationDisposition = read_only ? .OPEN : .CREATE_OR_OPEN
-	dwCreationDisposition = options >= {.OnlyCreate} ? .CREATE : dwCreationDisposition
+	dwCreationDisposition = options >= {.NoOpen} ? .CREATE : dwCreationDisposition
 	dwCreationDisposition = options >= {.Truncate} ? .CREATE_OR_OPEN_TRUNCATE : dwCreationDisposition
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
 	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN

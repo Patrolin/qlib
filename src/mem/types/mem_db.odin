@@ -125,19 +125,18 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 			fmt.assertf(false, "Cannot store pointer field_type in database: %v", field, loc = loc)
 		}
 	}
-	// compute row count
-	buffer: [TABLE_ROW_SIZE]byte
-	table_header := (^DBTableHeader)(&buffer)
-	_read_table_header(&table.file, table_header)
+	// compute data_row_count
+	table_header: DBTableHeader
+	_read_table_header(&table.file, &table_header)
 	last_used_row_id := int(table_header.last_used_row_id)
 	next_free_row_id := int(table_header.next_free_row_id)
 
-	row := (^DBTableRow)(&buffer)
+	row: DBTableRow
 	free_row_data := (^DBTableFreeRowData)(&row.data)
 	free_row_count := 0
 	for next_free_row_id > 0 {
 		free_row_count += 1
-		_read_table_row(&table.file, row, next_free_row_id)
+		_read_table_row(&table.file, &row, next_free_row_id)
 		next_free_row_id = int(free_row_data.next_free_row_id)
 	}
 	table.data_row_count = last_used_row_id - free_row_count
