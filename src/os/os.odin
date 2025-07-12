@@ -21,7 +21,7 @@ PathType :: enum {
 FileOptionsEnum :: enum {
 	ReadOnly,
 	WriteOnly,
-	DontOpenExisting,
+	OnlyCreate,
 	Truncate,
 	// windows hint
 	UniqueAccess,
@@ -46,25 +46,16 @@ empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 	return runtime.Context{assertion_failure_proc = runtime.default_assertion_failure_proc}
 }
 
-read_file :: proc {
-	read_file_2,
-	read_file_3,
-}
-write_file :: proc {
-	write_file_2,
-	write_file_3,
-}
 read_entire_file :: proc(file_path: string, allocator := context.temp_allocator) -> (data: string, ok: bool) {
 	file := open_file(file_path, {.ReadOnly}) or_return
 	buffer := make([]byte, file.size, allocator = allocator)
-	read_file(file.handle, buffer)
+	read_file(&file, buffer)
 	close_file(file)
 	return transmute(string)buffer, true
 }
 write_entire_file :: proc(file_path: string, data: string) -> (ok: bool) {
-	file := open_file(file_path, {.WriteOnly}) or_return
-	buffer := transmute([]u8)data
-	write_file(file.handle, buffer)
+	file := open_file(file_path, {.WriteOnly, .Truncate}) or_return
+	write_file(&file, transmute([]u8)data)
 	close_file(file)
 	return true
 }

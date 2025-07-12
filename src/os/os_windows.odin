@@ -18,13 +18,9 @@ DwCreationDisposition :: enum u32 {
 FileHandle :: win.HANDLE
 File :: struct {
 	handle:          FileHandle,
+	offset:          int,
 	size:            int,
 	last_write_time: int,
-}
-FileView :: struct {
-	file:    File,
-	mapping: win.HANDLE,
-	data:    []byte `fmt:"-"`,
 }
 
 // windows helper functions
@@ -136,7 +132,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 		bInheritHandle = true,
 	}*/
 	dwCreationDisposition: DwCreationDisposition = read_only ? .OPEN : .CREATE_OR_OPEN
-	dwCreationDisposition = options >= {.DontOpenExisting} ? .CREATE : dwCreationDisposition
+	dwCreationDisposition = options >= {.OnlyCreate} ? .CREATE : dwCreationDisposition
 	dwCreationDisposition = options >= {.Truncate} ? .CREATE_OR_OPEN_TRUNCATE : dwCreationDisposition
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
 	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
@@ -147,6 +143,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 		win.GetFileInformationByHandle(file_handle, &win_stats)
 		file = File {
 			file_handle,
+			0,
 			int(win_stats.nFileSizeHigh) << 32 | int(win_stats.nFileSizeLow),
 			int(win_stats.ftLastWriteTime.dwHighDateTime) << 32 | int(win_stats.ftLastWriteTime.dwLowDateTime),
 		}
@@ -157,86 +154,55 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 close_file :: proc(file: File) {
 	assert(win.CloseHandle(file.handle) == true)
 }
-read_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+read_file :: proc(file: ^File, buffer: []byte) -> (total_read_byte_count: int) {
 	buffer_ptr := raw_data(buffer)
 	n := len(buffer)
 	for n > 0 {
 		bytes_to_read_u32 := min(u32(n), max(u32))
 		read_byte_count_word: win.DWORD
-		win.ReadFile(file_handle, buffer_ptr, bytes_to_read_u32, &read_byte_count_word, nil)
+		win.ReadFile(file.handle, buffer_ptr, bytes_to_read_u32, &read_byte_count_word, nil)
 		read_byte_count := int(read_byte_count_word)
+		if read_byte_count == 0 {break}
 
 		buffer_ptr = math.ptr_add(buffer_ptr, read_byte_count)
 		n -= read_byte_count
 	}
+	total_read_byte_count = len(buffer) - n
+	file.offset += total_read_byte_count
+	return
 }
-write_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+write_file :: proc(file: ^File, buffer: []byte) {
 	buffer_ptr := raw_data(buffer)
 	n := len(buffer)
 	for n > 0 {
 		bytes_to_write_u32 := min(u32(n), max(u32))
 		written_byte_count_word: win.DWORD
-		win.WriteFile(file_handle, raw_data(buffer), bytes_to_write_u32, &written_byte_count_word, nil)
-		read_byte_count := int(written_byte_count_word)
+		win.WriteFile(file.handle, raw_data(buffer), bytes_to_write_u32, &written_byte_count_word, nil)
+		written_byte_count := int(written_byte_count_word)
 
-		buffer_ptr = math.ptr_add(buffer_ptr, read_byte_count)
-		n -= read_byte_count
+		buffer_ptr = math.ptr_add(buffer_ptr, written_byte_count)
+		n -= written_byte_count
 	}
+	file.offset += len(buffer)
 }
-read_file_3 :: proc(file_handle: FileHandle, buffer: []byte, offset: int) {
+read_file_at :: proc(file: ^File, buffer: []byte, offset: int) {
+	// NOTE: we have to emulate pread() by moving the file pointer on Windows..
 	offset_low := i32(offset)
 	offset_high := i32(offset >> 32)
-	win.SetFilePointer(file_handle, offset_low, &offset_high, win.FILE_BEGIN)
-	read_file_2(file_handle, buffer)
+	file.offset = offset
+	win.SetFilePointer(file.handle, offset_low, &offset_high, win.FILE_BEGIN)
+
+	read_file(file, buffer)
 }
-write_file_3 :: proc(file_handle: FileHandle, buffer: []byte, offset: int) {
+write_file_at :: proc(file: ^File, buffer: []byte, offset: int) {
+	// NOTE: we have to emulate pwrite() by moving the file pointer on Windows..
 	offset_low := i32(offset)
 	offset_high := i32(offset >> 32)
-	win.SetFilePointer(file_handle, offset_low, &offset_high, win.FILE_BEGIN)
-	write_file_2(file_handle, buffer)
-}
-flush_file :: proc(file_handle: FileHandle) {
-	win.FlushFileBuffers(file_handle)
-}
+	file.offset = offset
+	win.SetFilePointer(file.handle, offset_low, &offset_high, win.FILE_BEGIN)
 
-// file_view procedures
-open_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
-	assert(file_view.file.handle != nil)
-	// set the file size
-	dwMaximumSizeHigh := u32((new_size) >> 32)
-	dwMaximumSizeLow := u32(new_size)
-	fmt.printfln("file_view.file.size: %v, new_size: %v", file_view.file.size, new_size)
-	if file_view.file.size != new_size {
-		win.SetFilePointer(file_view.file.handle, i32(dwMaximumSizeLow), (^i32)(&dwMaximumSizeHigh), win.FILE_BEGIN)
-		win.SetEndOfFile(file_view.file.handle)
-	}
-	file_view.file.size = new_size
-
-	// reopen the file_view
-	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
-	if file_view.mapping == nil {return false}
-	ptr := win.MapViewOfFile(file_view.mapping, win.FILE_MAP_READ | win.FILE_MAP_WRITE, 0, 0, 0)
-	file_view.data = ([^]byte)(ptr)[:new_size]
-	return true
+	write_file(file, buffer)
 }
-close_file_view :: proc(file_view: FileView) {
-	assert(win.UnmapViewOfFile(raw_data(file_view.data)) == true)
-	assert(win.CloseHandle(file_view.mapping) == true)
-}
-resize_file_view :: proc(file_view: ^FileView, new_size: int) -> (ok: bool) {
-	close_file_view(file_view^)
-	// set the file size
-	dwMaximumSizeHigh := u32((new_size) >> 32)
-	dwMaximumSizeLow := u32(new_size)
-	if file_view.file.size != new_size {
-		win.SetFilePointer(file_view.file.handle, i32(dwMaximumSizeLow), (^i32)(&dwMaximumSizeHigh), win.FILE_BEGIN)
-		win.SetEndOfFile(file_view.file.handle)
-	}
-	file_view.file.size = new_size
-	// reopen the file_view
-	file_view.mapping = win.CreateFileMappingW(file_view.file.handle, nil, win.PAGE_READWRITE, dwMaximumSizeHigh, dwMaximumSizeLow, nil)
-	if file_view.mapping == nil {return false}
-	ptr := win.MapViewOfFile(file_view.mapping, win.FILE_MAP_READ | win.FILE_MAP_WRITE, 0, 0, 0)
-	file_view.data = ([^]byte)(ptr)[:new_size]
-	return true
+flush_file :: proc(file: File) {
+	win.FlushFileBuffers(file.handle)
 }

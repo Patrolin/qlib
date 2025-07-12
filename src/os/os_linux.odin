@@ -102,7 +102,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	open_flags := OpenFlags.O_LARGEFILE | OpenFlags.O_NOATIME
 	open_flags |= read_only ? {} : OpenFlags.O_CREAT
 	open_flags |= read_only ? {} : (write_only ? OpenFlags.O_WRONLY : OpenFlags.O_RDWR)
-	open_flags |= options >= {.DontOpenExisting} ? OpenFlags.O_EXCL : {}
+	open_flags |= options >= {.OnlyCreate} ? OpenFlags.O_EXCL : {}
 	open_flags |= options >= {.Truncate} ? OpenFlags.O_TRUNC : {}
 	open_flags |= options >= {.FlushOnWrite} ? OpenFlags.O_DSYNC : {}
 
@@ -118,13 +118,13 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 close_file :: proc(file: File) {
 	assert(linux.close(file.handle) == nil)
 }
-read_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+read_file :: proc(file_handle: FileHandle, buffer: []byte) {
 	for i := 0; i < len(buffer); {
 		read_byte_count, _ := linux.read(file_handle, buffer[i:])
 		i += read_byte_count
 	}
 }
-write_file_2 :: proc(file_handle: FileHandle, buffer: []byte) {
+write_file :: proc(file_handle: FileHandle, buffer: []byte) {
 	for i := 0; i < len(buffer); {
 		written_byte_count, _ := linux.write(file_handle, buffer[i:])
 		i += written_byte_count

@@ -9,8 +9,8 @@ import "core:strings"
 import win "core:sys/windows"
 
 // constants
-TABLE_SLOT_SIZE :: 256
-TABLE_SLOT_DATA_SIZE :: TABLE_SLOT_SIZE - size_of(DBTableSlotHeader)
+TABLE_ROW_SIZE :: 256
+TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
 // TODO: automatic migrations via tags+storing metadata if you want to link tables together
 // TODO: BTree(hash(field), id) indexes for fast filter/sort
@@ -22,69 +22,69 @@ TABLE_SLOT_DATA_SIZE :: TABLE_SLOT_SIZE - size_of(DBTableSlotHeader)
 
 // types
 DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
-	data_view:      os.FileView,
-	//strings:   os.FileView,
+	file:           os.File,
 	data_lock:      mem.Lock,
 	data_row_count: int,
 }
 DBTableHeader :: struct #packed {
-	last_used_slot_id: u64le,
-	next_free_slot_id: u64le,
+	last_used_row_id: u64le,
+	next_free_row_id: u64le,
 }
-#assert(size_of(DBTableHeader) <= TABLE_SLOT_SIZE)
+#assert(size_of(DBTableHeader) <= TABLE_ROW_SIZE)
 
-DBTableSlotHeader :: struct #packed {
+DBTableRowHeader :: struct #packed {
 	used: b8,
 }
-DBTableSlot :: struct #packed {
-	using _: DBTableSlotHeader,
-	using _: struct #raw_union {
-		next_free_slot_id: u64le,
-		data:              void,
-	},
+DBTableRow :: struct #packed {
+	using _: DBTableRowHeader,
+	data:    [TABLE_ROW_DATA_SIZE]byte,
 }
-#assert(size_of(DBTableSlot) <= TABLE_SLOT_SIZE)
-#assert(TABLE_SLOT_DATA_SIZE > 0)
+#assert(size_of(DBTableRow) == TABLE_ROW_SIZE)
+#assert(TABLE_ROW_DATA_SIZE > 0)
+
+DBTableFreeRowData :: struct #packed {
+	next_free_row_id: u64le,
+}
+#assert(size_of(DBTableFreeRowData) <= TABLE_ROW_DATA_SIZE)
 
 // helper procedures
 @(private)
-_get_table_header :: #force_inline proc(table_data: []byte) -> ^DBTableHeader {
-	return (^DBTableHeader)(raw_data(table_data))
+_read_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) {
+	buffer := ([^]byte)(table_header)[:size_of(DBTableHeader)]
+	os.read_file_at(file, buffer, 0)
 }
 @(private)
-_get_table_slot :: #force_inline proc(table_data: []byte, id: int, $T: typeid) -> ^DBTableSlot {
-	if id <= 0 {return nil}
-	return (^DBTableSlot)(&table_data[id * TABLE_SLOT_SIZE])
+_write_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) {
+	buffer := ([^]byte)(table_header)[:size_of(DBTableHeader)]
+	os.write_file_at(file, buffer, 0)
 }
 @(private)
-_get_free_table_slot :: proc(table: ^DBTable($T)) -> ^DBTableSlot {
-	table_header := _get_table_header(table.data_view.data)
-	// find free slot
-	next_unused_slot_id := int(table_header.last_used_slot_id) + 1
-	next_free_slot_id := int(table_header.next_free_slot_id)
-	have_free_slot := next_free_slot_id > 0
-	slot_id := have_free_slot ? next_free_slot_id : next_unused_slot_id
-	slot := _get_table_slot(table.data_view.data, slot_id, T)
+_read_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) {
+	buffer := ([^]byte)(row)[:TABLE_ROW_SIZE]
+	os.read_file_at(file, buffer, id * TABLE_ROW_SIZE)
+}
+@(private)
+_write_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) {
+	buffer := ([^]byte)(row)[:TABLE_ROW_SIZE]
+	os.write_file_at(file, buffer, id * TABLE_ROW_SIZE)
+}
+@(private)
+_get_free_table_row :: proc(table: ^DBTable($T), table_header: ^DBTableHeader, row: ^DBTableRow) -> (row_id: int) {
+	// find free row
+	next_unused_row_id := int(table_header.last_used_row_id) + 1
+	next_free_row_id := int(table_header.next_free_row_id)
+	have_free_row := next_free_row_id > 0
+	row_id = have_free_row ? next_free_row_id : next_unused_row_id
+	// read table row
+	_read_table_row(&table.file, row, row_id)
 	// update table_header
-	if intrinsics.expect(have_free_slot, false) {
-		table_header.next_free_slot_id = slot.next_free_slot_id
+	if intrinsics.expect(have_free_row, false) {
+		free_row := (^DBTableFreeRowData)(&row.data)
+		table_header.next_free_row_id = free_row.next_free_row_id
 	} else {
-		table_header.last_used_slot_id = u64le(next_unused_slot_id)
+		table_header.last_used_row_id = u64le(next_unused_row_id)
 	}
-	return slot
-}
-@(private)
-_open_table_file :: proc(file_view: ^os.FileView, file_path_format: string, args: ..any) {
-	// open file
-	file_path := fmt.tprintf(file_path_format, ..args)
-	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess})
-	fmt.assertf(ok, "Failed to open file: %v", file_path)
-	file_view.file = file
-	// open file_view
-	new_file_size := max(1, file_view.file.size)
-	new_file_size += math.align_forward(rawptr(uintptr(new_file_size)), mem.PAGE_SIZE)
-	ok = os.open_file_view(file_view, new_file_size)
-	fmt.assertf(ok, "Failed to open file view: %v", file_path)
+	_write_table_header(&table.file, table_header)
 	return
 }
 
@@ -99,7 +99,10 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 	assert(struct_info.flags >= {.packed}, loc = loc)
 	table := new(DBTable(T), allocator = context.allocator)
 	// open data file
-	_open_table_file(&table.data_view, "db/%v.bin", table_name)
+	file_path := fmt.tprintf("db/%v.bin", table_name)
+	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess})
+	assert(ok)
+	table.file = file
 	// assert only supported field_types
 	for i in 0 ..< struct_info.field_count {
 		//field_name := struct_info.names[i]
@@ -123,15 +126,21 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 		}
 	}
 	// compute row count
-	table_header := _get_table_header(table.data_view.data)
-	next_free_slot_id := int(table_header.next_free_slot_id)
-	free_slot_count := 0
-	for next_free_slot_id > 0 {
-		free_slot_count += 1
-		slot := _get_table_slot(table.data_view.data, next_free_slot_id, T)
-		next_free_slot_id = int(slot.next_free_slot_id)
+	buffer: [TABLE_ROW_SIZE]byte
+	table_header := (^DBTableHeader)(&buffer)
+	_read_table_header(&table.file, table_header)
+	last_used_row_id := int(table_header.last_used_row_id)
+	next_free_row_id := int(table_header.next_free_row_id)
+
+	row := (^DBTableRow)(&buffer)
+	free_row_data := (^DBTableFreeRowData)(&row.data)
+	free_row_count := 0
+	for next_free_row_id > 0 {
+		free_row_count += 1
+		_read_table_row(&table.file, row, next_free_row_id)
+		next_free_row_id = int(free_row_data.next_free_row_id)
 	}
-	table.data_row_count = int(table_header.last_used_slot_id) - free_slot_count
+	table.data_row_count = last_used_row_id - free_row_count
 	return table
 }
 // !TODO: get id from struct type and allow setting AND appending, and call this insert instead
@@ -142,10 +151,13 @@ append_table_row :: proc(table: ^DBTable($T), value: ^T) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	table_name := named_info.name
 	// get next slot
-	row_slot := _get_free_table_slot(table)
+	table_header: DBTableHeader
+	_read_table_header(&table.file, &table_header)
+	row: DBTableRow
+	row_id := _get_free_table_row(table, &table_header, &row)
 	// copy the data
-	row_slot.used = true // NOTE: this only gets stored when we flush the file buffers
-	row_ptr := ([^]byte)(&row_slot.data)
+	row.used = true
+	row_data_ptr := ([^]byte)(&row.data)
 	value_ptr := ([^]byte)(value)
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
 	for i in 0 ..< struct_info.field_count {
@@ -158,41 +170,44 @@ append_table_row :: proc(table: ^DBTable($T), value: ^T) {
 		case runtime.Type_Info_Boolean, runtime.Type_Info_Integer, runtime.Type_Info_Float:
 			switch field_size {
 			case 1:
-				(^u8)(row_ptr)^ = (^u8)(value_ptr)^
+				(^u8)(row_data_ptr)^ = (^u8)(value_ptr)^
 			case 2:
-				(^u16le)(row_ptr)^ = u16le((^u16)(value_ptr)^)
+				(^u16le)(row_data_ptr)^ = u16le((^u16)(value_ptr)^)
 			case 4:
-				(^u32le)(row_ptr)^ = u32le((^u32)(value_ptr)^)
+				(^u32le)(row_data_ptr)^ = u32le((^u32)(value_ptr)^)
 			case 8:
-				(^u64le)(row_ptr)^ = u64le((^u64)(value_ptr)^)
+				(^u64le)(row_data_ptr)^ = u64le((^u64)(value_ptr)^)
 			case:
 				fmt.assertf(false, "Not implemented: %v", field_type)
 			}
-			row_ptr = math.ptr_add(row_ptr, field_size)
+			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
 		case runtime.Type_Info_Array:
 			for j in 0 ..< field_size {
-				row_ptr[field_offset + j] = value_ptr[field_offset + j]
+				row_data_ptr[field_offset + j] = value_ptr[field_offset + j]
 			}
-			row_ptr = math.ptr_add(row_ptr, field_size)
+			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
 		case:
 			fmt.assertf(false, "Not implemented, %v: %v", struct_info.names[i], field_type)
 		}
 		value_ptr = math.ptr_add(value_ptr, field_size)
 	}
+	_write_table_row(&table.file, &row, row_id)
 	// update `data_row_count` and flush file
 	table.data_row_count += 1
-	os.flush_file(table.data_view.file.handle)
+	os.flush_file(table.file)
 }
 get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T) -> (ok: bool) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	// get the slot
-	row_slot := _get_table_slot(table.data_view.data, id, T)
-	if row_slot == nil || !row_slot.used {
+	row: DBTableRow
+	_read_table_row(&table.file, &row, id)
+	// TODO: row_id_is_invalid || !row.used
+	if !row.used {
 		value^ = {}
 		return false
 	}
 	// copy the data
-	row_ptr := ([^]byte)(&row_slot.data)
+	row_data_ptr := ([^]byte)(&row.data)
 	value_ptr := ([^]byte)(value)
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
 	for i in 0 ..< struct_info.field_count {
@@ -205,22 +220,22 @@ get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T) -> (ok: bool) {
 		case runtime.Type_Info_Boolean, runtime.Type_Info_Integer, runtime.Type_Info_Float:
 			switch field_size {
 			case 1:
-				(^u8)(value_ptr)^ = (^u8)(row_ptr)^
+				(^u8)(value_ptr)^ = (^u8)(row_data_ptr)^
 			case 2:
-				(^u16)(value_ptr)^ = u16((^u16le)(row_ptr)^)
+				(^u16)(value_ptr)^ = u16((^u16le)(row_data_ptr)^)
 			case 4:
-				(^u32)(value_ptr)^ = u32((^u32le)(row_ptr)^)
+				(^u32)(value_ptr)^ = u32((^u32le)(row_data_ptr)^)
 			case 8:
-				(^u64)(value_ptr)^ = u64((^u64le)(row_ptr)^)
+				(^u64)(value_ptr)^ = u64((^u64le)(row_data_ptr)^)
 			case:
 				fmt.assertf(false, "Not implemented: %v", field_type)
 			}
-			row_ptr = math.ptr_add(row_ptr, field_size)
+			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
 		case runtime.Type_Info_Array:
 			for j in 0 ..< field_size {
-				value_ptr[field_offset + j] = row_ptr[field_offset + j]
+				value_ptr[field_offset + j] = row_data_ptr[field_offset + j]
 			}
-			row_ptr = math.ptr_add(row_ptr, field_size)
+			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
 		case:
 			fmt.assertf(false, "Not implemented, %v: %v", struct_info.names[i], field_type)
 		}
