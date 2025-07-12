@@ -35,13 +35,17 @@ FileOptions :: bit_set[FileOptionsEnum]
 // helper procedures
 @(private)
 assert_path_is_safe_to_delete :: #force_inline proc(path: string) {
-	assert(len(path) >= 2 && path != "C:\\" && path != "~/")
+	#no_bounds_check {
+		assert(len(path) >= 2)
+		assert((path[0] != '~' && path[1] != ':') || len(path) >= 4)
+	}
 }
 
 // procedures
 empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 	return runtime.Context{assertion_failure_proc = runtime.default_assertion_failure_proc}
 }
+
 read_file :: proc {
 	read_file_2,
 	read_file_3,
