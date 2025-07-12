@@ -3,6 +3,16 @@ import "../fmt"
 import "core:strings"
 import win "core:sys/windows"
 
+// constants
+@(private)
+DwCreationDisposition :: enum u32 {
+	CREATE                  = 1,
+	CREATE_OR_OPEN          = 4,
+	CREATE_OR_OPEN_TRUNCATE = 2,
+	OPEN                    = 3,
+	OPEN_TRUNCATE           = 5,
+}
+
 // types
 FileHandle :: win.HANDLE
 File :: struct {
@@ -124,13 +134,13 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 		nLength        = size_of(win.SECURITY_ATTRIBUTES),
 		bInheritHandle = true,
 	}*/
-	dwCreationDisposition := read_only ? win.OPEN_EXISTING : win.OPEN_ALWAYS
-	dwCreationDisposition = options >= {.DontOpenExisting} ? win.CREATE_NEW : dwCreationDisposition
-	dwCreationDisposition = options >= {.Truncate} ? win.CREATE_ALWAYS : dwCreationDisposition
+	dwCreationDisposition: DwCreationDisposition = read_only ? .OPEN : .CREATE_OR_OPEN
+	dwCreationDisposition = options >= {.DontOpenExisting} ? .CREATE : dwCreationDisposition
+	dwCreationDisposition = options >= {.Truncate} ? .CREATE_OR_OPEN_TRUNCATE : dwCreationDisposition
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
 	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
 
-	file_handle := win.CreateFileW(file_path_w, dwDesiredAccess, dwShareMode, nil, dwCreationDisposition, dwFlagsAndAttributes, nil)
+	file_handle := win.CreateFileW(file_path_w, dwDesiredAccess, dwShareMode, nil, u32(dwCreationDisposition), dwFlagsAndAttributes, nil)
 	if file_handle != win.INVALID_HANDLE_VALUE {
 		win_stats: win.BY_HANDLE_FILE_INFORMATION
 		win.GetFileInformationByHandle(file_handle, &win_stats)
