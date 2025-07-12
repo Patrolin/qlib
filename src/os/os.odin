@@ -23,12 +23,12 @@ FileOptionsEnum :: enum {
 	WriteOnly,
 	NoOpen,
 	Truncate,
-	// TODO: NoBuffering,
+	NoBuffering,
 	// windows hint
 	UniqueAccess,
 	// windows hint
 	RandomAccess,
-	// O_DSYNC on linux, TODO: emulated on windows
+	// O_DSYNC on linux, FILE_FLAG_WRITE_THROUGH on windows
 	FlushOnWrite,
 }
 FileOptions :: bit_set[FileOptionsEnum]
@@ -57,6 +57,6 @@ read_entire_file :: proc(file_path: string, allocator := context.temp_allocator)
 write_entire_file :: proc(file_path: string, data: string) -> (ok: bool) {
 	file := open_file(file_path, {.WriteOnly, .Truncate}) or_return
 	write_file(&file, transmute([]u8)data)
-	close_file(file)
+	close_file(file) // NOTE: windows flushes automatically on close
 	return true
 }

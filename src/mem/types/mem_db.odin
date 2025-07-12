@@ -100,7 +100,7 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 	table := new(DBTable(T), allocator = context.allocator)
 	// open data file
 	file_path := fmt.tprintf("db/%v.bin", table_name)
-	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess})
+	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess, .FlushOnWrite})
 	assert(ok)
 	table.file = file
 	// assert only supported field_types
@@ -193,7 +193,6 @@ append_table_row :: proc(table: ^DBTable($T), value: ^T) {
 	_write_table_row(&table.file, &row, row_id)
 	// update `data_row_count` and flush file
 	table.data_row_count += 1
-	os.flush_file(table.file)
 }
 get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T) -> (ok: bool) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)

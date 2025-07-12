@@ -126,16 +126,17 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 
 	dwDesiredAccess := options >= {.WriteOnly} ? 0 : win.GENERIC_READ
 	dwDesiredAccess |= read_only ? 0 : win.GENERIC_WRITE
+
 	dwShareMode := options >= {.UniqueAccess} ? 0 : win.FILE_SHARE_READ | win.FILE_SHARE_WRITE
-	/*securityAttributes := win.SECURITY_ATTRIBUTES { // NOTE: i don't think you ever want this
-		nLength        = size_of(win.SECURITY_ATTRIBUTES),
-		bInheritHandle = true,
-	}*/
+
 	dwCreationDisposition: DwCreationDisposition = read_only ? .OPEN : .CREATE_OR_OPEN
 	dwCreationDisposition = options >= {.NoOpen} ? .CREATE : dwCreationDisposition
 	dwCreationDisposition = options >= {.Truncate} ? .CREATE_OR_OPEN_TRUNCATE : dwCreationDisposition
+
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
 	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
+	dwFlagsAndAttributes |= options >= {.NoBuffering} ? win.FILE_FLAG_NO_BUFFERING : 0
+	dwFlagsAndAttributes |= options >= {.FlushOnWrite} ? win.FILE_FLAG_WRITE_THROUGH : 0
 
 	file_handle := win.CreateFileW(file_path_w, dwDesiredAccess, dwShareMode, nil, u32(dwCreationDisposition), dwFlagsAndAttributes, nil)
 	if file_handle != win.INVALID_HANDLE_VALUE {

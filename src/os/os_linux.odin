@@ -104,6 +104,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	open_flags |= read_only ? {} : (write_only ? OpenFlags.O_WRONLY : OpenFlags.O_RDWR)
 	open_flags |= options >= {.NoOpen} ? OpenFlags.O_EXCL : {}
 	open_flags |= options >= {.Truncate} ? OpenFlags.O_TRUNC : {}
+	open_flags |= options >= {.NoBuffering} ? OpenFlags.O_DIRECT : {}
 	open_flags |= options >= {.FlushOnWrite} ? OpenFlags.O_DSYNC : {}
 
 	file_handle := FileHandle(unix.sys_open(cfile_path, int(open_flags), 0o744))
