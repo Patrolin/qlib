@@ -9,7 +9,7 @@ import "core:strings"
 import win "core:sys/windows"
 
 // constants
-TABLE_ROW_SIZE :: 256
+TABLE_ROW_SIZE :: 512
 TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
 // TODO: automatic migrations via tags+storing metadata if you want to link tables together
@@ -29,8 +29,9 @@ DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
 DBTableHeader :: struct #packed {
 	last_used_row_id: u64le,
 	next_free_row_id: u64le,
+	padding:          [TABLE_ROW_SIZE - 2 * size_of(u64le)]byte `fmt:"-"`,
 }
-#assert(size_of(DBTableHeader) <= TABLE_ROW_SIZE)
+#assert(size_of(DBTableHeader) == TABLE_ROW_SIZE)
 
 DBTableRowHeader :: struct #packed {
 	used: b8,
@@ -50,12 +51,12 @@ DBTableFreeRowData :: struct #packed {
 // helper procedures
 @(private)
 _read_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) {
-	buffer := ([^]byte)(table_header)[:size_of(DBTableHeader)]
+	buffer := ([^]byte)(table_header)[:TABLE_ROW_SIZE]
 	os.read_file_at(file, buffer, 0)
 }
 @(private)
 _write_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) {
-	buffer := ([^]byte)(table_header)[:size_of(DBTableHeader)]
+	buffer := ([^]byte)(table_header)[:TABLE_ROW_SIZE]
 	os.write_file_at(file, buffer, 0)
 }
 @(private)
@@ -100,7 +101,7 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 	table := new(DBTable(T), allocator = context.allocator)
 	// open data file
 	file_path := fmt.tprintf("db/%v.bin", table_name)
-	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess, .FlushOnWrite})
+	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess, .NoBuffering, .FlushOnWrite})
 	assert(ok)
 	table.file = file
 	// assert only supported field_types

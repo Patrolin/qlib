@@ -13,7 +13,7 @@ STD_ERROR_HANDLE :: transmute(win.DWORD)i32(-12)
 
 // imports
 foreign import kernel32 "system:kernel32.lib"
-@(default_calling_convention = "std")
+@(default_calling_convention = "c")
 foreign kernel32 {
 	@(private)
 	AttachConsole :: proc(dwProcessId: win.DWORD) -> win.BOOL ---
