@@ -53,8 +53,7 @@ DBTableFreeRowData :: struct #packed {
 @(private, require_results)
 _read_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) -> (ok: bool) {
 	buffer := ([^]byte)(table_header)[:TABLE_ROW_SIZE]
-	read_byte_count := os.read_file_at(file, buffer, 0)
-	return read_byte_count == TABLE_ROW_SIZE
+	return os.read_file_at(file, buffer, 0) == TABLE_ROW_SIZE
 }
 @(private)
 _write_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) {
@@ -64,8 +63,7 @@ _write_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTable
 @(private, require_results)
 _read_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) -> (ok: bool) {
 	buffer := ([^]byte)(row)[:TABLE_ROW_SIZE]
-	read_byte_count := os.read_file_at(file, buffer, id * TABLE_ROW_SIZE)
-	return read_byte_count == TABLE_ROW_SIZE
+	return os.read_file_at(file, buffer, id * TABLE_ROW_SIZE) == TABLE_ROW_SIZE
 }
 @(private)
 _write_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) {
