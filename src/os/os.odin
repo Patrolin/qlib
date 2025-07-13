@@ -51,7 +51,7 @@ empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 read_entire_file :: proc(file_path: string, allocator := context.temp_allocator) -> (data: string, ok: bool) {
 	file := open_file(file_path, {.ReadOnly}) or_return
 	buffer := make([]byte, file.size, allocator = allocator)
-	read_file(&file, buffer)
+	_ = read_file(&file, buffer)
 	close_file(file)
 	return transmute(string)buffer, true
 }

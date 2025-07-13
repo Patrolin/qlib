@@ -79,16 +79,16 @@ foreign kernel32 {
 	GetDiskFreeSpaceW :: proc(lpRootPathName: win.LPCWSTR, lpSectorsPerCluster: win.LPDWORD, lpBytesPerSector: win.LPDWORD, lpNumberOfFreeClusters: win.LPDWORD, lpTotalNumberOfClusters: win.LPDWORD) ---
 }
 get_disk_block_size :: proc() -> int {
-	bytesPerSector, sectorsPerCluster, numFreeClusters, totalClusters: win.DWORD
-	GetDiskFreeSpaceW(win_string_to_wstring("C:\\"), &bytesPerSector, &sectorsPerCluster, &numFreeClusters, &totalClusters)
+	sectorsPerCluster, bytesPerSector, numFreeClusters, totalClusters: win.DWORD
+	GetDiskFreeSpaceW(win_string_to_wstring("C:\\"), &sectorsPerCluster, &bytesPerSector, &numFreeClusters, &totalClusters)
 	/*fmt.printfln(
-		"bytesPerSector: %v, sectorsPerCluster: %v, numFreeClusters: %v, totalClusters: %v",
-		bytesPerSector,
+		"sectorsPerCluster: %v, bytesPerSector: %v, numFreeClusters: %v, totalClusters: %v",
 		sectorsPerCluster,
+		bytesPerSector,
 		numFreeClusters,
 		totalClusters,
 	)*/
-	return int(sectorsPerCluster)
+	return int(bytesPerSector)
 }
 
 // dir and file procedures
@@ -175,6 +175,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 close_file :: proc(file: File) {
 	assert(win.CloseHandle(file.handle) == true)
 }
+@(require_results)
 read_file :: proc(file: ^File, buffer: []byte) -> (total_read_byte_count: int) {
 	buffer_ptr := raw_data(buffer)
 	n := len(buffer)
@@ -207,22 +208,17 @@ write_file :: proc(file: ^File, buffer: []byte, loc := #caller_location) {
 	}
 	file.offset += len(buffer)
 }
-read_file_at :: proc(file: ^File, buffer: []byte, offset: int) {
+@(require_results)
+read_file_at :: proc(file: ^File, buffer: []byte, offset: int) -> (read_byte_count: int) {
 	// NOTE: we have to emulate pread() by moving the file pointer on Windows..
-	offset_low := i32(offset)
-	offset_high := i32(offset >> 32)
 	file.offset = offset
-	win.SetFilePointer(file.handle, offset_low, &offset_high, win.FILE_BEGIN)
-
-	read_file(file, buffer)
+	assert(win.SetFilePointerEx(file.handle, win.LARGE_INTEGER(offset), nil, win.FILE_BEGIN) == true)
+	return read_file(file, buffer)
 }
 write_file_at :: proc(file: ^File, buffer: []byte, offset: int, loc := #caller_location) {
 	// NOTE: we have to emulate pwrite() by moving the file pointer on Windows..
-	offset_low := i32(offset)
-	offset_high := i32(offset >> 32)
 	file.offset = offset
-	win.SetFilePointer(file.handle, offset_low, &offset_high, win.FILE_BEGIN)
-
+	assert(win.SetFilePointerEx(file.handle, win.LARGE_INTEGER(offset), nil, win.FILE_BEGIN) == true)
 	write_file(file, buffer, loc = loc)
 }
 flush_file :: proc(file: File) {

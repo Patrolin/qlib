@@ -19,6 +19,7 @@ TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 		- fsync(file); fsync(dir) ahead of time
 	- have a checksum for each entry
 */
+// TODO: cache table_header inside the DBTable struct?
 
 // types
 DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
@@ -49,20 +50,22 @@ DBTableFreeRowData :: struct #packed {
 #assert(size_of(DBTableFreeRowData) <= TABLE_ROW_DATA_SIZE)
 
 // helper procedures
-@(private)
-_read_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) {
+@(private, require_results)
+_read_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) -> (ok: bool) {
 	buffer := ([^]byte)(table_header)[:TABLE_ROW_SIZE]
-	os.read_file_at(file, buffer, 0)
+	read_byte_count := os.read_file_at(file, buffer, 0)
+	return read_byte_count == TABLE_ROW_SIZE
 }
 @(private)
 _write_table_header :: #force_inline proc(file: ^os.File, table_header: ^DBTableHeader) {
 	buffer := ([^]byte)(table_header)[:TABLE_ROW_SIZE]
 	os.write_file_at(file, buffer, 0)
 }
-@(private)
-_read_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) {
+@(private, require_results)
+_read_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) -> (ok: bool) {
 	buffer := ([^]byte)(row)[:TABLE_ROW_SIZE]
-	os.read_file_at(file, buffer, id * TABLE_ROW_SIZE)
+	read_byte_count := os.read_file_at(file, buffer, id * TABLE_ROW_SIZE)
+	return read_byte_count == TABLE_ROW_SIZE
 }
 @(private)
 _write_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) {
@@ -70,16 +73,15 @@ _write_table_row :: proc(file: ^os.File, row: ^DBTableRow, id: int) {
 	os.write_file_at(file, buffer, id * TABLE_ROW_SIZE)
 }
 @(private)
-_get_free_table_row :: proc(table: ^DBTable($T), table_header: ^DBTableHeader, row: ^DBTableRow) -> (row_id: int) {
+_get_new_table_row :: proc(table: ^DBTable($T), table_header: ^DBTableHeader, row: ^DBTableRow) -> (row_id: int) {
 	// find free row
 	next_unused_row_id := int(table_header.last_used_row_id) + 1
 	next_free_row_id := int(table_header.next_free_row_id)
 	have_free_row := next_free_row_id > 0
 	row_id = have_free_row ? next_free_row_id : next_unused_row_id
-	// read table row
-	_read_table_row(&table.file, row, row_id)
 	// update table_header
 	if intrinsics.expect(have_free_row, false) {
+		_ = _read_table_row(&table.file, row, row_id)
 		free_row := (^DBTableFreeRowData)(&row.data)
 		table_header.next_free_row_id = free_row.next_free_row_id
 	} else {
@@ -90,32 +92,31 @@ _get_free_table_row :: proc(table: ^DBTable($T), table_header: ^DBTableHeader, r
 }
 
 // procedures
-open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
-	// make directories
-	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
-	table_name := named_info.name
+// TODO: we can't just do open_database(db: ^DBStruct), because we have no way to get the table row types
+open_table :: proc(table: ^$T/DBTable($V), table_name: string, loc := #caller_location) where intrinsics.type_is_struct(T) {
+	// make directory
 	os.new_directory("db")
-	// make table
-	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
-	assert(struct_info.flags >= {.packed}, loc = loc)
-	table := new(DBTable(T), allocator = context.allocator)
 	// open data file
 	file_path := fmt.tprintf("db/%v.bin", table_name)
 	file, ok := os.open_file(file_path, {.UniqueAccess, .RandomAccess, .NoBuffering, .FlushOnWrite})
-	assert(ok)
+	assert(ok, loc = loc)
 	table.file = file
+	// assert first field is `id: int`
+	row_type := type_info_of(V).variant.(runtime.Type_Info_Named).base.variant.(runtime.Type_Info_Struct)
+	assert(row_type.field_count > 0, loc = loc)
+	first_field_name := row_type.names[0]
+	first_field_type := row_type.types[0]
+	_, first_field_type_is_integer := first_field_type.variant.(runtime.Type_Info_Integer)
+	first_field_is_id_int := row_type.names[0] == "id" && first_field_type_is_integer && size_of(first_field_type) == 8
+	fmt.assertf(first_field_is_id_int, "first_field must be `id: int`, got `%v: %v`", first_field_name, first_field_type)
 	// assert only supported field_types
-	for i in 0 ..< struct_info.field_count {
-		//field_name := struct_info.names[i]
-		//field_offset := int(struct_info.offsets[i])
-		field_type := struct_info.types[i]
+	for i in 0 ..< row_type.field_count {
+		field_type := row_type.types[i]
 
 		#partial switch field in field_type.variant {
-		case runtime.Type_Info_String:
+		case runtime.Type_Info_Dynamic_Array:
 			fmt.assertf(false, "Not implemented: %v", field, loc = loc)
 		case runtime.Type_Info_Slice:
-			fmt.assertf(false, "Not implemented: %v", field, loc = loc)
-		case runtime.Type_Info_Dynamic_Array:
 			fmt.assertf(false, "Not implemented: %v", field, loc = loc)
 		case runtime.Type_Info_Any,
 		     runtime.Type_Info_Pointer,
@@ -128,7 +129,8 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 	}
 	// compute data_row_count
 	table_header: DBTableHeader
-	_read_table_header(&table.file, &table_header)
+	read_ok := _read_table_header(&table.file, &table_header)
+	read_ok = _read_table_header(&table.file, &table_header)
 	last_used_row_id := int(table_header.last_used_row_id)
 	next_free_row_id := int(table_header.next_free_row_id)
 
@@ -137,108 +139,148 @@ open_table :: proc($T: typeid, loc := #caller_location) -> ^DBTable(T) {
 	free_row_count := 0
 	for next_free_row_id > 0 {
 		free_row_count += 1
-		_read_table_row(&table.file, &row, next_free_row_id)
+		_ = _read_table_row(&table.file, &row, next_free_row_id)
 		next_free_row_id = int(free_row_data.next_free_row_id)
 	}
 	table.data_row_count = last_used_row_id - free_row_count
-	return table
 }
 // !TODO: get id from struct type and allow setting AND appending, and call this insert instead
-append_table_row :: proc(table: ^DBTable($T), value: ^T) {
+insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 	mem.get_lock(&table.data_lock)
 	defer mem.release_lock(&table.data_lock)
 	// get table name
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	table_name := named_info.name
-	// get next slot
+	// get appropriate row
 	table_header: DBTableHeader
-	_read_table_header(&table.file, &table_header)
+	_ = _read_table_header(&table.file, &table_header)
+
+	row_id := (^int)(value)^
 	row: DBTableRow
-	row_id := _get_free_table_row(table, &table_header, &row)
-	// copy the data
+	if intrinsics.expect(row_id < 0, false) {return false}
+	if row_id == 0 {
+		row_id = _get_new_table_row(table, &table_header, &row)
+	}
 	row.used = true
-	row_data_ptr := ([^]byte)(&row.data)
-	value_ptr := ([^]byte)(value)
+	// copy the id
+	row_data_base_ptr := ([^]byte)(&row.data)
+	(^u64le)(row_data_base_ptr)^ = u64le(row_id)
+	row_data_offset := 8
+	// copy the fields
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
-	for i in 0 ..< struct_info.field_count {
-		//field_name := struct_info.names[i]
+	for i in 1 ..< struct_info.field_count {
+		field_name := struct_info.names[i]
 		field_offset := int(struct_info.offsets[i])
 		field_type := struct_info.types[i]
 		field_size := size_of(field_type)
+		field_ptr := math.ptr_add(value, field_offset)
 
+		//fmt.printfln("field, `%v: %v` at %v (%v B)", field_name, field_type, field_offset, field_size)
 		#partial switch field in field_type.variant {
 		case runtime.Type_Info_Boolean, runtime.Type_Info_Integer, runtime.Type_Info_Float:
+			if intrinsics.expect(row_data_offset + field_size > TABLE_ROW_DATA_SIZE, false) {return false}
 			switch field_size {
 			case 1:
-				(^u8)(row_data_ptr)^ = (^u8)(value_ptr)^
+				(^u8)(&row_data_base_ptr[row_data_offset])^ = (^u8)(field_ptr)^
 			case 2:
-				(^u16le)(row_data_ptr)^ = u16le((^u16)(value_ptr)^)
+				(^u16le)(&row_data_base_ptr[row_data_offset])^ = u16le((^u16)(field_ptr)^)
 			case 4:
-				(^u32le)(row_data_ptr)^ = u32le((^u32)(value_ptr)^)
+				(^u32le)(&row_data_base_ptr[row_data_offset])^ = u32le((^u32)(field_ptr)^)
 			case 8:
-				(^u64le)(row_data_ptr)^ = u64le((^u64)(value_ptr)^)
+				(^u64le)(&row_data_base_ptr[row_data_offset])^ = u64le((^u64)(field_ptr)^)
 			case:
 				fmt.assertf(false, "Not implemented: %v", field_type)
 			}
-			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
+			row_data_offset += field_size
 		case runtime.Type_Info_Array:
+			if intrinsics.expect(row_data_offset + field_size > TABLE_ROW_DATA_SIZE, false) {return false}
 			for j in 0 ..< field_size {
-				row_data_ptr[field_offset + j] = value_ptr[field_offset + j]
+				row_data_base_ptr[row_data_offset + j] = field_ptr[field_offset + j]
 			}
-			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
+			row_data_offset += field_size
+		case runtime.Type_Info_String:
+			{
+				string_value_ptr := transmute(^runtime.Raw_String)(field_ptr)
+				string_value := string_value_ptr^
+				string_buffer := string_value.data
+				string_length := string_value.len
+				if intrinsics.expect(row_data_offset + 8 + string_length > TABLE_ROW_DATA_SIZE, false) {return false}
+
+				(^u64le)(&row_data_base_ptr[row_data_offset])^ = u64le(string_length)
+				row_data_offset += 8
+
+				for j in 0 ..< string_length {
+					row_data_base_ptr[row_data_offset + j] = string_buffer[j]
+				}
+				row_data_offset += string_length
+			}
 		case:
 			fmt.assertf(false, "Not implemented, %v: %v", struct_info.names[i], field_type)
 		}
-		value_ptr = math.ptr_add(value_ptr, field_size)
 	}
 	_write_table_row(&table.file, &row, row_id)
 	// update `data_row_count` and flush file
 	table.data_row_count += 1
+	return true
 }
-get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T) -> (ok: bool) {
+get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T, allocator := context.temp_allocator) -> (ok: bool) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	// get the slot
 	row: DBTableRow
-	_read_table_row(&table.file, &row, id)
-	// TODO: row_id_is_invalid || !row.used
-	if !row.used {
+	if intrinsics.expect(id <= 0, false) {
+		value^ = {}
+		return false
+	}
+	read_ok := _read_table_row(&table.file, &row, id)
+	if !read_ok || !row.used {
 		value^ = {}
 		return false
 	}
 	// copy the data
 	row_data_ptr := ([^]byte)(&row.data)
-	value_ptr := ([^]byte)(value)
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
 	for i in 0 ..< struct_info.field_count {
 		//field_name := struct_info.names[i]
 		field_offset := int(struct_info.offsets[i])
 		field_type := struct_info.types[i]
 		field_size := size_of(field_type)
+		field_ptr := math.ptr_add(value, field_offset)
 
+		//fmt.printfln("field, `%v: %v` at %v (%v B)", field_name, field_type, field_offset, field_size)
 		#partial switch field in field_type.variant {
 		case runtime.Type_Info_Boolean, runtime.Type_Info_Integer, runtime.Type_Info_Float:
 			switch field_size {
 			case 1:
-				(^u8)(value_ptr)^ = (^u8)(row_data_ptr)^
+				(^u8)(field_ptr)^ = (^u8)(row_data_ptr)^
 			case 2:
-				(^u16)(value_ptr)^ = u16((^u16le)(row_data_ptr)^)
+				(^u16)(field_ptr)^ = u16((^u16le)(row_data_ptr)^)
 			case 4:
-				(^u32)(value_ptr)^ = u32((^u32le)(row_data_ptr)^)
+				(^u32)(field_ptr)^ = u32((^u32le)(row_data_ptr)^)
 			case 8:
-				(^u64)(value_ptr)^ = u64((^u64le)(row_data_ptr)^)
+				(^u64)(field_ptr)^ = u64((^u64le)(row_data_ptr)^)
 			case:
 				fmt.assertf(false, "Not implemented: %v", field_type)
 			}
 			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
 		case runtime.Type_Info_Array:
 			for j in 0 ..< field_size {
-				value_ptr[field_offset + j] = row_data_ptr[field_offset + j]
+				field_ptr[j] = row_data_ptr[field_offset + j]
 			}
 			row_data_ptr = math.ptr_add(row_data_ptr, field_size)
+		case runtime.Type_Info_String:
+			string_length := (^int)(row_data_ptr)^
+			string_buffer := math.ptr_add(row_data_ptr, 8)[:string_length]
+			value_string_buffer := make([]byte, string_length, allocator = allocator)
+			for j in 0 ..< string_length {
+				value_string_buffer[j] = string_buffer[j]
+			}
+			value_string_ptr := (^runtime.Raw_String)(field_ptr)
+			value_string_ptr.data = raw_data(value_string_buffer)
+			value_string_ptr.len = string_length
+			row_data_ptr = math.ptr_add(row_data_ptr, 8 + string_length)
 		case:
 			fmt.assertf(false, "Not implemented, %v: %v", struct_info.names[i], field_type)
 		}
-		value_ptr = math.ptr_add(value_ptr, field_size)
 	}
 	return true
 }
