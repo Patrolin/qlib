@@ -13,9 +13,10 @@ TABLE_ROW_SIZE :: 512
 TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
 // NOTE: an id always refers to the same row (until you hard delete that row)
-// TODO: cache table_header inside the DBTable struct?
-// TODO: store the field names and types in the table header
-// TODO: automatic migrations when field change
+
+// TODO: cache table_header in the DBTable struct?
+// TODO: store the field names and types in the table_header
+// TODO: automatic migrations when fields change (allow renames via tags?)
 // TODO: via tags+storing metadata
 
 /* TODO: write ahead log for consistency?
