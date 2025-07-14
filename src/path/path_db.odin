@@ -5,8 +5,6 @@ import "../mem"
 import "../path"
 import "base:intrinsics"
 import "base:runtime"
-import "core:strings"
-import win "core:sys/windows"
 
 // constants
 TABLE_ROW_SIZE :: 512
@@ -154,7 +152,6 @@ insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 	defer mem.release_lock(&table.data_lock)
 	// get table name
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
-	table_name := named_info.name
 	// get appropriate row
 	table_header: DBTableHeader
 	_ = _read_table_header(&table.file, &table_header)
@@ -173,7 +170,7 @@ insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 	// copy the fields
 	struct_info := named_info.base.variant.(runtime.Type_Info_Struct)
 	for i in 1 ..< struct_info.field_count {
-		field_name := struct_info.names[i]
+		//field_name := struct_info.names[i]
 		field_offset := int(struct_info.offsets[i])
 		field_type := struct_info.types[i]
 		field_size := size_of(field_type)
