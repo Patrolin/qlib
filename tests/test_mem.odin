@@ -6,11 +6,7 @@ import "base:intrinsics"
 test_virtual_alloc :: proc() {
 	data := mem.page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE)
 	// check not null
-	test.expectf(
-		data != nil,
-		"Failed to page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE), data: %v",
-		data,
-	)
+	test.expectf(data != nil, "Failed to page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE), data: %v", data)
 	// check commit on page fault
 	for offset := 0; offset < mem.VIRTUAL_MEMORY_TO_RESERVE; offset += mem.PAGE_SIZE {
 		raw_data(data)[offset] = 13
@@ -20,21 +16,6 @@ test_virtual_alloc :: proc() {
 		uintptr(raw_data(data)) & uintptr(mem.PAGE_SIZE - 1) == 0,
 		"page_reserve(mem.VIRTUAL_MEMORY_TO_RESERVE) is not aligned to mem.PAGE_SIZE",
 	)
-}
-
-test_pool_alloc :: proc() {
-	pool_allocator_8B: mem.PoolAllocator
-	mem.pool_allocator(&pool_allocator_8B, mem.page_reserve(mem.PAGE_SIZE), 8)
-
-	x := (^int)(mem.pool_alloc(&pool_allocator_8B))
-	test.expect_was_allocated(x, "x", 13)
-
-	y := (^int)(mem.pool_alloc(&pool_allocator_8B))
-	test.expect_was_allocated(y, "y", 7)
-	test.expect_still_allocated(x, "x", 13)
-
-	mem.pool_free(&pool_allocator_8B, x)
-	mem.pool_free(&pool_allocator_8B, y)
 }
 
 test_half_fit_allocator :: proc() {

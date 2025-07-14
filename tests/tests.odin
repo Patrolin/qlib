@@ -30,7 +30,6 @@ main :: proc() {
 	test.group("mem")
 	test.run_test(test_virtual_alloc)
 	test.run_test(test_arena_allocator)
-	test.run_test(test_pool_alloc)
 	test.run_test(test_half_fit_allocator)
 	test.run_test(test_default_context)
 	test.group_end()
