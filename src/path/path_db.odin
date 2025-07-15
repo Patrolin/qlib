@@ -12,7 +12,6 @@ TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
 // NOTE: an id always refers to the same row (until you hard delete that row)
 
-// TODO: cache table_header in the DBTable struct?
 // TODO: store the field names and types in the table_header
 // TODO: automatic migrations when fields change (allow renames via tags?)
 // TODO: via tags+storing metadata
@@ -30,13 +29,15 @@ DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
 	file:           File,
 	data_lock:      mem.Lock,
 	data_row_count: int,
+	header:         DBTableHeader,
 }
-DBTableHeader :: struct #packed {
+DBTableHeader :: struct {
 	last_used_row_id: u64le,
 	next_free_row_id: u64le,
 	padding:          [TABLE_ROW_SIZE - 2 * size_of(u64le)]byte `fmt:"-"`,
 }
 #assert(size_of(DBTableHeader) == TABLE_ROW_SIZE)
+#assert(align_of(DBTableHeader) == 8)
 
 DBTableRowHeader :: struct #packed {
 	used: b8,
@@ -54,10 +55,11 @@ DBTableFreeRowData :: struct #packed {
 #assert(size_of(DBTableFreeRowData) <= TABLE_ROW_DATA_SIZE)
 
 // helper procedures
-@(private, require_results)
-_read_table_header :: #force_inline proc(file: ^File, table_header: ^DBTableHeader) -> (ok: bool) {
+@(private)
+_read_table_header :: #force_inline proc(file: ^File, table_header: ^DBTableHeader) {
 	buffer := ([^]byte)(table_header)[:TABLE_ROW_SIZE]
-	return read_file_at(file, buffer, 0) == TABLE_ROW_SIZE
+	read_ok := read_file_at(file, buffer, 0) == TABLE_ROW_SIZE
+	if !read_ok {buffer = {}}
 }
 @(private)
 _write_table_header :: #force_inline proc(file: ^File, table_header: ^DBTableHeader) {
@@ -75,21 +77,21 @@ _write_table_row :: proc(file: ^File, row: ^DBTableRow, id: int) {
 	write_file_at(file, buffer, id * TABLE_ROW_SIZE)
 }
 @(private)
-_get_new_table_row :: proc(table: ^DBTable($T), table_header: ^DBTableHeader, row: ^DBTableRow) -> (row_id: int) {
+_get_new_table_row :: proc(table: ^DBTable($T), row: ^DBTableRow) -> (row_id: int) {
 	// find free row
-	next_unused_row_id := int(table_header.last_used_row_id) + 1
-	next_free_row_id := int(table_header.next_free_row_id)
+	next_unused_row_id := int(table.header.last_used_row_id) + 1
+	next_free_row_id := int(table.header.next_free_row_id)
 	have_free_row := next_free_row_id > 0
 	row_id = have_free_row ? next_free_row_id : next_unused_row_id
 	// update table_header
 	if intrinsics.expect(have_free_row, false) {
 		_ = _read_table_row(&table.file, row, row_id)
 		free_row := (^DBTableFreeRowData)(&row.data)
-		table_header.next_free_row_id = free_row.next_free_row_id
+		table.header.next_free_row_id = free_row.next_free_row_id
 	} else {
-		table_header.last_used_row_id = u64le(next_unused_row_id)
+		table.header.last_used_row_id = u64le(next_unused_row_id)
 	}
-	_write_table_header(&table.file, table_header)
+	_write_table_header(&table.file, &table.header)
 	return
 }
 
@@ -130,11 +132,9 @@ open_table :: proc(table: ^$T/DBTable($V), table_name: string, loc := #caller_lo
 		}
 	}
 	// compute data_row_count
-	table_header: DBTableHeader
-	read_ok := _read_table_header(&table.file, &table_header)
-	read_ok = _read_table_header(&table.file, &table_header)
-	last_used_row_id := int(table_header.last_used_row_id)
-	next_free_row_id := int(table_header.next_free_row_id)
+	_read_table_header(&table.file, &table.header)
+	last_used_row_id := int(table.header.last_used_row_id)
+	next_free_row_id := int(table.header.next_free_row_id)
 
 	row: DBTableRow
 	free_row_data := (^DBTableFreeRowData)(&row.data)
@@ -153,14 +153,11 @@ insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 	// get table name
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	// get appropriate row
-	table_header: DBTableHeader
-	_ = _read_table_header(&table.file, &table_header)
-
 	row_id := (^int)(value)^
 	row: DBTableRow
 	if intrinsics.expect(row_id < 0, false) {return false}
 	if row_id == 0 {
-		row_id = _get_new_table_row(table, &table_header, &row)
+		row_id = _get_new_table_row(table, &row)
 	}
 	row.used = true
 	// copy the id
