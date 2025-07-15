@@ -11,6 +11,7 @@ import "core:strings"
 TABLE_ROW_SIZE :: 512
 TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
+// TODO: open_database(database) and use type_polymorphic_record_parameter_value() to get the row types?
 // NOTE: a row_id always refers to the same row (until you hard delete that row)
 
 // TODO: automatic migrations when fields change (allow renames via tags?)
