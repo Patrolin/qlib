@@ -76,6 +76,13 @@ tprintf :: proc(format: string, args: ..any, newline := false) -> string {
 	return strings.to_string(sb)
 }
 
+sbprint :: proc(sb: ^strings.Builder, args: ..any, separator := " ", newline := false) {
+	wprint(strings.to_writer(sb), ..args, separator = separator, newline = newline)
+}
+sbprintf :: proc(sb: ^strings.Builder, format: string, args: ..any, newline := false) {
+	wprintf(strings.to_writer(sb), format, ..args, newline = newline)
+}
+
 // TODO: replace buffered writer switch indirection with regular function calls
 print :: proc(args: ..any, separator := " ", newline := false) {
 	buf: [1024]byte

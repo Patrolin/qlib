@@ -5,14 +5,14 @@ import "../mem"
 import "../path"
 import "base:intrinsics"
 import "base:runtime"
+import "core:strings"
 
 // constants
 TABLE_ROW_SIZE :: 512
 TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
-// NOTE: an id always refers to the same row (until you hard delete that row)
+// NOTE: a row_id always refers to the same row (until you hard delete that row)
 
-// TODO: store the field names and types in the table_header
 // TODO: automatic migrations when fields change (allow renames via tags?)
 // TODO: via tags+storing metadata
 
@@ -34,10 +34,69 @@ DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
 DBTableHeader :: struct {
 	last_used_row_id: u64le,
 	next_free_row_id: u64le,
-	padding:          [TABLE_ROW_SIZE - 2 * size_of(u64le)]byte `fmt:"-"`,
+	data:             [TABLE_ROW_SIZE - 2 * size_of(u64le)]byte `fmt:"-"`,
 }
 #assert(size_of(DBTableHeader) == TABLE_ROW_SIZE)
 #assert(align_of(DBTableHeader) == 8)
+
+DBField_ItemType_MASK :: 0x0f
+DBField_ItemType :: enum u8 {
+	signed   = 0x00,
+	unsigned = 0x01,
+	float    = 0x02,
+	bool     = 0x03,
+}
+DBField_ItemSize_MASK :: 0x30
+DBField_ItemSize :: enum u8 {
+	u8  = 0x00,
+	u16 = 0x10,
+	u32 = 0x20,
+	u64 = 0x30,
+}
+DBField_ArrayType_MASK :: 0xc0
+DBField_ArrayType :: enum u8 {
+	single = 0x00,
+	slice  = 0x40,
+	array  = 0x80,
+}
+@(private)
+_get_field_type_enum :: proc(
+	field_type: ^runtime.Type_Info,
+) -> (
+	item_type: DBField_ItemType,
+	item_size: DBField_ItemSize,
+	array_type: DBField_ArrayType,
+	array_size: u8,
+) {
+	item_size_int := field_type.size
+	#partial switch field in field_type.variant {
+	case runtime.Type_Info_Integer:
+		item_type = field.signed ? .signed : .unsigned
+	case runtime.Type_Info_Float:
+		item_type = .float
+	case runtime.Type_Info_Boolean:
+		item_type = .bool
+	case runtime.Type_Info_String:
+		item_type = .unsigned
+		item_size_int = 1
+		array_type = .slice
+	case:
+		fmt.assertf(false, "Unsupported field_type: %v", field_type)
+	}
+	switch item_size_int {
+	case 1:
+		item_size = .u8
+	case 2:
+		item_size = .u16
+	case 4:
+		item_size = .u32
+	case 8:
+		item_size = .u64
+	case:
+		fmt.assertf(false, "Unsupported field_type: %v", field_type)
+	}
+	return
+}
 
 DBTableRowHeader :: struct #packed {
 	used: b8,
@@ -111,7 +170,7 @@ open_table :: proc(table: ^$T/DBTable($V), table_name: string, loc := #caller_lo
 	first_field_name := row_type.names[0]
 	first_field_type := row_type.types[0]
 	_, first_field_type_is_integer := first_field_type.variant.(runtime.Type_Info_Integer)
-	first_field_is_id_int := row_type.names[0] == "id" && first_field_type_is_integer && size_of(first_field_type) == 8
+	first_field_is_id_int := row_type.names[0] == "id" && first_field_type_is_integer && first_field_type.size == 8
 	fmt.assertf(first_field_is_id_int, "first_field must be `id: int`, got `%v: %v`", first_field_name, first_field_type)
 	// assert only supported field_types
 	for i in 0 ..< row_type.field_count {
@@ -131,8 +190,37 @@ open_table :: proc(table: ^$T/DBTable($V), table_name: string, loc := #caller_lo
 			fmt.assertf(false, "Cannot store pointer field_type in database: %v", field, loc = loc)
 		}
 	}
-	// compute data_row_count
+	// initialize the table.header
 	_read_table_header(&table.file, &table.header)
+	header_data_ptr := math.ptr_add(&table.header.data, 0)
+	header_data_offset := 0
+	for i in 0 ..< row_type.field_count {
+		field_name := row_type.names[i]
+		field_type := row_type.types[i]
+		item_type, item_size, array_type, array_size := _get_field_type_enum(field_type)
+
+		header_data_offset += array_type == .array ? 1 : 0
+		header_data_offset += 1 + len(field_name)
+		fmt.assertf(len(field_name) <= int(max(u8)), "len(field_name) is too big!")
+		fmt.assertf(header_data_offset <= len(table.header.data), "Header data is too big!")
+		// store the DBField type
+		(^u8)(header_data_ptr)^ = u8(item_type) | u8(item_size) | u8(array_type)
+		header_data_ptr = math.ptr_add(header_data_ptr, 1)
+		// store the array size
+		if array_type == .array {
+			(^u8)(header_data_ptr)^ = u8(array_size)
+			header_data_ptr = math.ptr_add(header_data_ptr, 1)
+		}
+		// store the len(field_name)
+		(^u8)(header_data_ptr)^ = u8(len(field_name))
+		header_data_ptr = math.ptr_add(header_data_ptr, 1)
+		// store the field_name
+		for i in 0 ..< len(field_name) {
+			header_data_ptr[i] = field_name[i]
+		}
+	}
+	_write_table_header(&table.file, &table.header)
+	// compute data_row_count
 	last_used_row_id := int(table.header.last_used_row_id)
 	next_free_row_id := int(table.header.next_free_row_id)
 
@@ -146,7 +234,7 @@ open_table :: proc(table: ^$T/DBTable($V), table_name: string, loc := #caller_lo
 	}
 	table.data_row_count = last_used_row_id - free_row_count
 }
-// !TODO: get id from struct type and allow setting AND appending, and call this insert instead
+
 insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 	mem.get_lock(&table.data_lock)
 	defer mem.release_lock(&table.data_lock)
@@ -170,7 +258,7 @@ insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 		//field_name := struct_info.names[i]
 		field_offset := int(struct_info.offsets[i])
 		field_type := struct_info.types[i]
-		field_size := size_of(field_type)
+		field_size := field_type.size
 		field_ptr := math.ptr_add(value, field_offset)
 
 		//fmt.printfln("field, `%v: %v` at %v (%v B)", field_name, field_type, field_offset, field_size)
@@ -221,6 +309,7 @@ insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 	table.data_row_count += 1
 	return true
 }
+
 get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T, allocator := context.temp_allocator) -> (ok: bool) {
 	named_info := type_info_of(T).variant.(runtime.Type_Info_Named)
 	// get the slot
@@ -241,7 +330,7 @@ get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T, allocator := cont
 		//field_name := struct_info.names[i]
 		field_offset := int(struct_info.offsets[i])
 		field_type := struct_info.types[i]
-		field_size := size_of(field_type)
+		field_size := field_type.size
 		field_ptr := math.ptr_add(value, field_offset)
 
 		//fmt.printfln("field, `%v: %v` at %v (%v B)", field_name, field_type, field_offset, field_size)
@@ -282,6 +371,7 @@ get_table_row :: proc(table: ^DBTable($T), id: int, value: ^T, allocator := cont
 	}
 	return true
 }
+
 hard_delete_table_row :: proc(table: ^DBTable($T), id: int) {
 	// TODO: hard delete row
 }
