@@ -36,7 +36,7 @@ _assert_path_is_safe_to_delete :: #force_inline proc(path: string) {
 read_entire_file :: proc(file_path: string, allocator := context.temp_allocator) -> (data: string, ok: bool) {
 	file := open_file(file_path, {.ReadOnly}) or_return
 	buffer := make([]byte, file.size, allocator = allocator)
-	_ = read_file(&file, buffer)
+	assert(read_file(&file, buffer) == file.size)
 	close_file(file.handle)
 	return transmute(string)buffer, true
 }
