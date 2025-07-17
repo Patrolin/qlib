@@ -47,8 +47,7 @@ write_entire_file :: proc(file_path: string, data: string) -> (ok: bool) {
 	close_file(file.handle)
 	return true
 }
-read_save_file :: read_entire_file
-write_save_file :: proc(file_path: string, data: string) {
+write_entire_file_atomically :: proc(file_path: string, data: string) {
 	tmp_file_path := fmt.tprintf("%v.tmp", file_path)
 	assert(write_entire_file(tmp_file_path, data))
 	assert(move_path_atomically(tmp_file_path, file_path))
