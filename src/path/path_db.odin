@@ -46,6 +46,7 @@ DBField_ItemType :: enum u8 {
 	unsigned = 0x01,
 	float    = 0x02,
 	bool     = 0x03,
+	string   = 0x04,
 }
 DBField_ItemSize_MASK :: 0x30
 DBField_ItemSize :: enum u8 {
@@ -78,9 +79,8 @@ _get_field_type_enum :: proc(
 	case runtime.Type_Info_Boolean:
 		item_type = .bool
 	case runtime.Type_Info_String:
-		item_type = .unsigned
+		item_type = .string
 		item_size_int = 1
-		array_type = .slice
 	case:
 		fmt.assertf(false, "Unsupported field_type: %v", field_type)
 	}
@@ -244,7 +244,7 @@ insert_table_row :: proc(table: ^DBTable($T), value: ^T) -> (ok: bool) {
 	// get appropriate row
 	row_id := (^int)(value)^
 	row: DBTableRow
-	if intrinsics.expect(row_id < 0, false) {return false}
+	if intrinsics.expect(row_id < 0 || row_id > int(table.header.last_used_row_id), false) {return false}
 	if row_id == 0 {
 		row_id = _get_new_table_row(table, &row)
 	}
