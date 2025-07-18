@@ -14,8 +14,19 @@ TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 // TODO: open_database(database) and use type_polymorphic_record_parameter_value() to get the row types?
 // NOTE: a row_id always refers to the same row (until you hard delete that row)
 
-// TODO: automatic migrations when fields change (allow renames via tags?)
-// TODO: via tags+storing metadata
+/* TODO: automatic migrations when fields change (allow new/rename/drop via tags)
+	Foo :: struct {
+		name: string `v1:new`,
+		score:   i32 `v1:new`,
+		foo:     f64 `v1:new`,
+	}
+
+	Foo :: struct {
+		id:           int `v1:new v2:drop.foo`,
+		user_name: string `v1:new v2:move.name`,
+		score:        i64 `v1:new v2:drop.score,new`,
+	}
+*/
 
 /* TODO: write ahead log for consistency?
 	- have multiple sequentially written files
