@@ -13,7 +13,7 @@ TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 TableHeaderData :: struct {
 	last_used_row_id: u64le,
 	next_free_row_id: u64le,
-	version:          u64le,
+	user_version:     u64le,
 }
 TableHeader :: struct {
 	using _:    TableHeaderData,
