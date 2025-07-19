@@ -12,7 +12,7 @@ FileOptionsEnum :: enum {
 	WriteOnly,
 	NoOpen,
 	Truncate,
-	// NOTE: requires read/writes to be aligned to (sectorsPerCluster?) = 512B
+	// NOTE: requires read/writes to be aligned to bytesPerSector (512B)
 	NoBuffering,
 	// windows hint
 	UniqueAccess,

@@ -2,6 +2,7 @@ package lib_path
 import "../fmt"
 import "../math"
 import "../mem"
+import "../mem/types"
 import "../path"
 import "base:intrinsics"
 import "base:runtime"
@@ -11,7 +12,6 @@ import "core:strings"
 TABLE_ROW_SIZE :: 512
 TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
-// TODO: open_database(database) and use type_polymorphic_record_parameter_value() to get the row types?
 // NOTE: a row_id always refers to the same row (until you hard delete that row)
 
 /* TODO: automatic migrations when fields change (allow new/rename/drop via tags)
@@ -38,6 +38,7 @@ TABLE_ROW_DATA_SIZE :: TABLE_ROW_SIZE - size_of(DBTableRowHeader)
 
 // types
 DBTable :: struct($T: typeid) where intrinsics.type_is_struct(T) {
+	_row_type:      ^T,
 	file:           File,
 	data_lock:      mem.Lock,
 	data_row_count: int,
@@ -167,17 +168,33 @@ _get_new_table_row :: proc(table: ^DBTable($T), row: ^DBTableRow) -> (row_id: in
 }
 
 // procedures
-// TODO: we can't just do open_database(db: ^DBStruct), because we have no way to get the table row types
-open_table :: proc(table: ^$T/DBTable($V), table_name: string, loc := #caller_location) where intrinsics.type_is_struct(T) {
+open_database :: proc(database: ^$T) where intrinsics.type_is_struct(T) {
 	// make directory
 	path.new_directory("db")
+	// for each table field
+	database_type := type_info_of(T).variant.(runtime.Type_Info_Named).base.variant.(runtime.Type_Info_Struct)
+	for i in 0 ..< database_type.field_count {
+		table_name := database_type.names[i]
+		table_offset := int(database_type.offsets[i])
+		table_type := database_type.types[i].variant.(runtime.Type_Info_Named).base.variant.(runtime.Type_Info_Struct)
+		table_type_string := fmt.tprint(database_type.types[i])
+		assert(strings.starts_with(table_type_string, "DBTable("))
+		row_type_named := table_type.types[0].variant.(runtime.Type_Info_Pointer).elem
+		// open table
+		table := (^DBTable(types.void))(math.ptr_add(database, table_offset))
+		_open_table(table, table_name, row_type_named)
+	}
+	fmt.println()
+}
+@(private)
+_open_table :: proc(table: ^DBTable(types.void), table_name: string, row_type_named: ^runtime.Type_Info, loc := #caller_location) {
 	// open data file
 	file_path := fmt.tprintf("db/%v.bin", table_name)
 	file, ok := path.open_file(file_path, {.UniqueAccess, .RandomAccess, .NoBuffering, .FlushOnWrite})
 	assert(ok, loc = loc)
 	table.file = file
 	// assert first field is `id: int`
-	row_type := type_info_of(V).variant.(runtime.Type_Info_Named).base.variant.(runtime.Type_Info_Struct)
+	row_type := row_type_named.variant.(runtime.Type_Info_Named).base.variant.(runtime.Type_Info_Struct)
 	assert(row_type.field_count > 0, loc = loc)
 	first_field_name := row_type.names[0]
 	first_field_type := row_type.types[0]
