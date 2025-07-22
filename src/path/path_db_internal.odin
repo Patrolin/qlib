@@ -24,8 +24,8 @@ TableHeader :: struct {
 #assert(size_of(TableHeader) == TABLE_ROW_SIZE)
 #assert(align_of(TableHeader) == 8)
 
-FieldType :: distinct u8
-Field_ItemType :: enum FieldType {
+FieldInfo :: distinct u8
+FieldInfo_ItemType :: enum FieldInfo {
 	invalid  = 0x00,
 	signed   = 0x01,
 	unsigned = 0x02,
@@ -33,36 +33,33 @@ Field_ItemType :: enum FieldType {
 	bool     = 0x04,
 	string   = 0x05,
 }
-Field_ItemSize :: enum FieldType {
+FieldInfo_ItemSize :: enum FieldInfo {
 	u8  = 0x00,
 	u16 = 0x10,
 	u32 = 0x20,
 	u64 = 0x30,
 }
-Field_ArrayType :: enum FieldType {
+FieldInfo_ArrayType :: enum FieldInfo {
 	single = 0x00,
 	slice  = 0x40,
 	array  = 0x80,
 }
-field_item_type :: #force_inline proc(field_type: FieldType) -> Field_ItemType {
-	return Field_ItemType(field_type & 0x0f)
+FieldArraySize :: u8
+field_item_type :: #force_inline proc(field_info: FieldInfo) -> FieldInfo_ItemType {
+	return FieldInfo_ItemType(field_info & 0x0f)
 }
-field_item_size :: #force_inline proc(field_type: FieldType) -> Field_ItemSize {
-	return Field_ItemSize(field_type & 0x30)
+field_item_size :: #force_inline proc(field_info: FieldInfo) -> FieldInfo_ItemSize {
+	return FieldInfo_ItemSize(field_info & 0x30)
 }
-field_array_type :: #force_inline proc(field_type: FieldType) -> Field_ArrayType {
-	return Field_ArrayType(field_type & 0xc0)
+field_array_type :: #force_inline proc(field_info: FieldInfo) -> FieldInfo_ArrayType {
+	return FieldInfo_ArrayType(field_info & 0xc0)
 }
 
 @(private)
-_get_field_type_enum :: proc(
-	field_type: ^runtime.Type_Info,
-) -> (
-	item_type: Field_ItemType,
-	item_size: Field_ItemSize,
-	array_type: Field_ArrayType,
-	array_size: u8,
-) {
+_get_field_info :: proc(field_type: ^runtime.Type_Info) -> (field_info: FieldInfo, array_size: FieldArraySize) {
+	item_type: FieldInfo_ItemType
+	item_size: FieldInfo_ItemSize
+	array_type: FieldInfo_ArrayType
 	item_size_int := field_type.size
 	#partial switch field in field_type.variant {
 	case runtime.Type_Info_Integer:
@@ -78,6 +75,7 @@ _get_field_type_enum :: proc(
 	case:
 		fmt.assertf(false, "Unsupported field_type: %v", field_type)
 	}
+	field_info = FieldInfo(item_type) | FieldInfo(item_size) | FieldInfo(array_type)
 	switch item_size_int {
 	case 1:
 		item_size = .u8
@@ -176,10 +174,11 @@ _open_table :: proc(table: ^Table(types.void), table_name: string, row_type_name
 
 @(private)
 FieldMigration :: struct {
-	version: int,
-	name:    string,
-	type:    FieldType,
-	index:   int,
+	version:    int,
+	name:       string,
+	info:       FieldInfo,
+	array_size: FieldArraySize,
+	index:      int,
 }
 @(private)
 _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_named: ^runtime.Type_Info, loc := #caller_location) {
@@ -190,15 +189,17 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 	if table_user_version != 0 {
 		field_types_offset := 0
 		for field_types_offset < len(table.header.field_types) {
-			field_type := FieldType(table.header.field_types[field_types_offset])
+			field_type := FieldInfo(table.header.field_types[field_types_offset])
 			item_type := field_item_type(field_type)
+			array_type := field_array_type(field_type)
 			if item_type == .invalid {break}
+			assert(array_type != .array)
 
 			field_name: string
 			ok := _read_var_string(&field_name, table.header.field_types[field_types_offset + 1:])
 			fmt.assertf(ok, "Error reading header.field_types")
 
-			current_fields[field_name] = FieldMigration{table_user_version, field_name, field_type, field_index}
+			current_fields[field_name] = FieldMigration{table_user_version, field_name, field_type, 0, field_index}
 			field_index += 1
 		}
 	}
@@ -229,6 +230,8 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 		for i in 0 ..< row_type.field_count {
 			field_name := row_type.names[i]
 			field_type := row_type.types[i]
+			field_info, array_size := _get_field_info(field_type)
+			assert(array_size == 0)
 			field_tag := strings.Parser{row_type.tags[i]}
 			for len(field_tag.str) > 0 {
 				migration_tag, ok := _read_migration_tag(&field_tag)
@@ -248,7 +251,7 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 									field_type,
 									current_field,
 								)
-								current_fields[field_name] = FieldMigration{migration_tag.version, field_name, _get_field_type_enum(field_type), -1}
+								current_fields[field_name] = FieldMigration{migration_tag.version, field_name, field_info, 0, -1}
 								need_to_migrate = true
 							case .Move, .Drop:
 								assert(false, "TODO")
@@ -266,8 +269,7 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 		field_type := row_type.types[i]
 		field_tag := row_type.tags[i]
 		field_offset := int(row_type.offsets[i])
-		item_type, item_size, array_type, array_size := _get_field_type_enum(field_type)
-		field_type_enum := FieldType(item_type) | FieldType(item_size) | FieldType(array_type)
+		field_info, array_size := _get_field_info(field_type)
 		assert(array_size == 0)
 
 		current_field, already_exists := &current_fields[field_name]
@@ -275,7 +277,7 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 		fmt.printfln("%v: %v, current_field: %v", field_name, field_type, current_fields[field_name])
 	}
 	// TODO: migrate the table if necessary
-	assert(false)
+	assert(false, "TODO: migrate the table if necessary")
 }
 @(private)
 FieldMigrationTag :: struct {
