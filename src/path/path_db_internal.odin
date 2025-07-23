@@ -90,6 +90,39 @@ _get_field_info :: proc(field_type: ^runtime.Type_Info) -> (field_info: FieldInf
 	}
 	return
 }
+@(private)
+_tprint_field_info :: proc(field_info: FieldInfo, array_size: FieldArraySize) -> string {
+	item_type := field_item_type(field_info)
+	item_size := field_item_size(field_info)
+	array_type := field_array_type(field_info)
+	item_size_string := ""
+	switch item_size {
+	case .u8:
+		item_size_string = "8"
+	case .u16:
+		item_size_string = "16"
+	case .u32:
+		item_size_string = "32"
+	case .u64:
+		item_size_string = "64"
+	}
+
+	switch item_type {
+	case .invalid:
+		return "invalid"
+	case .signed:
+		return fmt.tprint("s", item_size_string, separator = "")
+	case .unsigned:
+		return fmt.tprint("u", item_size_string, separator = "")
+	case .float:
+		return fmt.tprint("f", item_size_string, separator = "")
+	case .bool:
+		return fmt.tprint("b", item_size_string, separator = "")
+	case .string:
+		return "string"
+	}
+	return "invalid"
+}
 
 DBTableRowHeader :: struct #packed {
 	used: b8,
@@ -174,37 +207,40 @@ _open_table :: proc(table: ^Table(types.void), table_name: string, row_type_name
 
 @(private)
 FieldMigration :: struct {
-	version:    int,
-	name:       string,
-	info:       FieldInfo,
-	array_size: FieldArraySize,
-	index:      int,
+	new_version:        int,
+	// .New if current_index == -1 else .Move
+	current_index:      int,
+	current_field_info: FieldInfo,
+	current_array_size: FieldArraySize,
+	new_field_info:     FieldInfo,
+	new_array_size:     FieldArraySize,
 }
 @(private)
 _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_named: ^runtime.Type_Info, loc := #caller_location) {
-	// read current_fields
-	current_fields: map[string]FieldMigration
+	// read table.header.field_types
+	acc_fields: map[string]FieldMigration
 	table_user_version := int(table.header.user_version)
 	field_index := 0
 	if table_user_version != 0 {
-		field_types_offset := 0
-		for field_types_offset < len(table.header.field_types) {
-			field_type := FieldInfo(table.header.field_types[field_types_offset])
-			item_type := field_item_type(field_type)
-			array_type := field_array_type(field_type)
-			if item_type == .invalid {break}
+		encoder := strings.ByteEncoder{table.header.field_types[:]}
+		for {
+			field_info_raw, field_info_ok := strings.decode_int(&encoder, u8)
+			field_info := FieldInfo(field_info_raw)
+			item_type := field_item_type(field_info)
+			array_type := field_array_type(field_info)
+			if !field_info_ok || item_type == .invalid {break}
 			assert(array_type != .array)
 
-			field_name: string
-			ok := _read_var_string(&field_name, table.header.field_types[field_types_offset + 1:])
-			fmt.assertf(ok, "Error reading header.field_types")
+			field_name_raw, field_name_ok := strings.decode_slice(&encoder, u64le)
+			field_name := transmute(string)(field_name_raw)
+			fmt.assertf(field_name_ok, "Error reading header.field_types")
 
-			current_fields[field_name] = FieldMigration{table_user_version, field_name, field_type, 0, field_index}
+			acc_fields[field_name] = FieldMigration{table_user_version, field_index, field_info, 0, 0, 0}
 			field_index += 1
 		}
 	}
-	fmt.printfln("current_fields: %v", current_fields)
-	// assert first field is `id: int`
+	fmt.print_list(acc_fields)
+	// assert that first field in `row_type` is `id: int`
 	row_type := row_type_named.variant.(runtime.Type_Info_Named).base.variant.(runtime.Type_Info_Struct)
 	assert(row_type.field_count > 0, loc = loc)
 	first_field_name := row_type.names[0]
@@ -220,10 +256,8 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 		for len(field_tag.str) > 0 {
 			migration, ok := _read_migration_tag(&field_tag)
 			new_user_version = max(new_user_version, migration.version)
-			fmt.printfln("migration: %v, ok: %v", migration, ok)
 		}
 	}
-	fmt.printfln("new_user_version: %v", new_user_version)
 	// compute new migrations
 	need_to_migrate := false
 	for version_to_apply in table_user_version + 1 ..= new_user_version {
@@ -243,15 +277,16 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 							fmt.printfln("%v: %v", field_name, migration_operator)
 							switch migration_operator.type {
 							case .New:
-								current_field, already_exists := current_fields[field_name]
+								current_field, already_exists := acc_fields[field_name]
 								fmt.assertf(
 									!already_exists,
-									"Cannot create new field (%v: %v), field already exists: %v",
+									"Cannot create new field `%v: %v`, field already exists: `%v: %v`",
 									field_name,
 									field_type,
 									current_field,
+									_tprint_field_info(current_field.current_field_info, current_field.current_array_size),
 								)
-								current_fields[field_name] = FieldMigration{migration_tag.version, field_name, field_info, 0, -1}
+								acc_fields[field_name] = FieldMigration{migration_tag.version, -1, 0, 0, field_info, 0}
 								need_to_migrate = true
 							case .Move, .Drop:
 								assert(false, "TODO")
@@ -262,19 +297,23 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 			}
 		}
 	}
-	fmt.printfln("fields_to_migrate_to: %v", current_fields)
-	// parse new fields
+	fmt.print_list(acc_fields)
+	// assert that old fields are all specified
+	for field_name, field in acc_fields {
+		fmt.assertf(
+			field.new_version == new_user_version,
+			"Missing migration for existing field `%v: %v` in type `%v`",
+			field_name,
+			_tprint_field_info(field.current_field_info, field.current_array_size),
+			row_type_named,
+		)
+	}
+	// assert that new fields are specified correctly
 	for i in 0 ..< row_type.field_count {
 		field_name := row_type.names[i]
 		field_type := row_type.types[i]
-		field_tag := row_type.tags[i]
-		field_offset := int(row_type.offsets[i])
-		field_info, array_size := _get_field_info(field_type)
-		assert(array_size == 0)
-
-		current_field, already_exists := &current_fields[field_name]
-		fmt.assertf(already_exists, "Missing migration for %v: %v", field_name, field_type)
-		fmt.printfln("%v: %v, current_field: %v", field_name, field_type, current_fields[field_name])
+		_, ok := &acc_fields[field_name]
+		fmt.assertf(ok, "Missing migration for new field `%v: %v` in type `%v`", field_name, field_type, row_type_named)
 	}
 	// TODO: migrate the table if necessary
 	assert(false, "TODO: migrate the table if necessary")
@@ -317,20 +356,4 @@ _read_migration_operator :: proc(operators_string: ^strings.Parser) -> (migratio
 		assert(false, "TODO")
 	}
 	return
-}
-
-@(private, require_results)
-_read_var_string :: proc(value_ptr: ^string, buffer: []byte, allocator := context.temp_allocator) -> (ok: bool) {
-	assert(len(buffer) >= 8)
-	string_length := (^int)(raw_data(buffer))^
-	if 8 + string_length > len(buffer) {return false}
-	string_buffer := buffer[8:8 + string_length]
-	value_buffer := make([]byte, string_length, allocator = allocator)
-	for j in 0 ..< string_length {
-		value_buffer[j] = string_buffer[j]
-	}
-	raw_value_ptr := (^runtime.Raw_String)(value_ptr)
-	raw_value_ptr.data = raw_data(value_buffer)
-	raw_value_ptr.len = string_length
-	return true
 }
