@@ -235,7 +235,7 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 			field_name := transmute(string)(field_name_raw)
 			fmt.assertf(field_name_ok, "Error reading header.field_types")
 
-			acc_fields[field_name] = FieldMigration{table_user_version, field_index, field_info, 0, 0, 0}
+			acc_fields[field_name] = FieldMigration{table_user_version, field_index, field_info, 0, field_info, 0}
 			field_index += 1
 		}
 	}
@@ -259,7 +259,6 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 		}
 	}
 	// compute new migrations
-	need_to_migrate := false
 	for version_to_apply in table_user_version + 1 ..= new_user_version {
 		for i in 0 ..< row_type.field_count {
 			field_name := row_type.names[i]
@@ -287,7 +286,6 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 									_tprint_field_info(current_field.current_field_info, current_field.current_array_size),
 								)
 								acc_fields[field_name] = FieldMigration{migration_tag.version, -1, 0, 0, field_info, 0}
-								need_to_migrate = true
 							case .Move, .Drop:
 								assert(false, "TODO")
 							}
@@ -312,8 +310,9 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 	for i in 0 ..< row_type.field_count {
 		field_name := row_type.names[i]
 		field_type := row_type.types[i]
-		_, ok := &acc_fields[field_name]
+		migration, ok := &acc_fields[field_name]
 		fmt.assertf(ok, "Missing migration for new field `%v: %v` in type `%v`", field_name, field_type, row_type_named)
+		// TODO: assert on migration.field_info == real_field_info
 	}
 	// TODO: migrate the table if necessary
 	assert(false, "TODO: migrate the table if necessary")
