@@ -300,7 +300,7 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 	for field_name, field in acc_fields {
 		fmt.assertf(
 			field.new_version == new_user_version,
-			"Missing migration for existing field `%v: %v` in type `%v`",
+			"Missing migration for old field `%v: %v` in type `%v`",
 			field_name,
 			_tprint_field_info(field.current_field_info, field.current_array_size),
 			row_type_named,
@@ -312,9 +312,18 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 		field_type := row_type.types[i]
 		migration, ok := &acc_fields[field_name]
 		fmt.assertf(ok, "Missing migration for new field `%v: %v` in type `%v`", field_name, field_type, row_type_named)
-		// TODO: assert on migration.field_info == real_field_info
+		real_field_info, real_array_size := _get_field_info(field_type)
+		fmt.assertf(
+			migration.new_field_info == real_field_info && migration.new_array_size == real_array_size,
+			"Type mismatch in migration for `%v: %v` in type %v, migration: `%v: %v`",
+			field_name,
+			field_type,
+			row_type_named,
+			field_name,
+			_tprint_field_info(migration.new_field_info, migration.current_array_size),
+		)
 	}
-	// TODO: migrate the table if necessary
+	// TODO: create or migrate the table
 	assert(false, "TODO: migrate the table if necessary")
 }
 @(private)
