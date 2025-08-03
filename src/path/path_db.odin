@@ -10,17 +10,24 @@ import "core:strings"
 
 // NOTE: a row_id always refers to the same row (until you hard delete that row)
 
-/* TODO: automatic migrations when fields change (allow new/rename/drop via tags)
+/* migrations
+Ideally you would have a system like:
+	@(migrations = `
+		v1: +id:int +name:string
+		v2: +score:u32
+	`)
 	Foo :: struct {
-		name: string `v1:+`,
-		score:   i32 `v1:+`,
-		foo:     f64 `v1:+`,
+		id: int,
+		name: string,
+		score: u32,
 	}
 
+However Odin doesn't allow you to see attributes on structs (and ols inserts unhelpful newlines in the middle of it)
+So to compromise for usability, we will instead use:
 	Foo :: struct {
-		user_name: string `v1:+ v2:/name -foo`,
-		score:   i32 `v1:+`,
-		bar:     f32 `v2:+`,
+		id: int `v1: +`,
+		name: string `v1: +`,
+		score: u32 `v2: +`,
 	}
 */
 
