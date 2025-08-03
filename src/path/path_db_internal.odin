@@ -253,7 +253,7 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 	for i in 0 ..< row_type.field_count {
 		field_name := row_type.names[i]
 		field_tag := strings.Parser{row_type.tags[i]}
-		for len(field_tag.str) > 0 {
+		for len(field_tag.slice) > 0 {
 			migration, ok := _read_migration_tag(&field_tag)
 			new_user_version = max(new_user_version, migration.version)
 		}
@@ -266,28 +266,33 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 			field_info, array_size := _get_field_info(field_type)
 			assert(array_size == 0)
 			field_tag := strings.Parser{row_type.tags[i]}
-			for len(field_tag.str) > 0 {
+			for len(field_tag.slice) > 0 {
 				migration_tag, ok := _read_migration_tag(&field_tag)
 				if ok && migration_tag.version == version_to_apply {
 					operators_string := strings.Parser{migration_tag.operators_string}
-					for len(operators_string.str) > 0 {
+					for len(operators_string.slice) > 0 {
 						migration_operator, ok := _read_migration_operator(&operators_string)
-						if ok {
-							fmt.printfln("%v: %v", field_name, migration_operator)
-							switch migration_operator.type {
-							case .New:
-								current_field, already_exists := acc_fields[field_name]
-								fmt.assertf(
-									!already_exists,
-									"Cannot create new field `%v: %v`, field already exists: `%v: %v`",
-									field_name,
-									field_type,
-									current_field,
-									_tprint_field_info(current_field.current_field_info, current_field.current_array_size),
-								)
-								acc_fields[field_name] = FieldMigration{migration_tag.version, -1, 0, 0, field_info, 0}
-							case .Move, .Drop:
-								assert(false, "TODO")
+						if !ok {break}
+						switch m in migration_operator {
+						case MigrationNew:
+							current_field, already_exists := acc_fields[field_name]
+							fmt.assertf(
+								!already_exists,
+								"Cannot create new field `%v: %v`, field already exists: `%v: %v`",
+								field_name,
+								field_type,
+								current_field,
+								_tprint_field_info(current_field.current_field_info, current_field.current_array_size),
+							)
+							acc_fields[field_name] = FieldMigration{migration_tag.version, -1, 0, 0, field_info, 0}
+						case MigrationDrop:
+							delete_key(&acc_fields, m.name) // NOTE: don't error if it doesn't exist
+						case MigrationMove:
+							from_key, from_field := delete_key(&acc_fields, m.from)
+							if from_key != "" { 	// NOTE: don't error if it doesn't exist
+								from_field.new_field_info, from_field.new_array_size = _get_field_info(field_type)
+								from_field.new_version = migration_tag.version
+								acc_fields[field_name] = from_field
 							}
 						}
 					}
@@ -326,6 +331,7 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 	// TODO: create or migrate the table
 	assert(false, "TODO: migrate the table if necessary")
 }
+
 @(private)
 FieldMigrationTag :: struct {
 	version:          int,
@@ -337,31 +343,43 @@ _read_migration_tag :: proc(field_tag: ^strings.Parser) -> (migration: FieldMigr
 		strings.parse_prefix(field_tag, "v") or_break
 		migration.version = int(strings.parse_uint(field_tag, 10) or_break)
 		strings.parse_prefix(field_tag, ":") or_break
-		migration.operators_string = strings.parse_after(field_tag, " ")
+		migration.operators_string = strings.parse_after_any(field_tag, " ")
 		ok = true
 		return
 	}
-	migration.operators_string = strings.parse_after(field_tag, " ")
+	migration.operators_string = strings.parse_after_any(field_tag, " ")
 	return
 }
+
 @(private)
-FieldMigrationOperatorType :: enum {
-	New,
-	Move,
-	Drop,
+FieldMigrationOperator :: union {
+	MigrationNew,
+	MigrationDrop,
+	MigrationMove,
+}
+MigrationNew :: struct {}
+MigrationDrop :: struct {
+	name: string,
+}
+MigrationMove :: struct {
+	from: string,
 }
 @(private)
-FieldMigrationOperator :: struct {
-	type: FieldMigrationOperatorType,
-}
-@(private)
-_read_migration_operator :: proc(operators_string: ^strings.Parser) -> (migration_operator: FieldMigrationOperator, ok: bool) {
-	operator := strings.parse_until(operators_string, ",")
-	if operator == "new" {
-		migration_operator.type = .New
+_read_migration_operator :: proc(parser: ^strings.Parser) -> (migration_operator: FieldMigrationOperator, ok: bool) {
+	value_for_error := parser.slice
+	if intrinsics.expect(strings.parse_prefix(parser, "+"), true) {
+		migration_operator = MigrationNew{}
 		ok = true
-	} else {
-		assert(false, "TODO")
+	} else if intrinsics.expect(strings.parse_prefix(parser, "-"), true) {
+		name := strings.parse_until_any(parser, " ")
+		fmt.assertf(len(name) > 0, "Invalid migration string: '%v'", value_for_error)
+		migration_operator = MigrationDrop{name}
+		ok = true
+	} else if intrinsics.expect(strings.parse_prefix(parser, "/"), true) {
+		from := strings.parse_until_any(parser, " ")
+		fmt.assertf(len(from) > 0, "Invalid migration string: '%v'", value_for_error)
+		migration_operator = MigrationMove{from}
+		ok = true
 	}
 	return
 }

@@ -12,15 +12,15 @@ import "core:strings"
 
 /* TODO: automatic migrations when fields change (allow new/rename/drop via tags)
 	Foo :: struct {
-		name: string `v1:new`,
-		score:   i32 `v1:new`,
-		foo:     f64 `v1:new`,
+		name: string `v1:+`,
+		score:   i32 `v1:+`,
+		foo:     f64 `v1:+`,
 	}
 
 	Foo :: struct {
-		id:           int `v1:new v2:drop.foo`,
-		user_name: string `v1:new v2:move.name`,
-		score:        i64 `v1:new v2:drop.score,new`,
+		user_name: string `v1:+ v2:/name -foo`,
+		score:   i32 `v1:+`,
+		bar:     f32 `v2:+`,
 	}
 */
 
