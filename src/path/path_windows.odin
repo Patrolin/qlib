@@ -115,10 +115,10 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	}
 	return
 }
-flush_file :: proc(file_handle: FileHandle) {
+flush_file :: proc(file_handle: os.FileHandle) {
 	win.FlushFileBuffers(file_handle)
 }
-close_file :: proc(file_handle: FileHandle) {
+close_file :: proc(file_handle: os.FileHandle) {
 	assert(win.CloseHandle(file_handle) == true)
 }
 
