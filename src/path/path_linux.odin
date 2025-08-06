@@ -35,37 +35,25 @@ OpenFlags :: enum {
 	O_TMPFILE   = 0x400000,
 }
 
-// types
-FileHandle :: distinct i32
-File :: struct {
-	handle:          FileHandle,
-	size:            int,
-	last_write_time: int,
-}
-FileView :: struct {
-	file: File,
-	data: []byte `fmt:"-"`,
-}
-
 // path procedures
 move_path_atomically :: proc(old_path: string, new_path: string) -> (ok: bool) {
 	old_cpath := os.linux_string_to_cstring(old_path)
 	new_cpath := os.linux_string_to_cstring(new_path)
-	err := unix.sys_rename(old_cpath, new_cpath)
-	if intrinsics.expect(err != 0, false) {return false}
+	err := os.linux_rename(old_cpath, new_cpath)
+	if intrinsics.expect(err != .NONE, false) {return false}
 	// fsync the parent directory
 	last_slash_index := strings.last_index(new_path, "/")
 	dir_path := last_slash_index == -1 ? "." : new_path[:last_slash_index]
 	dir_cpath := os.linux_string_to_cstring(dir_path)
-	dir_handle := unix.sys_open(dir_cpath, int(OpenFlags.O_DIRECTORY), 0)
-	assert(unix.sys_fsync(dir_handle) == 0)
+	dir_handle, _ := os.linux_open(dir_cpath, int(OpenFlags.O_DIRECTORY), 0)
+	assert(os.linux_fsync(dir_handle) == .NONE)
 	return true
 }
 get_path_type :: proc(path: string) -> (path_type: PathType) {
 	path_info: os.linux_Stat
-	err := unix.sys_stat(os.linux_string_to_cstring(path), &path_info)
+	err := os.linux_stat(os.linux_string_to_cstring(path), &path_info)
 	path_type = (transmute(u32)(path_info.mode) & os.linux_S_IFDIR == os.linux_S_IFDIR) ? .Directory : .File
-	path_type = err == 0 ? path_type : .None
+	path_type = err == .NONE ? path_type : .None
 	return
 }
 delete_path_recursively :: proc(path: string) {
@@ -80,19 +68,16 @@ delete_path_recursively :: proc(path: string) {
 	}
 }
 
-// dir procedures
-delete_directory_if_empty :: proc(dir_path: string) {
-	unix.sys_rmdir(os.linux_string_to_cstring(dir_path))
-}
+// dir procs
 new_directory :: proc(dir_path: string) -> (ok: bool) {
-	err := unix.sys_mkdir(os.linux_string_to_cstring(dir_path), 0o744)
-	return err == 0
+	err := os.linux_mkdir(os.linux_string_to_cstring(dir_path), 0o744)
+	return err == .NONE
+}
+delete_directory_if_empty :: proc(dir_path: string) {
+	_ = os.linux_rmdir(os.linux_string_to_cstring(dir_path))
 }
 
-// file procedures
-delete_file :: proc(file_path: string) {
-	unix.sys_unlink(os.linux_string_to_cstring(file_path))
-}
+// open file procs
 open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: bool) {
 	cfile_path := os.linux_string_to_cstring(file_path)
 	read_only := options >= {.ReadOnly}
@@ -106,29 +91,21 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	open_flags |= options >= {.NoBuffering} ? OpenFlags.O_DIRECT : {}
 	open_flags |= options >= {.FlushOnWrite} ? OpenFlags.O_DSYNC : {}
 
-	file_handle := FileHandle(unix.sys_open(cfile_path, int(open_flags), 0o744))
+	file_handle, errno := os.linux_open(cfile_path, int(open_flags), 0o744)
 	if file_handle != 0 {
 		stat: os.linux_Stat
-		unix.sys_fstat(int(file_handle), &stat)
+		assert(os.linux_fstat(file_handle, &stat) == .NONE)
 		file = File{file_handle, int(stat.size), int(stat.atime.time_sec) * int(timing.SECOND) + int(stat.atime.time_nsec)}
 		ok = true
 	}
 	return
 }
-flush_file :: proc(file_handle: FileHandle) {
-	unix.sys_fsync(int(file_handle))
-}
-close_file :: proc(file_handle: FileHandle) {
-	assert(unix.sys_close(int(file_handle)) == 0)
-}
-
-// read/write file procs
 @(require_results)
 read_file :: proc(file: ^File, buffer: []byte) -> (total_read_byte_count: int) {
 	buffer_ptr := raw_data(buffer)
 	n := len(buffer)
 	for n > 0 {
-		read_byte_count := unix.sys_read(int(file.handle), buffer_ptr, uint(n))
+		read_byte_count := os.linux_read(file.handle, buffer_ptr, n)
 		if read_byte_count <= 0 {break}
 
 		n -= read_byte_count
@@ -141,7 +118,7 @@ write_file :: proc(file: ^File, buffer: []byte, loc := #caller_location) {
 	buffer_ptr := raw_data(buffer)
 	n := len(buffer)
 	for n > 0 {
-		written_byte_count := unix.sys_write(int(file.handle), buffer_ptr, uint(n))
+		written_byte_count := os.linux_write(file.handle, buffer_ptr, n)
 		assert(written_byte_count > 0, loc = loc)
 
 		n -= written_byte_count
@@ -153,7 +130,7 @@ read_file_at :: proc(file: ^File, buffer: []byte, offset: int) -> (total_read_by
 	buffer_ptr := raw_data(buffer)
 	n := len(buffer)
 	for n > 0 {
-		read_byte_count := unix.sys_pread(int(file.handle), buffer_ptr, uint(n), i64(offset))
+		read_byte_count := os.linux_pread(file.handle, buffer_ptr, n, offset)
 		if read_byte_count <= 0 {break}
 
 		n -= read_byte_count
@@ -166,10 +143,21 @@ write_file_at :: proc(file: ^File, buffer: []byte, offset: int, loc := #caller_l
 	buffer_ptr := raw_data(buffer)
 	n := len(buffer)
 	for n > 0 {
-		written_byte_count := unix.sys_pwrite(int(file.handle), buffer_ptr, uint(n), i64(offset))
+		written_byte_count := os.linux_pwrite(file.handle, buffer_ptr, n, offset)
 		assert(written_byte_count > 0, loc = loc)
 
 		n -= written_byte_count
 		buffer_ptr = math.ptr_add(buffer_ptr, written_byte_count)
 	}
+}
+
+// close file procs
+flush_file :: proc(file_handle: os.FileHandle) {
+	_ = os.linux_fsync(file_handle)
+}
+close_file :: proc(file_handle: os.FileHandle) {
+	assert(os.linux_close(file_handle) == .NONE)
+}
+delete_file :: proc(file_path: string) {
+	_ = os.linux_unlink(os.linux_string_to_cstring(file_path))
 }

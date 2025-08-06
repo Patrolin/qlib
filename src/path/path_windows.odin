@@ -14,14 +14,6 @@ DwCreationDisposition :: enum u32 {
 	OPEN_TRUNCATE           = 5,
 }
 
-// types
-FileHandle :: win.HANDLE
-File :: struct {
-	handle:          FileHandle,
-	size:            int,
-	last_write_time: int,
-}
-
 // get sector size
 foreign import kernel32 "system:kernel32.lib"
 @(default_calling_convention = "c")
@@ -81,11 +73,11 @@ delete_path_recursively :: proc(path: string) {
 }
 
 // dir procedures
-delete_directory_if_empty :: proc(dir_path: string) {
-	win.RemoveDirectoryW(os.win_string_to_wstring(dir_path))
-}
 new_directory :: proc(dir_path: string) -> (ok: bool) {
 	return win.CreateDirectoryW(os.win_string_to_wstring(dir_path), nil) == true
+}
+delete_directory_if_empty :: proc(dir_path: string) {
+	win.RemoveDirectoryW(os.win_string_to_wstring(dir_path))
 }
 
 // file procedures

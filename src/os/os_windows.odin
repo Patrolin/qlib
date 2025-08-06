@@ -20,6 +20,9 @@ foreign kernel32 {
 	AttachConsole :: proc(dwProcessId: win.DWORD) -> win.BOOL ---
 }
 
+// types
+FileHandle :: win.HANDLE
+
 // common procedures
 init :: #force_inline proc "contextless" () -> runtime.Context {
 	ctx := empty_context()

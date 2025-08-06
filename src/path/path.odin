@@ -1,5 +1,6 @@
 package lib_path
 import "../fmt"
+import "../os"
 
 // types
 PathType :: enum {
@@ -22,6 +23,11 @@ FileOptionsEnum :: enum {
 	FlushOnWrite,
 }
 FileOptions :: bit_set[FileOptionsEnum]
+File :: struct {
+	handle:          os.FileHandle,
+	size:            int,
+	last_write_time: int,
+}
 
 // helper procedures
 @(private)

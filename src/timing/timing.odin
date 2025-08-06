@@ -18,7 +18,7 @@ Cycles_f64 :: distinct f64
 
 // procedures
 get_cycles :: #force_inline proc "contextless" () -> Cycles {
-	// NOTE: QueryThreadCycleTime(), GetThreadTimes() and similar are completely broken
+	// NOTE: QueryThreadCycleTime(), GetThreadTimes() and similar are too slow to be useful
 	return Cycles(intrinsics.read_cycle_counter())
 }
 
