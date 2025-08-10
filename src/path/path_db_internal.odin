@@ -248,54 +248,59 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 	_, first_field_type_is_integer := first_field_type.variant.(runtime.Type_Info_Integer)
 	first_field_is_id_int := row_type.names[0] == "id" && first_field_type_is_integer && first_field_type.size == 8
 	fmt.assertf(first_field_is_id_int, "first_field must be `id: int`, got `%v: %v`", first_field_name, first_field_type)
-	// get new_user_version
-	new_user_version := 1
-	for i in 0 ..< row_type.field_count {
-		field_name := row_type.names[i]
-		field_tag := strings.Parser{row_type.tags[i]}
-		for len(field_tag.slice) > 0 {
-			migration, ok := _read_migration_tag(&field_tag)
-			new_user_version = max(new_user_version, migration.version)
-		}
-	}
+
 	// compute new migrations
-	for version_to_apply in table_user_version + 1 ..= new_user_version {
-		for i in 0 ..< row_type.field_count {
-			field_name := row_type.names[i]
-			field_type := row_type.types[i]
-			field_info, array_size := _get_field_info(field_type)
-			assert(array_size == 0)
-			field_tag := strings.Parser{row_type.tags[i]}
-			for len(field_tag.slice) > 0 {
-				migration_tag, ok := _read_migration_tag(&field_tag)
-				if ok && migration_tag.version == version_to_apply {
-					operators_string := strings.Parser{migration_tag.operators_string}
-					for len(operators_string.slice) > 0 {
-						migration_operator, ok := _read_migration_operator(&operators_string)
-						if !ok {break}
-						switch m in migration_operator {
-						case MigrationNew:
-							current_field, already_exists := acc_fields[field_name]
-							fmt.assertf(
-								!already_exists,
-								"Cannot create new field `%v: %v`, field already exists: `%v: %v`",
-								field_name,
-								field_type,
-								current_field,
-								_tprint_field_info(current_field.current_field_info, current_field.current_array_size),
-							)
-							acc_fields[field_name] = FieldMigration{migration_tag.version, -1, 0, 0, field_info, 0}
-						case MigrationDrop:
-							delete_key(&acc_fields, m.name) // NOTE: don't error if it doesn't exist
-						case MigrationMove:
-							from_key, from_field := delete_key(&acc_fields, m.from)
-							if from_key != "" { 	// NOTE: don't error if it doesn't exist
-								from_field.new_field_info, from_field.new_array_size = _get_field_info(field_type)
-								from_field.new_version = migration_tag.version
-								acc_fields[field_name] = from_field
-							}
-						}
-					}
+	new_user_version := 0
+	parser := strings.Parser{row_type.tags[0]}
+	outer: for len(parser.slice) > 0 {
+		// TODO: fix this loop
+		migration_version: int = ---
+		found: {
+			inner: if strings.parse_prefix(&parser, "v") {
+				migration_version = int(strings.parse_uint(&parser, 10) or_break inner)
+				strings.parse_prefix(&parser, ":") or_break inner
+				break found
+			}
+			_ = strings.parse_until_any(&parser, " ")
+			_ = strings.parse_after_any(&parser, "v")
+			if len(parser.slice) == 0 {break outer}
+		}
+		fmt.printfln("parser.slice: '%v'", parser.slice)
+		fmt.assertf(
+			migration_version > new_user_version,
+			"Migrations must be declared in order, got: %v, expected >%v",
+			migration_version,
+			new_user_version,
+		)
+		new_user_version = migration_version
+
+		fmt.printfln("parser.slice", parser.slice)
+		for {
+			migration_operator, ok := _parse_migration_operator(&parser)
+			fmt.printfln("ayaya.mo: %v, %v", migration_operator, ok)
+			if !ok {break}
+
+			switch m in migration_operator {
+			case MigrationNew:
+				current_field, already_exists := acc_fields[m.name]
+				fmt.assertf(
+					!already_exists,
+					"Cannot create new field `%v: %v`, field already exists: `%v: %v`",
+					m.name,
+					_tprint_field_info(m.info, m.array_size),
+					current_field,
+					_tprint_field_info(current_field.current_field_info, current_field.current_array_size),
+				)
+				acc_fields[m.name] = FieldMigration{migration_version, -1, 0, 0, m.info, m.array_size}
+			case MigrationDrop:
+				delete_key(&acc_fields, m.name) // NOTE: don't error if it doesn't exist
+			case MigrationMove:
+				from_key, from_field := delete_key(&acc_fields, m.from)
+				if from_key != "" { 	// NOTE: don't error if it doesn't exist
+					from_field.new_field_info = m.info
+					from_field.new_array_size = m.array_size
+					from_field.new_version = migration_version
+					acc_fields[m.to] = from_field
 				}
 			}
 		}
@@ -333,53 +338,86 @@ _migrate_table :: proc(table: ^Table(types.void), table_name: string, row_type_n
 }
 
 @(private)
-FieldMigrationTag :: struct {
-	version:          int,
-	operators_string: string,
-}
-@(private)
-_read_migration_tag :: proc(field_tag: ^strings.Parser) -> (migration: FieldMigrationTag, ok: bool) {
-	for {
-		strings.parse_prefix(field_tag, "v") or_break
-		migration.version = int(strings.parse_uint(field_tag, 10) or_break)
-		strings.parse_prefix(field_tag, ":") or_break
-		migration.operators_string = strings.parse_after_any(field_tag, " ")
-		ok = true
-		return
-	}
-	migration.operators_string = strings.parse_after_any(field_tag, " ")
-	return
-}
-
-@(private)
 FieldMigrationOperator :: union {
 	MigrationNew,
 	MigrationDrop,
 	MigrationMove,
 }
-MigrationNew :: struct {}
+MigrationNew :: struct {
+	name:       string,
+	info:       FieldInfo,
+	array_size: FieldArraySize,
+}
 MigrationDrop :: struct {
 	name: string,
 }
 MigrationMove :: struct {
-	from: string,
+	from:       string,
+	to:         string,
+	info:       FieldInfo,
+	array_size: FieldArraySize,
 }
 @(private)
-_read_migration_operator :: proc(parser: ^strings.Parser) -> (migration_operator: FieldMigrationOperator, ok: bool) {
+_parse_migration_operator :: proc(parser: ^strings.Parser) -> (migration_operator: FieldMigrationOperator, ok: bool) {
 	value_for_error := parser.slice
 	if intrinsics.expect(strings.parse_prefix(parser, "+"), true) {
-		migration_operator = MigrationNew{}
+		name := strings.parse_until_any(parser, ":, ")
+		fmt.assertf(len(name) > 0, "Invalid migration string: '%v'", value_for_error)
+		info, array_size := _parse_migration_operator_type(parser, value_for_error)
+		migration_operator = MigrationNew{name, info, array_size}
 		ok = true
 	} else if intrinsics.expect(strings.parse_prefix(parser, "-"), true) {
-		name := strings.parse_until_any(parser, " ")
+		name := strings.parse_until_any(parser, ", ")
 		fmt.assertf(len(name) > 0, "Invalid migration string: '%v'", value_for_error)
 		migration_operator = MigrationDrop{name}
 		ok = true
 	} else if intrinsics.expect(strings.parse_prefix(parser, "/"), true) {
-		from := strings.parse_until_any(parser, " ")
-		fmt.assertf(len(from) > 0, "Invalid migration string: '%v'", value_for_error)
-		migration_operator = MigrationMove{from}
+		from := strings.parse_until_any(parser, "/, ")
+		_ = strings.parse_prefix(parser, "/")
+		to := strings.parse_until_any(parser, ":, ")
+		fmt.assertf(len(to) > 0, "Invalid migration string: '%v'", value_for_error)
+		info, array_size := _parse_migration_operator_type(parser, value_for_error)
+		migration_operator = MigrationMove{from, to, info, array_size}
 		ok = true
 	}
+	return
+}
+_parse_migration_operator_type :: proc(parser: ^strings.Parser, value_for_error: string) -> (info: FieldInfo, array_size: FieldArraySize) {
+	fmt.assertf(strings.parse_prefix(parser, ":"), "Invalid migration string: '%v'", value_for_error)
+	type := strings.parse_until_any(parser, ", ")
+	item_type: FieldInfo_ItemType
+	item_size: FieldInfo_ItemSize
+	switch type {
+	case "i8":
+		item_type = .signed
+		item_size = .u8
+	case "i16":
+		item_type = .signed
+		item_size = .u16
+	case "i32":
+		item_type = .signed
+		item_size = .u32
+	case "i64":
+		item_type = .signed
+		item_size = .u64
+	case "u8":
+		item_type = .unsigned
+		item_size = .u8
+	case "u16":
+		item_type = .unsigned
+		item_size = .u16
+	case "u32":
+		item_type = .unsigned
+		item_size = .u32
+	case "u64":
+		item_type = .unsigned
+		item_size = .u64
+	case "string":
+		item_type = .string
+		item_size = .u8
+	case:
+		fmt.assertf(false, "Invalid migration string: '%v'", value_for_error)
+	}
+	info = FieldInfo(item_type) | FieldInfo(item_size)
 	return
 }
