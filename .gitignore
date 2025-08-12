@@ -1,4 +1,4 @@
 *.exe
-minimal
+minimal/*
 _tmp*
-db
+db/*
