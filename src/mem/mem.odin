@@ -40,6 +40,16 @@ release_lock :: #force_inline proc "contextless" (lock: ^Lock) {
 }
 
 // copy procedures
+copy_slow :: proc(src: rawptr, size: int, dest: rawptr) {
+	dest := uintptr(dest)
+	dest_end := dest + transmute(uintptr)(size)
+	src := uintptr(src)
+	for dest < dest_end {
+		(^byte)(dest)^ = (^byte)(src)^
+		dest += 1
+		src += 1
+	}
+}
 zero_simd_64B :: proc(dest: rawptr, size: int) {
 	dest := uintptr(dest)
 	dest_end := dest + transmute(uintptr)(size)
@@ -50,7 +60,7 @@ zero_simd_64B :: proc(dest: rawptr, size: int) {
 		dest += 64
 	}
 }
-copy_simd_64B :: proc(dest, src: rawptr, size: int) {
+copy_simd_64B :: proc(src: rawptr, size: int, dest: rawptr) {
 	dest := uintptr(dest)
 	dest_end := dest + transmute(uintptr)(size)
 	src := uintptr(src)

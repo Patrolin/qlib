@@ -51,7 +51,7 @@ arena_allocator_proc :: proc(
 		}
 		// copy
 		size_to_copy := min(size, old_size)
-		copy_simd_64B(ptr, old_ptr, size_to_copy)
+		copy_simd_64B(old_ptr, size_to_copy, ptr)
 	case .Free_All:
 		arena_allocator.next = 0
 	}

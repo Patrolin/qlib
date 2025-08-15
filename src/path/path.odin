@@ -11,7 +11,8 @@ PathType :: enum {
 FileOptionsEnum :: enum {
 	ReadOnly,
 	WriteOnly,
-	NoOpen,
+	// Must create a new file, don't open if it already exists.
+	CreateOnly,
 	Truncate,
 	// NOTE: requires read/writes to be aligned to bytesPerSector (512B)
 	NoBuffering,

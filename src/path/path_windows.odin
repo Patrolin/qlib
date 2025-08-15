@@ -94,7 +94,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 	dwShareMode := options >= {.UniqueAccess} ? 0 : win.FILE_SHARE_READ | win.FILE_SHARE_WRITE
 
 	dwCreationDisposition: DwCreationDisposition = read_only ? .OPEN : .CREATE_OR_OPEN
-	dwCreationDisposition = options >= {.NoOpen} ? .CREATE : dwCreationDisposition
+	dwCreationDisposition = options >= {.CreateOnly} ? .CREATE : dwCreationDisposition
 	dwCreationDisposition = options >= {.Truncate} ? .CREATE_OR_OPEN_TRUNCATE : dwCreationDisposition
 
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
