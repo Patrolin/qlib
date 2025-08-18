@@ -65,6 +65,5 @@ read_uint :: proc(reader: ^bytes.Reader, base: u64 = 10) -> (n: u64, ok: bool) {
 	}
 	reader.current_offset = i
 	ok = i > 0
-	fmt.printfln("read_uint: '%v', v: %v, ok: %v", slice, n, ok)
 	return
 }
