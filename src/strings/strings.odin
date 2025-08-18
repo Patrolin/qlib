@@ -1,5 +1,4 @@
 package lib_strings
-import "core:bytes"
 
 // NOTE: mostly copy paste from core:strings
 @(private)
@@ -8,21 +7,6 @@ PRIME_RABIN_KARP: u32 : 16777619
 // procs
 starts_with :: proc(str, prefix: string) -> bool {
 	return len(str) >= len(prefix) && str[0:len(prefix)] == prefix
-}
-/* TODO: do SIMD in a better way */
-index_byte :: proc "contextless" (str: string, char: byte) -> (byte_index: int) {
-	index_or_err := #force_inline bytes.index_byte(transmute([]u8)str, char)
-	return index_or_err == -1 ? len(str) : index_or_err
-}
-last_index_byte :: proc "contextless" (str: string, char: byte) -> (byte_index: int) {
-	index_or_err := #force_inline bytes.last_index_byte(transmute([]u8)str, char)
-	return index_or_err
-}
-index_after_byte :: proc(str: string, char: byte) -> (byte_index: int) #no_bounds_check {
-	for i in 0 ..< len(str) {
-		if str[i] != char {return i}
-	}
-	return len(str)
 }
 
 /* Returns the first byte offset of the `substring` in the `str`, or `len(s)` when not found. */
@@ -46,7 +30,7 @@ index :: proc "contextless" (str, substring: string) -> (byte_index: int) {
 	case n == 0:
 		return 0
 	case n == 1:
-		return index_byte(str, substring[0])
+		return index_ascii(str, substring[0])
 	case n == len(str):
 		return str == substring ? 0 : len(str)
 	case n > len(str):
@@ -94,7 +78,7 @@ last_index :: proc(str, substring: string) -> (byte_index: int) {
 	case n == 0:
 		return len(str)
 	case n == 1:
-		return last_index_byte(str, substring[0])
+		return last_index_ascii(str, substring[0])
 	case n == len(str):
 		return str == substring ? 0 : -1
 	case n > len(str):

@@ -31,7 +31,7 @@ read_slice :: proc(reader: ^Reader, $T: typeid) -> (value: []byte, ok: bool) whe
 	T_size :: size_of(T)
 
 	length: int
-	length, ok = parse_int(reader, T)
+	length, ok = read_int(reader, T)
 	if intrinsics.expect(!ok, false) {return}
 
 	raw_value := (^runtime.Raw_String)(&value)
