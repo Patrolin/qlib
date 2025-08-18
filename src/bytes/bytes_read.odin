@@ -1,8 +1,7 @@
 package lib_bytes
 
-// TODO: Reader
 @(require_results)
-parse_int :: proc(reader: ^Reader, $T: typeid) -> (value: T, ok: bool) where intrinsics.type_is_integer(T) #no_bounds_check {
+read_int :: proc(reader: ^Reader, $T: typeid) -> (value: T, ok: bool) where intrinsics.type_is_integer(T) #no_bounds_check {
 	#assert(T != i16)
 	#assert(T != u16)
 	#assert(T != i32)
@@ -20,7 +19,7 @@ parse_int :: proc(reader: ^Reader, $T: typeid) -> (value: T, ok: bool) where int
 	return
 }
 @(require_results)
-parse_slice :: proc(reader: ^Reader, $T: typeid) -> (value: []byte, ok: bool) where intrinsics.type_is_integer(T) #no_bounds_check {
+read_slice :: proc(reader: ^Reader, $T: typeid) -> (value: []byte, ok: bool) where intrinsics.type_is_integer(T) #no_bounds_check {
 	#assert(T != i16)
 	#assert(T != u16)
 	#assert(T != i32)
