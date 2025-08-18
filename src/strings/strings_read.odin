@@ -59,9 +59,9 @@ read_uint :: proc(reader: ^bytes.Reader, base: u64 = 10) -> (n: u64, ok: bool) {
 		case:
 			break
 		}
-		new_n := n * base + int_digit
-		if intrinsics.expect(int_digit >= base && new_n > n, false) {break}
-		n = new_n
+		extended, did_overflow := intrinsics.overflow_mul(n, base)
+		if intrinsics.expect(int_digit >= base || did_overflow, false) {break}
+		n = extended + int_digit
 	}
 	reader.current_offset = i
 	ok = i > 0
