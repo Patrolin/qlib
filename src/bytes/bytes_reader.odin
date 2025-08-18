@@ -7,7 +7,6 @@ ReaderOp :: enum {
 	Read,
 }
 ReaderProc :: proc(reader: ^Reader, operator: ReaderOp, dest_buffer: []byte) -> (bytes_read: int)
-/* NOTE: single threaded */
 Reader :: struct {
 	procedure:      ReaderProc,
 	buffer:         []byte,
@@ -15,6 +14,7 @@ Reader :: struct {
 }
 
 // procs
+/* NOTE: single threaded */
 buffer_reader :: proc(buffer: []byte) -> Reader {
 	return Reader{_buffer_reader_proc, buffer, 0}
 }

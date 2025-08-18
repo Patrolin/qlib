@@ -5,6 +5,7 @@ import "../mem"
 import "../path"
 import "base:intrinsics"
 
+/* NOTE: single threaded */
 buffered_file_writer :: proc(buffer: []byte, file: ^File) -> bytes.Writer {
 	return bytes.Writer{_buffered_file_writer_proc, buffer, 0, file}
 }

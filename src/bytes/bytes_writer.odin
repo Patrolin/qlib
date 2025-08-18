@@ -9,7 +9,6 @@ WriterOp :: enum {
 	FlushPartial,
 }
 WriterProc :: proc(writer: ^Writer, operator: WriterOp, src_buffer: []byte)
-/* NOTE: single threaded */
 Writer :: struct {
 	procedure:      WriterProc,
 	buffer:         []byte,
@@ -18,6 +17,7 @@ Writer :: struct {
 }
 
 // procs
+/* NOTE: single threaded */
 buffer_writer :: proc(buffer: []byte) -> Writer {
 	return Writer{_buffer_writer_proc, buffer, 0, nil}
 }
