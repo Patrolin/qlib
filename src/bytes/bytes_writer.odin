@@ -7,6 +7,7 @@ WriterOp :: enum {
 	Flush,
 }
 WriterProc :: proc(writer: ^Writer, operator: WriterOp, src_buffer: []byte)
+/* NOTE: single threaded */
 Writer :: struct {
 	procedure:      WriterProc,
 	data:           rawptr,
@@ -23,6 +24,7 @@ _buffer_writer_proc: WriterProc : proc(writer: ^Writer, operator: WriterOp, src_
 	current_offset := writer.current_offset
 	switch operator {
 	case .Write:
+		// write bytes from src_buffer
 		new_offset := current_offset + len(src_buffer)
 		assert(new_offset <= len(dest_buffer), "Out of room in dest_buffer.")
 		mem.copy_slow(raw_data(src_buffer), len(src_buffer), raw_data(dest_buffer))

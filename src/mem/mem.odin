@@ -3,6 +3,7 @@ import "base:intrinsics"
 
 // constants
 // NOTE: SSD block sizes are 512B or 4KiB
+SSD_BLOCK_SIZE :: 512
 VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
 
 PAGE_SIZE_EXPONENT :: 12
