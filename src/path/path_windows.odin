@@ -84,23 +84,23 @@ delete_directory_if_empty :: proc(dir_path: string) {
 delete_file :: proc(file_path: string) {
 	win.DeleteFileW(os.win_string_to_wstring(file_path))
 }
-open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: bool) {
+open_file :: proc(file_path: string, flags: FileFlags) -> (file: File, ok: bool) {
 	file_path_w := os.win_string_to_wstring(file_path)
-	read_only := options >= {.ReadOnly}
+	read_only := flags >= {.ReadOnly}
 
-	dwDesiredAccess := options >= {.WriteOnly} ? 0 : win.GENERIC_READ
+	dwDesiredAccess := flags >= {.WriteOnly} ? 0 : win.GENERIC_READ
 	dwDesiredAccess |= read_only ? 0 : win.GENERIC_WRITE
 
-	dwShareMode := options >= {.UniqueAccess} ? 0 : win.FILE_SHARE_READ | win.FILE_SHARE_WRITE
+	dwShareMode := flags >= {.UniqueAccess} ? 0 : win.FILE_SHARE_READ | win.FILE_SHARE_WRITE
 
 	dwCreationDisposition: DwCreationDisposition = read_only ? .OPEN : .CREATE_OR_OPEN
-	dwCreationDisposition = options >= {.CreateOnly} ? .CREATE : dwCreationDisposition
-	dwCreationDisposition = options >= {.Truncate} ? .CREATE_OR_OPEN_TRUNCATE : dwCreationDisposition
+	dwCreationDisposition = flags >= {.CreateOnly} ? .CREATE : dwCreationDisposition
+	dwCreationDisposition = flags >= {.Truncate} ? .CREATE_OR_OPEN_TRUNCATE : dwCreationDisposition
 
 	dwFlagsAndAttributes := win.FILE_ATTRIBUTE_NORMAL
-	dwFlagsAndAttributes |= options >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
-	dwFlagsAndAttributes |= options >= {.NoBuffering} ? win.FILE_FLAG_NO_BUFFERING : 0
-	dwFlagsAndAttributes |= options >= {.FlushOnWrite} ? win.FILE_FLAG_WRITE_THROUGH : 0
+	dwFlagsAndAttributes |= flags >= {.RandomAccess} ? win.FILE_FLAG_RANDOM_ACCESS : win.FILE_FLAG_SEQUENTIAL_SCAN
+	dwFlagsAndAttributes |= flags >= {.NoBuffering} ? win.FILE_FLAG_NO_BUFFERING : 0
+	dwFlagsAndAttributes |= flags >= {.FlushOnWrite} ? win.FILE_FLAG_WRITE_THROUGH : 0
 
 	file_handle := win.CreateFileW(file_path_w, dwDesiredAccess, dwShareMode, nil, u32(dwCreationDisposition), dwFlagsAndAttributes, nil)
 	if file_handle != win.INVALID_HANDLE_VALUE {
@@ -110,6 +110,7 @@ open_file :: proc(file_path: string, options: FileOptions) -> (file: File, ok: b
 			file_handle,
 			int(win_stats.nFileSizeHigh) << 32 | int(win_stats.nFileSizeLow),
 			int(win_stats.ftLastWriteTime.dwHighDateTime) << 32 | int(win_stats.ftLastWriteTime.dwLowDateTime),
+			flags,
 		}
 		ok = true
 	}

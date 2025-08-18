@@ -10,16 +10,16 @@ MAX_WAL_COUNT :: 3
 
 // types
 DBWrite :: struct {
-	file:   path.File,
-	offset: int,
-	bytes:  []byte,
+	file_name: string,
+	file:      path.File,
+	offset:    int,
+	bytes:     []byte,
 }
 DBTransaction :: [dynamic]DBWrite
 WriteAheadLog :: struct {
-	time:      timing.Time,
-	index:     int,
-	file_name: string,
-	file:      path.File,
+	time:  timing.Time,
+	index: int,
+	file:  path.File,
 }
 
 // globals
@@ -37,9 +37,12 @@ commit_transaction :: proc(transaction: DBTransaction) {
 		_opened_wal.file, ok = path.open_file(new_path, {.NoBuffering, .FlushOnWrite, .UniqueAccess})
 	}
 	buffer: [ROW_SIZE]byte
-	writer := path.file_writer(_opened_wal.file, buffer)
+	writer := path.buffered_file_writer(buffer[:], &_opened_wal.file)
 	for write in transaction {
-		assert(bytes.blip_slice(writer, u64le, write.file_name))
-		assert(bytes.blip_slice(writer, u64le, write.bytes))
+		assert(bytes.write_slice(&writer, u64le, transmute([]u8)(write.file_name)))
+		assert(bytes.write_slice(&writer, u64le, write.bytes))
 	}
+	checksum_header := "../CHECKSUM"
+	assert(bytes.write_slice(&writer, u64le, transmute([]u8)(checksum_header)))
+	// TODO: write a checksum
 }

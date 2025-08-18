@@ -43,23 +43,5 @@ relative_rect :: #force_inline proc "contextless" (rect: AbsoluteRect) -> Relati
 	return {rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top}
 }
 in_bounds :: proc(pos: i32x2, rect: AbsoluteRect) -> bool {
-	return(
-		(pos.x >= rect.left) &
-		(pos.x <= rect.right) &
-		(pos.y >= rect.bottom) &
-		(pos.y <= rect.top) \
-	)
-}
-clamp :: proc {
-	clamp_int,
-	clamp_i32x2,
-}
-clamp_int :: proc(x, min, max: $T) -> T where intrinsics.type_is_numeric(T) {
-	// TODO: check bytecode output of max(a, min(x, b))
-	x := x + (min - x) * T(x < min)
-	x = x + (max - x) * T(x > max)
-	return x
-}
-clamp_i32x2 :: proc(pos: i32x2, rect: AbsoluteRect) -> i32x2 {
-	return {clamp(pos.x, rect.left, rect.right), clamp(pos.y, rect.top, rect.bottom)}
+	return (pos.x >= rect.left) & (pos.x <= rect.right) & (pos.y >= rect.bottom) & (pos.y <= rect.top)
 }

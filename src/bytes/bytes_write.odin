@@ -20,7 +20,7 @@ write_int :: proc(writer: ^Writer, value: $T) -> (ok: bool) where intrinsics.typ
 }
 
 @(require_results)
-write_slice :: proc(writer: ^Writer, $T: typeid, value: []byte) -> (ok: bool) where intrinsics.type_is_integer(T) #no_bounds_check {
+write_slice :: proc(writer: ^Writer, $T: typeid, slice: []byte) -> (ok: bool) where intrinsics.type_is_integer(T) #no_bounds_check {
 	#assert(T != i16)
 	#assert(T != u16)
 	#assert(T != i32)
@@ -31,8 +31,8 @@ write_slice :: proc(writer: ^Writer, $T: typeid, value: []byte) -> (ok: bool) wh
 	#assert(T != uint)
 
 	int_buffer := [8]byte
-	(^T)(raw_data(int_buffer))^ = len(value)
+	(^T)(raw_data(int_buffer))^ = len(slice)
 	writer.procedure(writer, .Write, int_buffer[:size_of(T)])
-	writer.procedure(writer, .Write, value)
+	writer.procedure(writer, .Write, slice)
 	return true
 }

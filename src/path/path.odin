@@ -8,7 +8,7 @@ PathType :: enum {
 	File,
 	Directory,
 }
-FileOptionsEnum :: enum {
+FileFlagsEnum :: enum {
 	ReadOnly,
 	WriteOnly,
 	// Must create a new file, don't open if it already exists.
@@ -23,11 +23,12 @@ FileOptionsEnum :: enum {
 	// O_DSYNC on linux, FILE_FLAG_WRITE_THROUGH on windows
 	FlushOnWrite,
 }
-FileOptions :: bit_set[FileOptionsEnum]
+FileFlags :: bit_set[FileFlagsEnum]
 File :: struct {
 	handle:          os.FileHandle,
 	size:            int,
 	last_write_time: int,
+	flags:           FileFlags,
 }
 
 // helper procedures

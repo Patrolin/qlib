@@ -1,12 +1,17 @@
 package lib_db
 import "../fmt"
 import "../math"
+import "../mem"
 import "../mem/types"
 import "../path"
 import "../strings"
 import "base:intrinsics"
 import "base:runtime"
 
+// constants
+ROW_SIZE :: mem.SSD_BLOCK_SIZE
+
+// types
 /* NOTE: for GDPR deletion requests
 	- soft delete and anonymize the user
 	- run on_delete(row) (on delete, and on startup if deletion_version mismatch)
