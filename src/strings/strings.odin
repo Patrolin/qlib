@@ -8,6 +8,9 @@ PRIME_RABIN_KARP: u32 : 16777619
 starts_with :: proc(str, prefix: string) -> bool {
 	return len(str) >= len(prefix) && str[0:len(prefix)] == prefix
 }
+ends_with :: proc(str, suffix: string) -> bool {
+	return len(str) >= len(suffix) && str[len(str) - len(suffix):] == suffix
+}
 
 /* Returns the first byte offset of the `substring` in the `str`, or `len(s)` when not found. */
 index :: proc "contextless" (str, substring: string) -> (byte_index: int) {
